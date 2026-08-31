@@ -1,6 +1,6 @@
 # DesiFlow Analytics Microservice (FastAPI)
 
-Computes the four SRS §4.7 outputs and writes them to `analytics_snapshots`,
+Computes the four outputs and writes them to `analytics_snapshots`,
 which `AnalyticsController.php` already reads. Nothing on the Laravel side
 needs to change.
 
@@ -68,28 +68,3 @@ doesn't snapshot historical price or cost, profitability figures are computed
 from the *current* recipe and *current* `unit_cost` — not what those items
 actually cost on the day they were sold. Fine for a capstone; worth a
 one-line footnote if your panel asks about historical accuracy.
-
-## 4. What's NOT done yet
-
-- `/internal/run-analytics` is dev-only — lock it down or remove it before deployment.
-- Two-DB-role separation (Capstone 1 Ch.3: read-only credentials for FastAPI)
-  isn't set up; one connection string does both reads and the
-  `analytics_snapshots` write for now.
-- Smart Assistant (REQ-4.9) is a separate Laravel-side rule-based feature —
-  not part of this service, and SRS §2.5 bans it from calling any AI API.
-
-## 5. Bugs this testing round caught (fixed, for your own awareness)
-
-Three real PostgreSQL/asyncpg issues only show up when a query actually runs
-against a live connection — worth knowing about since you'll hit variants of
-these yourself once you're writing more raw SQL in this service:
-
-1. `(:param || ' days')::interval` fails under asyncpg because it can't infer
-   whether `:param` is text or a number for the `||` operator. Fixed by using
-   `make_interval(days => :param)` instead.
-2. A bind parameter immediately followed by a cast, `:param::float`, confuses
-   SQLAlchemy's `text()` parser. Fixed by wrapping it: `(:param)::float`.
-3. Reusing the same named parameter in two different type contexts within one
-   query (once as `float`, once as `int` for `make_interval`) makes asyncpg
-   unify it to one type and break the other usage. Fixed by casting explicitly
-   at each usage site.
