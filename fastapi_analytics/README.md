@@ -38,33 +38,3 @@ uvicorn app.main:app --reload --port 8001
   instead of waiting for the 2 AM cron job. Dev/testing only — see §4.
 
 Once it runs clean against your real data, reload the Laravel Analytics page.
-
-## 3. Schema mapping — confirmed against your actual `schema.sql`
-
-Your first message assumed column names that turned out to be wrong in
-several places. These are now corrected and verified by direct execution
-against your real table definitions:
-
-| Table.column used | Confirmed vs schema.sql |
-|---|---|
-| `orders.total_amount`, `orders.created_at` | used for revenue instead of `payments.amount`/`created_at`, which don't exist — `payments` has no `created_at` at all, and `amount_tethered` is cash tendered, not the order total |
-| `order_items.quantity`, `order_items.total` | there's no `historical_price`/`historical_cost` — cost is computed live from the recipe instead (see below) |
-| `recipe_ingredients.qty_consumed`, `.is_active` | was `quantity_per_serving` in my first draft |
-| `ingredients.unit_cost`, `.restock_threshold`, `.shelf_life_days` | `shelf_life_days` is a duration (int), not a stored `expiry_date` — Spoilage Risk now derives "days until expiry" from `shelf_life_days - days since that ingredient's most recent stock_in movement` |
-| `stock_movements.qty_changed`, `.recorded_at`, `.movement_type` | were `quantity_change`/`created_at` in my first draft |
-| `analytics_snapshots.*` | matches exactly, no changes needed |
-
-**One assumption still open, flagged in the code comments:** whether
-`qty_changed` is stored *signed* (negative for stock_out/waste) or always
-positive with `movement_type` as the only sign indicator. The queries assume
-signed storage (`SUM(qty_changed)` = current stock). If your Inventory
-Management page writes movements as unsigned magnitudes instead, tell me and
-I'll adjust every `SUM`/`ABS` call accordingly — this is the one thing I
-couldn't verify without your actual `INSERT` code for stock movements (the
-Inventory page you're about to build).
-
-**Menu Engineering / Business Health cost caveat:** since `order_items`
-doesn't snapshot historical price or cost, profitability figures are computed
-from the *current* recipe and *current* `unit_cost` — not what those items
-actually cost on the day they were sold. Fine for a capstone; worth a
-one-line footnote if your panel asks about historical accuracy.
