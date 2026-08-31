@@ -23,7 +23,7 @@ cp .env.example .env
 
 Edit `.env` — set `DATABASE_URL` to your actual Postgres 16 instance:
 ```
-postgresql+asyncpg://<user>:<password>@<host>:5432/<database>
+postgresql+asyncpg://<user>:<password>@<host>:5433/<database>
 ```
 
 ## 2. Run it
@@ -35,6 +35,6 @@ uvicorn app.main:app --reload --port 8001
 - `GET /health` → `{"status": "ok"}`
 - `GET /docs` → Swagger UI
 - `POST /internal/run-analytics` → runs all four calculators immediately
-  instead of waiting for the 2 AM cron job. Dev/testing only — see §4.
+  instead of waiting for the 2 AM cron job. Dev/testing only.
 
 Once it runs clean against your real data, reload the Laravel Analytics page.
