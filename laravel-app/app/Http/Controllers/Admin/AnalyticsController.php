@@ -51,7 +51,7 @@ class AnalyticsController extends Controller{
     // whatever snapshots happen to exist) and left-joins the snapshot data
     // onto it in memory. A menu item added five minutes ago, or one the
     // microservice hasn't scored yet for lack of order history, still needs
-    // to appear in the report — just flagged as not-yet-available rather than
+    // to appear in the report, just flagged as "not yet available" rather than
     // silently missing (alternate flow: "the system labels that
     // item's forecast 'Insufficient Data' rather than displaying a misleading
     // figure"). The old snapshot-first approach would have dropped it

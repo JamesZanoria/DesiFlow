@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Validator;
 
 class InventoryController extends Controller{
     // Movement types the ledger understands. 'sale_deduction' has no writer
-    // yet — it's meant to be created automatically by the Kitchen Display's
+    // yet, it's meant to be created automatically by the Kitchen Display's
     // Serve action (backflushing), which doesn't exist as a built
     // module yet. It's included here so the ledger's type filter is already
     // correct and future-proofed; it will simply show zero results until
@@ -38,7 +38,7 @@ class InventoryController extends Controller{
         }
 
         // "Critical First" sorts by stock severity (out of stock, then low
-        // stock, then active), each tier alphabetical within itself —
+        // stock, then active), each tier alphabetical within itself,
         // otherwise plain alphabetical by name. Sorting has to happen in the
         // database, not in PHP after fetching, since the result is paginated;
         // `current_stock` here refers to the SELECT-list alias withCurrentStock()
@@ -97,7 +97,7 @@ class InventoryController extends Controller{
     // Low Stock and Out of Stock are deliberately non-overlapping counts
     // (each ingredient's stockStatus() puts it in exactly one tier) rather
     // than Low Stock including everything at-or-below threshold the way
-    // isLowStock() does elsewhere — with a dedicated Out of Stock card now
+    // isLowStock() does elsewhere, with a dedicated Out of Stock card now
     // existing, double-counting the same ingredients in both would be
     // confusing rather than just redundant.
     private function currentStockStats(): array{
@@ -129,7 +129,7 @@ class InventoryController extends Controller{
     }
 
     // Shared validation rules: required text that must not contain any digits
-    // (0-9) — matches ingredient_name and unit_of_measurement, both of which the
+    // (0-9), matches ingredient_name and unit_of_measurement, both of which the
     // frontend already blocks digits on while typing.
     private function textNoDigitsRule(): array{
         return ['required', 'string', 'regex:/^[^0-9]+$/u'];
@@ -179,7 +179,7 @@ class InventoryController extends Controller{
     }
 
     // Validated manually (rather than $request->validate()) so this controller
-    // decides redirect-vs-422 itself via $request->wantsJson() — the same fix
+    // decides redirect-vs-422 itself via $request->wantsJson(), the same fix
     // applied to MenuController after discovering Laravel's automatic
     // expectsJson()-based exception handling was returning a 302 redirect for
     // AJAX validation failures even with a correct Accept header, which caused
@@ -196,7 +196,7 @@ class InventoryController extends Controller{
         return redirect()->back()->withErrors($validator)->withInput();
     }
 
-    // Store a newly created ingredient. Accepts an optional initial_stock value —
+    // Store a newly created ingredient. Accepts an optional initial_stock value,
     // if provided, this creates a real 'delivery' entry in the stock ledger rather
     // than a raw stock number, so the append-only audit trail stays accurate.
     // Also accepts an optional image, handled the same way MenuController does.
@@ -273,7 +273,7 @@ class InventoryController extends Controller{
         ]);
     }
 
-    // Update an existing ingredient's details. Does not touch current stock —
+    // Update an existing ingredient's details. Does not touch current stock,
     // that's only ever changed through recordMovement().
     public function update(Request $request, Ingredient $ingredient){
         $validator = Validator::make($request->all(), [
@@ -306,7 +306,7 @@ class InventoryController extends Controller{
             }
             $validated['image_url'] = null;
         }
-        // Neither a new file nor an explicit removal → image_url left out of
+        // Neither a new file nor an explicit removal -> image_url left out of
         // $validated entirely, so the existing image is preserved.
         unset($validated['image']);
 
@@ -336,7 +336,7 @@ class InventoryController extends Controller{
 
     // Permanently remove an ingredient. The database's foreign keys deliberately
     // reject this (ON DELETE NO ACTION) if the ingredient has any recipe lines or
-    // stock movement history, to protect the audit trail (SRS 5.3) — so rather than
+    // stock movement history, to protect the audit trail, so rather than
     // let that surface as a raw 500 error, it's caught here and turned into a clear,
     // specific message the admin can actually act on.
     public function destroy(Request $request, Ingredient $ingredient){
@@ -368,7 +368,7 @@ class InventoryController extends Controller{
     }
 
     // Record a stock-in, waste, or manual adjustment entry against an ingredient's
-    // ledger. 'sale_deduction' is deliberately not offered here — a human admin
+    // ledger. 'sale_deduction' is deliberately not offered here, a human admin
     // manually picking that type would defeat the point of it being automated;
     // see the MOVEMENT_TYPES docblock at the top of this class.
     public function recordMovement(Request $request, Ingredient $ingredient){
@@ -405,7 +405,7 @@ class InventoryController extends Controller{
 
     // Directly correct a previously recorded stock movement. This is a deliberate
     // exception to the append-only pattern used elsewhere (orders/payments remain
-    // immutable) — ingredient stock entries may be corrected by an admin to fix
+    // immutable), ingredient stock entries may be corrected by an admin to fix
     // data-entry mistakes, since a wrong quantity here otherwise permanently skews
     // current_stock (which is derived by summing this table) until a manual
     // adjustment is layered on top to compensate.
@@ -461,7 +461,7 @@ class InventoryController extends Controller{
         };
     }
 
-    // Per-ingredient movement history — still reachable directly, but no longer the
+    // Per-ingredient movement history, still reachable directly, but no longer the
     // primary way to view ledger data (see ledgerIndex() below).
     public function history(Ingredient $ingredient){
         $movements = $ingredient->stockMovements()
@@ -475,7 +475,7 @@ class InventoryController extends Controller{
         ]);
     }
 
-    // Consolidated Stock Movement Ledger across every ingredient (Figure 3.7) —
+    // Consolidated Stock Movement Ledger across every ingredient,
     // the primary, discoverable way to reach ledger data via a tab, rather than a
     // small action icon buried in a specific ingredient's row.
     public function ledgerIndex(Request $request){
@@ -516,9 +516,8 @@ class InventoryController extends Controller{
     // Total Movements (today) / Restocks (all-time completed deliveries) /
     // Waste Recorded (distinct ingredients with at least one waste entry) /
     // Net Stock (% change in total inventory value vs. 7 days ago).
-    //
     // "Net Stock" specifically doesn't correspond to anything in the current
-    // SRS or schema as a named metric — it's defined here concretely as the
+    // SRS or schema as a named metric, it's defined here concretely as the
     // percentage change in total inventory value (current_stock × unit_cost,
     // summed across every ingredient) between right now and 7 days ago,
     // reconstructed from the append-only ledger rather than any stored

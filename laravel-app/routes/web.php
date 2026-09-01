@@ -15,7 +15,7 @@ Route::get('/', function () {
 });
 
 // Guest-only: an already-logged-in admin hitting /login gets redirected
-// forward instead of seeing the form again. There is no registration route —
+// forward instead of seeing the form again. There is no registration route,
 // every staff account is created by an admin through Staff Management.
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
@@ -26,7 +26,7 @@ Route::post('/logout', [AuthController::class, 'logout'])
     ->middleware('auth')
     ->name('logout');
 
-// 'role:admin' — see App\Http\Middleware\EnsureUserHasRole. Cashier and
+// 'role:admin', see App\Http\Middleware\EnsureUserHasRole. Cashier and
 // Kitchen Staff accounts exist in the users table (Staff Management already
 // supports creating them) but have no module of their own yet, so this whole
 // prefix is admin-only for now; a future POS/KDS route group would use

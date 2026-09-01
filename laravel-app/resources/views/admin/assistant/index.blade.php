@@ -11,8 +11,8 @@
 
     <div class="bg-white border rounded-xl shadow-sm flex flex-col h-[32rem] max-w-3xl">
 
-        {{-- Message thread — session-only (resets on reload). There's no
-             chat-history table in the schema, and REQ-4.9-3 only asks for a
+        {{-- Message thread, session-only (resets on reload). There's no
+             chat-history table in the schema, only asks for a
              running thread "within the current session," so this is kept
              entirely in the DOM/JS rather than persisted server-side. --}}
         <div id="assistant-messages" class="flex-1 overflow-y-auto p-5 space-y-4">
@@ -26,10 +26,8 @@
             </div>
         </div>
 
-        {{-- Suggested question chips — kept visible above the input for the
-             whole session (not just on first load), per SRS §3.1: "provides a
-             set of suggested question chips above the input field for quick
-             access." Each chip's wording deliberately contains the exact
+        {{-- Suggested question chips, kept visible above the input for the
+             whole session (not just on first load), Each chip's wording deliberately contains the exact
              keyword SmartAssistantController::matchQuestion() checks for
              (e.g. "best selling", "reorder") so clicking one is guaranteed to
              route the same way typing it would. --}}
@@ -135,7 +133,7 @@
             }
 
             // Deliberately a standalone fetch call rather than the shared
-            // submitAjaxForm()/submitAjaxAction() helpers in admin.js — those
+            // submitAjaxForm()/submitAjaxAction() helpers in admin.js, those
             // assume a {success, message}-style response used for CRUD
             // actions, whereas this endpoint returns {question, answer} and
             // isn't mutating any record, so wrapping it into that contract

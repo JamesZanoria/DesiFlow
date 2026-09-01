@@ -9,21 +9,20 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller{
-    // Show the login form. There is no registration route (SRS's own
-    // Registration Page section was already marked for removal by the team)
-    // — every account is created by an admin through Staff Management instead.
+    // Show the login form. There is no registration route
+    // Every account is created by an admin through Staff Management instead.
     public function showLoginForm(){
         return view('auth.login');
     }
 
-    // Authenticate a staff account. Per REQ-4.1-1/4.1-3: requires a valid
+    // Authenticate a staff account. Requires a valid
     // email + password, denies access and shows an error on any failure.
-    //
+    
     // Deliberately restricted to role === 'admin' beyond just checking the
     // password: Cashier and Kitchen Staff accounts can already be created in
     // Staff Management, but their modules (POS, KDS) don't exist as views
     // yet, so letting them log in here would land them in an admin panel
-    // they have no business — or, per SRS §2.3, privileges — being in.
+    // they have no business.
     public function login(Request $request){
         $validated = $request->validate([
             'email' => 'required|string|email',

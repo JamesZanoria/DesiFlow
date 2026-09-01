@@ -40,7 +40,7 @@ class RecipeIngredient extends Model{
         return $this->belongsTo(Ingredient::class, 'ingredient_id', 'ingredient_id');
     }
 
-    // Scope to only the currently active recipe lines — use this wherever a recipe
+    // Scope to only the currently active recipe lines, use this wherever a recipe
     // is read for costing or backflushing, so retired/edited recipe lines that were
     // soft-disabled via is_active don't get counted.
     public function scopeActive($query){

@@ -30,7 +30,7 @@ class StaffController extends Controller{
             ->appends($request->query());
 
         // Full, unpaginated list of staff names for the search box's
-        // suggestions dropdown — deliberately separate from $staff (only the
+        // suggestions dropdown, deliberately separate from $staff (only the
         // current page of up to 8 results), since suggestions need to cover
         // every account, not just whichever page happens to be showing.
         $allStaffNames = User::query()->orderBy('name')->pluck('name');
@@ -40,8 +40,8 @@ class StaffController extends Controller{
         // this same endpoint asking for JSON instead of a full page. This returns
         // just the table + pagination fragment (see admin.staff._table) so the page
         // stays in sync with the real, server-computed pagination state without a
-        // manual browser reload — same pattern as Menu Management and Inventory.
-        //
+        // manual browser reload, same pattern as Menu Management and Inventory.
+    
         // staffSuggestionsHtml rides along in the same response for the same reason
         // the Category filter's options do on Menu Management: without it, an
         // account just added/renamed/deleted wouldn't show up in the search
@@ -75,23 +75,16 @@ class StaffController extends Controller{
     // that a bare `email` rule alone would still accept. DNS/MX lookups are
     // deliberately not used (`email:rfc,dns`) since the system is designed to run
     // entirely on the restaurant's local network without guaranteed outbound
-    // internet access (SRS §2.6) — a DNS check would make account creation fail
+    // internet access, a DNS check would make account creation fail
     // offline for otherwise valid addresses.
     private function emailRules(): array{
         return ['required', 'string', 'email:rfc,filter', 'max:150'];
     }
 
-    // Required text that must not contain any digits (0-9) — same rule
-    // MenuController applies to item_name/category, used here for the staff
-    // full-name field.
-    private function textNoDigitsRule(): array{
-        return ['required', 'string', 'max:100', 'regex:/^[^0-9]+$/u'];
-    }
-
     // A staff account can't be created with a weak password: at least 10
     // characters, upper + lower case, at least one number, and at least one
     // symbol. `uncompromised()` (a live Have I Been Pwned lookup) is deliberately
-    // left off for the same offline-first reason as the email rule above — it
+    // left off for the same offline-first reason as the email rule above, it
     // requires an outbound API call this system cannot depend on.
     private function passwordRules(bool $required): array{
         $rule = Password::min(10)->mixedCase()->numbers()->symbols();
@@ -105,7 +98,6 @@ class StaffController extends Controller{
         return [
             'email.email' => 'Please enter a valid email address.',
             'password.confirmed' => 'Password confirmation does not match.',
-            'name.regex' => 'Full name must not contain any numbers.',
         ];
     }
 
@@ -127,7 +119,7 @@ class StaffController extends Controller{
     }
 
     // Postgres unique_violation is SQLSTATE 23505. Last line of defense against a
-    // race between two simultaneous submissions for the same email — the
+    // race between two simultaneous submissions for the same email, the
     // application-level duplicateEmailRule() above should already catch this, but
     // the DB-level unique index (see the accompanying migration) guarantees a
     // duplicate can never actually be written, even if that check is ever bypassed.
@@ -151,7 +143,7 @@ class StaffController extends Controller{
 
     // Decides redirect-vs-422 itself via $request->wantsJson(), rather than
     // letting Laravel's automatic ValidationException handling decide via
-    // expectsJson() — the same fix already applied in MenuController and
+    // expectsJson(), the same fix already applied in MenuController and
     // InventoryController after that path was found to silently redirect AJAX
     // validation failures instead of returning 422 JSON.
     private function validationFailedResponse(Request $request, $validator){
@@ -212,8 +204,8 @@ class StaffController extends Controller{
         ]);
     }
 
-    // Update an existing staff account in the database. Password is optional here
-    // — left blank, the existing password is preserved; filled in, it's held to
+    // Update an existing staff account in the database. Password is optional here,
+    // left blank, the existing password is preserved; filled in, it's held to
     // the exact same strength policy as account creation.
     public function update(Request $request, User $user){
         $validator = Validator::make($request->all(), [
@@ -261,7 +253,7 @@ class StaffController extends Controller{
     // Remove a staff account from the database. The database's foreign keys
     // (orders.cashier_id, stock_movements.user_id) deliberately reject this if the
     // account has any order or stock-movement history tied to it, protecting the
-    // audit trail (SRS §5.3) — so rather than let that surface as a raw 500 error,
+    // audit trail, so rather than let that surface as a raw 500 error,
     // it's caught here and turned into a clear, specific message the admin can act
     // on. Same pattern as InventoryController::destroy().
     public function destroy(Request $request, User $user){

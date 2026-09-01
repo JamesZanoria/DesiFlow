@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 
 class OrderMonitorController extends Controller{
     // The three active-order stages this board displays. 'ready' is
-    // the KDS's "To Be Served" stage — once an order is actually served (backflush
+    // the KDS's "To Be Served" stage, once an order is actually served (backflush
     // triggered) or paid, it's no longer "active" and drops off this board.
     private const ACTIVE_STATUSES = ['pending', 'preparing', 'ready'];
 
@@ -42,7 +42,7 @@ class OrderMonitorController extends Controller{
         // AJAX refresh: the page polls this same endpoint asking for JSON every
         // few seconds (see index.blade.php) and swaps in just the board fragment,
         // so newly confirmed/prepared/served orders appear without a manual
-        // reload — the polling stand-in for real WebSocket push until
+        // reload, the polling stand-in for real WebSocket push until
         // Laravel Reverb is wired into this module.
         if ($request->wantsJson()) {
             return response()->json([
@@ -60,7 +60,7 @@ class OrderMonitorController extends Controller{
     }
 
     // Show full details for a single order. AJAX requests get back just the
-    // Quick-View modal fragment (read-only — the admin can observe an order here
+    // Quick-View modal fragment (read-only, the admin can observe an order here
     // but all actions on it still happen through POS/KDS, per
     // role-scoped privileges); a direct/no-JS visit gets a full page instead.
     public function show(Request $request, Order $order){

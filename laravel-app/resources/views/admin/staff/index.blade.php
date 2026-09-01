@@ -148,11 +148,11 @@
             // Snapshot of the values an Edit session opened with, so Save can
             // stay disabled until something actually differs from it. Stays
             // null in Create mode, where "no changes yet" isn't a meaningful
-            // concept — there's nothing to compare against.
+            // concept, there's nothing to compare against.
             let editSnapshot = null;
 
             // A typed password always counts as a change (it's the one field
-            // that starts blank on purpose in Edit mode — blank means "leave
+            // that starts blank on purpose in Edit mode, blank means "leave
             // the current password alone", so blank never counts as a change,
             // but anything typed there does, regardless of the other fields).
             function hasUnsavedChanges() {

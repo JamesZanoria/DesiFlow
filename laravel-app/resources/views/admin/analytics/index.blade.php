@@ -47,7 +47,7 @@
         $menuScatterHasData = $menuScatterDatasets->sum(fn ($d) => count($d['points'])) > 0;
 
         // Top 5 ingredients with a daily breakdown, ranked by total forecasted
-        // quantity — matches the mockup's "a handful of named ingredients,
+        // quantity, matches the mockup's "a handful of named ingredients,
         // not every ingredient" bar chart, since a full ingredient list would
         // make the chart unreadable.
         $forecastRowsWithDaily = $demandForecast->filter(fn ($row) => ! empty($row['data']['daily_forecast']));
@@ -79,7 +79,7 @@
         $riskChartHasData = array_sum($riskCounts) > 0;
 
         // Full underlying data still gets exported to CSV even though the
-        // detail tables are no longer shown on-page — an owner reviewing
+        // detail tables are no longer shown on-page, an owner reviewing
         // "what should I restock" shouldn't lose access to the full list just
         // because only the top 5 fit in the chart.
         $forecastExportRows = $demandForecast->map(fn ($row) => [
@@ -375,9 +375,9 @@
 
             // ---- Export: builds the CSV directly from the same data driving
             // the charts (rather than scraping now-removed detail tables from
-            // the DOM), entirely client-side — no backend endpoint or outbound
+            // the DOM), entirely client-side, no backend endpoint or outbound
             // network call needed, consistent with the system's offline-
-            // capable local-network design (SRS §2.6). ----
+            // capable local-network design. ----
             function rowsToCsv(rows, headers, sectionTitle) {
                 const csvRows = [[sectionTitle], headers];
                 rows.forEach((row) => {
@@ -402,7 +402,7 @@
             });
 
             // ---- Refresh: the numbers here are computed on the microservice's
-            // own schedule, not on demand — this simply re-fetches the latest
+            // own schedule, not on demand, this simply re-fetches the latest
             // snapshots Laravel has, rather than triggering a new computation. ----
             document.getElementById('analytics-refresh-btn').addEventListener('click', () => {
                 window.location.reload();

@@ -2,11 +2,10 @@
 // (Menu, Inventory, Staff, etc.) so pages call one shared implementation
 // instead of each page re-writing fetch/error-handling/toast logic itself.
 
-// Chart.js (already committed to in the SRS tech stack — Table 24, §2.4) is
-// imported once here and exposed on window, same as the helpers below, so
+// Chart.js is imported once here and exposed on window, same as the helpers below, so
 // the Analytics page's inline <script> block can call `new Chart(...)`
 // directly without every chart-using page needing its own Vite entry point.
-// Requires `npm install chart.js` — the 'chart.js/auto' import auto-registers
+// Requires `npm install chart.js`, the 'chart.js/auto' import auto-registers
 // every controller/element (line, bar, scatter, doughnut, tooltips, etc.) so
 // individual pieces don't need to be registered by hand.
 import Chart from 'chart.js/auto';
@@ -85,13 +84,13 @@ function getCsrfToken() {
  * for PUT/PATCH/DELETE (avoids the multipart-body parsing issues real HTTP PUT/DELETE
  * requests have in PHP). Renders 422 validation errors into `errorBox` if provided,
  * shows a toast on both success and failure, and hands the parsed JSON to `onSuccess`.
- *
+ 
  * Uses XMLHttpRequest rather than fetch() specifically so upload progress can be
  * reported via the optional `onUploadProgress(percent, loadedBytes, totalBytes)`
- * callback — fetch has no cross-browser way to observe request-body upload progress,
+ * callback, fetch has no cross-browser way to observe request-body upload progress,
  * only response-download progress, which is useless for file uploads.
- *
- * Any failure — a validation error aside — always produces a visible toast/error
+ 
+ * Any failure, a validation error aside, always produces a visible toast/error
  * message, so a request can never fail completely silently.
  */
 function submitAjaxForm({ form, url, method = 'POST', errorBox, toastKind, onUploadProgress, onSuccess, onValidationError }) {
@@ -145,7 +144,7 @@ function submitAjaxForm({ form, url, method = 'POST', errorBox, toastKind, onUpl
             try {
                 data = xhr.responseText ? JSON.parse(xhr.responseText) : null;
             } catch (parseErr) {
-                // Response wasn't JSON at all (e.g. an HTML error page) — treat as failure
+                // Response wasn't JSON at all (e.g. an HTML error page), treat as failure
                 // rather than letting the exception propagate and skip straight to "something
                 // went wrong" with no context.
                 console.error('Non-JSON response from', url, parseErr);
@@ -155,7 +154,7 @@ function submitAjaxForm({ form, url, method = 'POST', errorBox, toastKind, onUpl
             }
 
             if (xhr.status === 422) {
-                // A 422 NEVER shows a toast and NEVER calls onSuccess — the form stays
+                // A 422 NEVER shows a toast and NEVER calls onSuccess, the form stays
                 // open exactly as the user left it so they can correct the input. If the
                 // caller supplied onValidationError (e.g. to show a friendlier, field-
                 // specific message for something like a duplicate name), use that;
@@ -192,7 +191,7 @@ function submitAjaxForm({ form, url, method = 'POST', errorBox, toastKind, onUpl
 }
 
 /**
- * Fire-and-forget style action with no <form> behind it — used for Delete
+ * Fire-and-forget style action with no <form> behind it, used for Delete
  * buttons, "mark unavailable" quick actions, and similar one-click operations.
  * `extraFields` lets the caller send a small payload without building a form.
  * Pass `confirmMessage` to show a native confirm() first; omit it for flows
@@ -227,7 +226,7 @@ async function submitAjaxAction({ url, method = 'DELETE', confirmMessage = null,
 
         if (!response.ok) {
             // Surface the server's actual message when available (e.g. a foreign-key
-            // constraint explanation), instead of always showing a generic failure —
+            // constraint explanation), instead of always showing a generic failure,
             // this matters for cases like "can't delete, it's still in use."
             showToast((data && data.message) || 'Something went wrong. Please try again.', 'error');
             onError?.(data);
@@ -253,7 +252,7 @@ window.submitAjaxForm = submitAjaxForm;
 window.submitAjaxAction = submitAjaxAction;
 
 /**
- * Filter-chip clear ("x") buttons — shared by every admin filter/search bar
+ * Filter-chip clear ("x") buttons, shared by every admin filter/search bar
  * (Menu's Category chip, Staff's Role chip, and the search box on all three
  * pages: Menu, Inventory, Staff). Registered once here via event delegation
  * rather than per-page, since the button only ever does one thing regardless
@@ -279,7 +278,7 @@ document.addEventListener('click', (e) => {
 });
 
 /**
- * Searchable filter-select popovers ("Category: All ▾" style chips) — see
+ * Searchable filter-select popovers ("Category: All ▾" style chips), see
  * admin/partials/_filter_select.blade.php. One delegated set of listeners
  * handles every instance on the page, so the partial can be dropped in
  * anywhere without its own <script> block.
@@ -287,7 +286,7 @@ document.addEventListener('click', (e) => {
 document.addEventListener('click', (e) => {
     // Close every popover whose trigger/content wasn't part of this click,
     // before handling what the click actually landed on. A container whose
-    // own trigger was clicked is deliberately left alone here — its
+    // own trigger was clicked is deliberately left alone here, its
     // open/closed state is decided explicitly in the trigger branch below,
     // not by this "click was outside" sweep.
     document.querySelectorAll('[data-filter-select]').forEach((container) => {
@@ -355,7 +354,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 /**
- * Search-with-suggestions dropdown — see admin/partials/_filter_search.blade.php.
+ * Search-with-suggestions dropdown, see admin/partials/_filter_search.blade.php.
  * Opt-in per instance (only renders when a page passes a $suggestions list),
  * so this has zero effect on search boxes that don't use it.
  */
@@ -366,7 +365,7 @@ function visibleSuggestions(list) {
 }
 
 // Filter suggestions live as the admin types. Deliberately hidden entirely
-// on an empty query — suggestions only appear "when the user has already
+// on an empty query, suggestions only appear "when the user has already
 // input" something, not just from focusing an empty search box.
 document.addEventListener('input', (e) => {
     if (!e.target.matches('.search-suggest-input')) return;
@@ -393,7 +392,7 @@ document.addEventListener('input', (e) => {
 });
 
 // Re-show the dropdown when refocusing a field that already has text typed
-// (e.g. tabbing back in) — 'focus' doesn't bubble, so this needs the
+// (e.g. tabbing back in), 'focus' doesn't bubble, so this needs the
 // capture phase to work via delegation.
 document.addEventListener('focus', (e) => {
     if (!e.target.matches?.('.search-suggest-input')) return;
@@ -418,7 +417,7 @@ document.addEventListener('click', (e) => {
     // click-based rather than a 'blur' handler on the input deliberately:
     // blur fires (on mousedown) before a click on a suggestion button ever
     // reaches this listener, so hiding on blur would make every suggestion
-    // unclickable — the list would vanish a moment before the click landed.
+    // unclickable, the list would vanish a moment before the click landed.
     document.querySelectorAll('[data-search-suggest]').forEach((wrapper) => {
         if (!wrapper.contains(e.target)) {
             wrapper.querySelector('.search-suggest-list')?.classList.add('hidden');
@@ -453,11 +452,11 @@ document.addEventListener('keydown', (e) => {
 });
 
 /**
- * Notification bell — lives in the shared layout, so this runs on every admin page.
+ * Notification bell, lives in the shared layout, so this runs on every admin page.
  * Fetches current alerts from the notifications endpoint, populates the dropdown
  * with a per-type icon and a relative timestamp, and tracks which alerts the admin
  * has already dismissed via "Mark all as read" (stored in localStorage, since there's
- * no backend notifications table to persist true read/unread state against — this is
+ * no backend notifications table to persist true read/unread state against, this is
  * a "don't keep bugging me about the same alert" mechanism, not a durable read log).
  */
 const NOTIFICATION_ICONS = {
@@ -570,7 +569,7 @@ function initNotificationBell() {
 
     loadNotifications();
     // Poll frequently enough that new alerts show up without the admin needing to
-    // manually refresh the page — true push (no delay at all) would need WebSocket
+    // manually refresh the page, true push (no delay at all) would need WebSocket
     // broadcasting (Laravel Reverb, per the project architecture), which is a bigger
     // piece of shared infrastructure outside this page's scope. This is the practical
     // middle ground until that's wired up.

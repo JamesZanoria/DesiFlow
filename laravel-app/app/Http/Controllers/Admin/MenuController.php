@@ -31,7 +31,7 @@ class MenuController extends Controller{
         $categories = MenuItem::query()->select('category')->distinct()->orderBy('category')->pluck('category');
 
         // Full, unpaginated list of item names for the search box's suggestions
-        // dropdown — deliberately separate from $menuItems (which is only the
+        // dropdown, deliberately separate from $menuItems (which is only the
         // current page of up to 8 results) since suggestions need to cover
         // every item, not just whichever page happens to be showing.
         $allItemNames = MenuItem::query()->orderBy('item_name')->pluck('item_name');
@@ -42,7 +42,7 @@ class MenuController extends Controller{
         // table + pagination fragment (see admin.menu._table) so the page can be kept
         // in sync with the real, server-computed pagination state without a manual
         // browser reload.
-        //
+
         // categoryOptionsHtml and itemSuggestionsHtml ride along in the same response
         // for the same reason: without them, a category or item name introduced (or
         // removed) by the change that just happened wouldn't show up in the Category
@@ -110,7 +110,7 @@ class MenuController extends Controller{
     // Postgres unique_violation is SQLSTATE 23505. This is the last line of
     // defense: the application-level duplicateNameRule() above should already
     // catch a duplicate before this is ever reached, but this exists so that a
-    // duplicate can NEVER actually be written to the table — not if the two
+    // duplicate can NEVER actually be written to the table, not if the two
     // checks ever fall out of sync, not under a race between two simultaneous
     // submissions, and not if this validation is ever bypassed some other way.
     private function isDuplicateNameViolation(QueryException $e): bool{
@@ -120,7 +120,7 @@ class MenuController extends Controller{
 
     // Same JSON shape (and same message) as duplicateNameRule()'s $fail() above,
     // so the frontend's onValidationError handler treats this identically to a
-    // normal validation failure — still a 422, still lands in the modal with the
+    // normal validation failure, still a 422, still lands in the modal with the
     // icon + red-outlined field, never a success toast, never closes the modal.
     private function duplicateNameResponse(Request $request){
         $message = 'This item already exists in the menu. Please check the name or edit the existing item.';
@@ -137,13 +137,13 @@ class MenuController extends Controller{
 
     // Formats a failed validation attempt ourselves rather than letting it fall
     // through to Laravel's automatic ValidationException handling. That
-    // automatic path decides redirect-vs-422 using $request->expectsJson(), which
-    // — in this app — was returning false even when the request's Accept header
+    // automatic path decides redirect-vs-422 using $request->expectsJson(), which,
+    // in this app, was returning false even when the request's Accept header
     // was confirmed to be 'application/json', causing every validation failure
     // (including a caught duplicate name) to silently redirect back to the index
     // page instead of returning 422 JSON. The AJAX request then auto-follows
     // that redirect, lands on a real 200 JSON response with no error info, and
-    // the frontend — seeing a 200 — reports it as a success even though nothing
+    // the frontend, seeing a 200, reports it as a success even though nothing
     // was actually saved. Handling this explicitly with $request->wantsJson()
     // (the same simpler Accept-header check already used successfully elsewhere
     // in this controller) guarantees a duplicate can never be misreported as
@@ -185,7 +185,7 @@ class MenuController extends Controller{
             $path = $request->file('image')->store('menu-items', 'public');
             $validated['image_url'] = Storage::url($path);
         }
-        // 'image' isn't a real column — it was only used above to derive image_url.
+        // 'image' isn't a real column, it was only used above to derive image_url.
         unset($validated['image']);
 
         try {
@@ -219,7 +219,7 @@ class MenuController extends Controller{
     }
 
     // Update an existing menu item. Also used by the Status dropdown quick-action,
-    // which doesn't know about description/image — so those are only overwritten
+    // which doesn't know about description/image, so those are only overwritten
     // when actually present in the request, never silently wiped to null/blank.
     public function update(Request $request, MenuItem $menuItem){
         $validator = Validator::make($request->all(), [
@@ -241,7 +241,7 @@ class MenuController extends Controller{
         $validated['item_name'] = trim($validated['item_name']);
         $validated['category'] = trim($validated['category']);
 
-        // The Status dropdown quick-action doesn't send a description field at all —
+        // The Status dropdown quick-action doesn't send a description field at all,
         // without this guard, the "nullable" rule would still land in $validated as
         // null and wipe out any existing description on every quick status toggle.
         if (! $request->has('description')) {
@@ -253,7 +253,7 @@ class MenuController extends Controller{
             $validated['image_url'] = Storage::url($path);
         } elseif ($request->boolean('remove_image')) {
             // The Remove button in the dropzone previously had no way to
-            // actually signal intent to the server — this only ever reacted
+            // actually signal intent to the server, this only ever reacted
             // to hasFile('image'), so clicking Remove cleared the preview in
             // the UI but the existing image_url was silently kept on save.
             // Delete the old file from disk before nulling the column, so a
@@ -263,7 +263,7 @@ class MenuController extends Controller{
             }
             $validated['image_url'] = null;
         }
-        // Neither a new file nor an explicit removal → image_url is left out
+        // Neither a new file nor an explicit removal -> image_url is left out
         // of $validated entirely, so the existing image is preserved.
         unset($validated['image']);
 
