@@ -31,7 +31,7 @@ class InventoryController extends Controller{
     // with current stock level.
     public function index(Request $request){
         $ingredients = $this->paginateClamped(function () use ($request) {
-            $query = Ingredient::withCurrentStock();
+            $query = Ingredient::withCurrentStock()->withLastDeliveryAt();
 
             if ($request->filled('search')) {
                 $query->where('ingredient_name', 'ILIKE', '%' . $request->input('search') . '%');
@@ -39,6 +39,16 @@ class InventoryController extends Controller{
 
             if ($request->filled('category')) {
                 $query->where('category', $request->input('category'));
+            }
+
+            // Real status filter (Active / Low Stock / Out of Stock / Expiring
+            // Soon / Expired), distinct from the "Critical First" sort below.
+            // stockStatus() is a PHP method and can't be referenced in a WHERE
+            // clause, so statusCaseSql() re-expresses the same priority order
+            // as a raw SQL CASE. Whitelisted against Ingredient::STATUSES
+            // since this string is concatenated directly into the query.
+            if ($request->filled('status') && in_array($request->input('status'), Ingredient::STATUSES, true)) {
+                $query->whereRaw('(' . $this->statusCaseSql() . ') = ?', [$request->input('status')]);
             }
 
             if ($request->input('sort') === 'critical') {
@@ -106,6 +116,38 @@ class InventoryController extends Controller{
         ]);
     }
 
+    // Re-expresses Ingredient::stockStatus()'s priority order (out_of_stock >
+    // expired > expiring_soon > low_stock > active) as a raw SQL CASE, so it
+    // can be used in a WHERE clause, a WHERE can't call a PHP method, and
+    // Postgres doesn't allow referencing a withSum()/withMax() SELECT alias
+    // (current_stock, last_delivery_at) from WHERE either, only from ORDER
+    // BY, hence the subqueries being spelled out inline here again rather
+    // than reusing those aliases. EXPIRY_WARNING_DAYS is a fixed int
+    // constant, not request input, so interpolating it directly is safe.
+    //
+    // Keep this in sync with stockStatus() if that logic ever changes, there
+    // isn't a way to share one implementation across PHP and a raw SQL
+    // fragment without a DB view or generated column, which felt like more
+    // machinery than this project's scale calls for.
+    private function statusCaseSql(): string{
+        $warningDays = Ingredient::EXPIRY_WARNING_DAYS;
+        $currentStockSql = '(SELECT COALESCE(SUM(qty_changed), 0) FROM stock_movements WHERE stock_movements.ingredient_id = ingredients.ingredient_id)';
+        $lastDeliverySql = "(SELECT MAX(recorded_at) FROM stock_movements WHERE stock_movements.ingredient_id = ingredients.ingredient_id AND stock_movements.movement_type = 'delivery')";
+        $expiryAtSql = "({$lastDeliverySql} + (ingredients.shelf_life_days || ' days')::interval)";
+
+        return "
+            CASE
+                WHEN {$currentStockSql} <= 0 THEN 'out_of_stock'
+                WHEN ingredients.shelf_life_days IS NOT NULL AND {$lastDeliverySql} IS NOT NULL AND NOW() >= {$expiryAtSql}
+                    THEN 'expired'
+                WHEN ingredients.shelf_life_days IS NOT NULL AND {$lastDeliverySql} IS NOT NULL AND NOW() >= {$expiryAtSql} - INTERVAL '{$warningDays} days'
+                    THEN 'expiring_soon'
+                WHEN {$currentStockSql} <= ingredients.restock_threshold THEN 'low_stock'
+                ELSE 'active'
+            END
+        ";
+    }
+
     // Total Items / Low Stock / Out of Stock / Total Value stat cards.
     // Low Stock and Out of Stock are deliberately non-overlapping counts
     // (each ingredient's stockStatus() puts it in exactly one tier) rather
@@ -144,6 +186,7 @@ class InventoryController extends Controller{
     private function validationMessages(): array{
         return [
             'image.mimes' => 'Please upload a JPG, JPEG, or PNG image.',
+            'shelf_life_days.required' => 'Shelf life is required, it\'s what lets the system warn you before this ingredient expires.',
         ];
     }
 
@@ -211,7 +254,7 @@ class InventoryController extends Controller{
             'unit_of_measurement' => ['required', 'string', 'max:20'],
             'unit_cost' => 'required|numeric|min:0',
             'restock_threshold' => 'required|numeric|min:0',
-            'shelf_life_days' => 'nullable|integer|min:0',
+            'shelf_life_days' => 'required|integer|min:0',
             'initial_stock' => 'nullable|numeric|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ], $this->validationMessages());
@@ -286,7 +329,7 @@ class InventoryController extends Controller{
             'unit_of_measurement' => ['required', 'string', 'max:20'],
             'unit_cost' => 'required|numeric|min:0',
             'restock_threshold' => 'required|numeric|min:0',
-            'shelf_life_days' => 'nullable|integer|min:0',
+            'shelf_life_days' => 'required|integer|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ], $this->validationMessages());
 

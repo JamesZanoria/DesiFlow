@@ -39,8 +39,21 @@
             ])
 
             @include('admin.partials._filter_select', [
-                'name' => 'sort',
+                'name' => 'status',
                 'label' => 'Status',
+                'value' => request('status'),
+                'options' => [
+                    'active' => 'Active',
+                    'low_stock' => 'Low Stock',
+                    'out_of_stock' => 'Out of Stock',
+                    'expiring_soon' => 'Expiring Soon',
+                    'expired' => 'Expired',
+                ],
+            ])
+
+            @include('admin.partials._filter_select', [
+                'name' => 'sort',
+                'label' => 'Sort',
                 'value' => request('sort'),
                 'options' => ['critical' => 'Critical First'],
             ])
@@ -120,7 +133,8 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Shelf Life (days)</label>
-                            <input type="number" min="0" name="shelf_life_days" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="optional">
+                            <input type="number" min="0" name="shelf_life_days" required class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="e.g. 7">
+                            <p class="text-xs text-gray-400 mt-1">Used to warn you before this ingredient expires.</p>
                         </div>
                     </div>
 
@@ -611,7 +625,35 @@
                 });
             }
 
+            // Writes off an expired ingredient's entire current stock as a
+            // spoilage entry in one click, rather than sending the admin to
+            // the Ledger page to fill out Record Movement by hand for
+            // something the system already knows the answer to (type:
+            // spoilage, quantity: everything that's left). Reuses the same
+            // recordMovement endpoint the Ledger's own form posts to, no new
+            // backend route needed.
+            function markAsWaste(btn) {
+                const qty = parseFloat(btn.dataset.currentStock);
+                submitAjaxAction({
+                    url: `${baseUrl}/${btn.dataset.id}/movement`,
+                    method: 'POST',
+                    extraFields: {
+                        movement_type: 'spoilage',
+                        qty_changed: qty,
+                        waste_reason: 'Marked as waste, past shelf life',
+                    },
+                    confirmMessage: `Mark all ${numberFormat(qty)} ${btn.dataset.unit} of "${btn.dataset.name}" as waste? This will zero out its current stock and cannot be undone.`,
+                    toastKind: 'delete',
+                    onSuccess: () => {
+                        refreshTable(window.location.href);
+                    },
+                });
+            }
+
             function attachRowListeners(scope) {
+                scope.querySelectorAll('.mark-waste-btn').forEach((btn) => {
+                    btn.addEventListener('click', () => markAsWaste(btn));
+                });
                 scope.querySelectorAll('.edit-ingredient-btn').forEach((btn) => {
                     btn.addEventListener('click', () => openModal('edit', btn.dataset));
                 });

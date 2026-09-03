@@ -12,6 +12,8 @@
         'active' => ['label' => 'Active', 'badge' => 'bg-green-100 text-green-700'],
         'low_stock' => ['label' => 'Low Stock', 'badge' => 'bg-amber-100 text-amber-700'],
         'out_of_stock' => ['label' => 'Out of Stock', 'badge' => 'bg-red-100 text-red-700'],
+        'expiring_soon' => ['label' => 'Expiring Soon', 'badge' => 'bg-orange-100 text-orange-700'],
+        'expired' => ['label' => 'Expired', 'badge' => 'bg-rose-200 text-rose-800'],
     ];
 @endphp
 <div class="bg-white border rounded-xl shadow-sm overflow-hidden">
@@ -54,8 +56,24 @@
                     <td class="px-4 py-3 text-gray-600 cell-threshold">{{ number_format($ingredient->restock_threshold, 2) }}</td>
                     <td class="px-4 py-3 cell-status">
                         <span class="px-2.5 py-1 rounded-full text-xs font-medium {{ $statusMeta[$status]['badge'] }}">{{ $statusMeta[$status]['label'] }}</span>
+                        @if (in_array($status, ['expiring_soon', 'expired']) && $ingredient->expiryDate())
+                            <p class="text-xs mt-1 {{ $status === 'expired' ? 'text-rose-600' : 'text-orange-600' }}">
+                                {{ $status === 'expired' ? 'Expired' : 'Expires' }} {{ $ingredient->expiryDate()->diffForHumans() }}
+                            </p>
+                        @endif
                     </td>
                     <td class="px-4 py-3 text-right">
+                        @if ($status === 'expired')
+                            <button type="button"
+                                class="mark-waste-btn inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-rose-700 hover:bg-rose-50"
+                                title="Mark expired stock as waste"
+                                data-id="{{ $ingredient->ingredient_id }}"
+                                data-name="{{ $ingredient->ingredient_name }}"
+                                data-current-stock="{{ $ingredient->current_stock ?? 0 }}"
+                                data-unit="{{ $ingredient->unit_of_measurement }}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            </button>
+                        @endif
                         <button type="button"
                             class="edit-ingredient-btn inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50"
                             title="Edit"
