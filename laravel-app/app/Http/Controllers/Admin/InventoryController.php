@@ -3,17 +3,18 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Admin\Concerns\ClampsPaginationPage;
+use App\Http\Controllers\Admin\Concerns\HandlesProtectedImageUploads;
 use App\Http\Controllers\Controller;
 use App\Models\Ingredient;
 use App\Models\StockMovement;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class InventoryController extends Controller{
     use ClampsPaginationPage;
+    use HandlesProtectedImageUploads;
     // Movement types the ledger understands. 'sale_deduction' has no writer
     // yet, it's meant to be created automatically by the Kitchen Display's
     // Serve action, which doesn't exist as a built
@@ -31,7 +32,7 @@ class InventoryController extends Controller{
     // with current stock level.
     public function index(Request $request){
         $ingredients = $this->paginateClamped(function () use ($request) {
-            $query = Ingredient::withCurrentStock()->withLastDeliveryAt();
+            $query = Ingredient::withCurrentStock();
 
             if ($request->filled('search')) {
                 $query->where('ingredient_name', 'ILIKE', '%' . $request->input('search') . '%');
@@ -39,16 +40,6 @@ class InventoryController extends Controller{
 
             if ($request->filled('category')) {
                 $query->where('category', $request->input('category'));
-            }
-
-            // Real status filter (Active / Low Stock / Out of Stock / Expiring
-            // Soon / Expired), distinct from the "Critical First" sort below.
-            // stockStatus() is a PHP method and can't be referenced in a WHERE
-            // clause, so statusCaseSql() re-expresses the same priority order
-            // as a raw SQL CASE. Whitelisted against Ingredient::STATUSES
-            // since this string is concatenated directly into the query.
-            if ($request->filled('status') && in_array($request->input('status'), Ingredient::STATUSES, true)) {
-                $query->whereRaw('(' . $this->statusCaseSql() . ') = ?', [$request->input('status')]);
             }
 
             if ($request->input('sort') === 'critical') {
@@ -75,8 +66,8 @@ class InventoryController extends Controller{
         $stats = $this->currentStockStats();
 
         // Full, unpaginated list of ingredient names for the search box's
-        // suggestions dropdown, deliberately separate from $ingredients
-        // (only the current page of up to 5 results), since suggestions need
+        // suggestions dropdown — deliberately separate from $ingredients
+        // (only the current page of up to 8 results), since suggestions need
         // to cover every ingredient, not just whichever page is showing.
         $allIngredientNames = Ingredient::query()->orderBy('ingredient_name')->pluck('ingredient_name');
 
@@ -84,7 +75,7 @@ class InventoryController extends Controller{
         // the frontend re-requests this same endpoint asking for JSON instead of a
         // full page, and swaps in just the table+pagination fragment
         // (admin.inventory._table) plus the stat cards, category filter, and search
-        // suggestions, all three can go stale the same way Menu Management's did:
+        // suggestions — all three can go stale the same way Menu Management's did:
         // an ingredient added with a new category or name, or one that crosses a
         // stock threshold, otherwise wouldn't show up until a real page reload.
         if ($request->wantsJson()) {
@@ -116,43 +107,11 @@ class InventoryController extends Controller{
         ]);
     }
 
-    // Re-expresses Ingredient::stockStatus()'s priority order (out_of_stock >
-    // expired > expiring_soon > low_stock > active) as a raw SQL CASE, so it
-    // can be used in a WHERE clause, a WHERE can't call a PHP method, and
-    // Postgres doesn't allow referencing a withSum()/withMax() SELECT alias
-    // (current_stock, last_delivery_at) from WHERE either, only from ORDER
-    // BY, hence the subqueries being spelled out inline here again rather
-    // than reusing those aliases. EXPIRY_WARNING_DAYS is a fixed int
-    // constant, not request input, so interpolating it directly is safe.
-    //
-    // Keep this in sync with stockStatus() if that logic ever changes, there
-    // isn't a way to share one implementation across PHP and a raw SQL
-    // fragment without a DB view or generated column, which felt like more
-    // machinery than this project's scale calls for.
-    private function statusCaseSql(): string{
-        $warningDays = Ingredient::EXPIRY_WARNING_DAYS;
-        $currentStockSql = '(SELECT COALESCE(SUM(qty_changed), 0) FROM stock_movements WHERE stock_movements.ingredient_id = ingredients.ingredient_id)';
-        $lastDeliverySql = "(SELECT MAX(recorded_at) FROM stock_movements WHERE stock_movements.ingredient_id = ingredients.ingredient_id AND stock_movements.movement_type = 'delivery')";
-        $expiryAtSql = "({$lastDeliverySql} + (ingredients.shelf_life_days || ' days')::interval)";
-
-        return "
-            CASE
-                WHEN {$currentStockSql} <= 0 THEN 'out_of_stock'
-                WHEN ingredients.shelf_life_days IS NOT NULL AND {$lastDeliverySql} IS NOT NULL AND NOW() >= {$expiryAtSql}
-                    THEN 'expired'
-                WHEN ingredients.shelf_life_days IS NOT NULL AND {$lastDeliverySql} IS NOT NULL AND NOW() >= {$expiryAtSql} - INTERVAL '{$warningDays} days'
-                    THEN 'expiring_soon'
-                WHEN {$currentStockSql} <= ingredients.restock_threshold THEN 'low_stock'
-                ELSE 'active'
-            END
-        ";
-    }
-
     // Total Items / Low Stock / Out of Stock / Total Value stat cards.
     // Low Stock and Out of Stock are deliberately non-overlapping counts
     // (each ingredient's stockStatus() puts it in exactly one tier) rather
     // than Low Stock including everything at-or-below threshold the way
-    // isLowStock() does elsewhere, with a dedicated Out of Stock card now
+    // isLowStock() does elsewhere — with a dedicated Out of Stock card now
     // existing, double-counting the same ingredients in both would be
     // confusing rather than just redundant.
     private function currentStockStats(): array{
@@ -186,7 +145,6 @@ class InventoryController extends Controller{
     private function validationMessages(): array{
         return [
             'image.mimes' => 'Please upload a JPG, JPEG, or PNG image.',
-            'shelf_life_days.required' => 'Shelf life is required, it\'s what lets the system warn you before this ingredient expires.',
         ];
     }
 
@@ -205,7 +163,7 @@ class InventoryController extends Controller{
         };
     }
 
-    // Postgres unique_violation is SQLSTATE 23505, the same last-line-of-defense
+    // Postgres unique_violation is SQLSTATE 23505 — the same last-line-of-defense
     // pattern as MenuController, for the ingredients_ingredient_name_unique index.
     private function isDuplicateNameViolation(QueryException $e): bool{
         return $e->getCode() === '23505'
@@ -226,7 +184,7 @@ class InventoryController extends Controller{
     }
 
     // Validated manually (rather than $request->validate()) so this controller
-    // decides redirect-vs-422 itself via $request->wantsJson(), the same fix
+    // decides redirect-vs-422 itself via $request->wantsJson() — the same fix
     // applied to MenuController after discovering Laravel's automatic
     // expectsJson()-based exception handling was returning a 302 redirect for
     // AJAX validation failures even with a correct Accept header, which caused
@@ -243,7 +201,7 @@ class InventoryController extends Controller{
         return redirect()->back()->withErrors($validator)->withInput();
     }
 
-    // Store a newly created ingredient. Accepts an optional initial_stock value,
+    // Store a newly created ingredient. Accepts an optional initial_stock value —
     // if provided, this creates a real 'delivery' entry in the stock ledger rather
     // than a raw stock number, so the append-only audit trail stays accurate.
     // Also accepts an optional image, handled the same way MenuController does.
@@ -254,7 +212,7 @@ class InventoryController extends Controller{
             'unit_of_measurement' => ['required', 'string', 'max:20'],
             'unit_cost' => 'required|numeric|min:0',
             'restock_threshold' => 'required|numeric|min:0',
-            'shelf_life_days' => 'required|integer|min:0',
+            'shelf_life_days' => 'nullable|integer|min:0',
             'initial_stock' => 'nullable|numeric|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ], $this->validationMessages());
@@ -274,8 +232,7 @@ class InventoryController extends Controller{
         unset($validated['initial_stock']);
 
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('ingredients', 'public');
-            $validated['image_url'] = Storage::url($path);
+            $validated['image_url'] = $this->storeProtectedImage($request->file('image'), 'ingredients');
         }
         unset($validated['image']);
 
@@ -320,7 +277,7 @@ class InventoryController extends Controller{
         ]);
     }
 
-    // Update an existing ingredient's details. Does not touch current stock,
+    // Update an existing ingredient's details. Does not touch current stock —
     // that's only ever changed through recordMovement().
     public function update(Request $request, Ingredient $ingredient){
         $validator = Validator::make($request->all(), [
@@ -329,7 +286,7 @@ class InventoryController extends Controller{
             'unit_of_measurement' => ['required', 'string', 'max:20'],
             'unit_cost' => 'required|numeric|min:0',
             'restock_threshold' => 'required|numeric|min:0',
-            'shelf_life_days' => 'required|integer|min:0',
+            'shelf_life_days' => 'nullable|integer|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ], $this->validationMessages());
 
@@ -345,15 +302,12 @@ class InventoryController extends Controller{
         }
 
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('ingredients', 'public');
-            $validated['image_url'] = Storage::url($path);
+            $validated['image_url'] = $this->storeProtectedImage($request->file('image'), 'ingredients');
         } elseif ($request->boolean('remove_image')) {
-            if ($ingredient->image_url) {
-                Storage::disk('public')->delete(str_replace('/storage/', '', $ingredient->image_url));
-            }
+            $this->deleteProtectedImage($ingredient->image_url, 'ingredients');
             $validated['image_url'] = null;
         }
-        // Neither a new file nor an explicit removal -> image_url left out of
+        // Neither a new file nor an explicit removal → image_url left out of
         // $validated entirely, so the existing image is preserved.
         unset($validated['image']);
 
@@ -383,14 +337,14 @@ class InventoryController extends Controller{
 
     // Permanently remove an ingredient. The database's foreign keys deliberately
     // reject this (ON DELETE NO ACTION) if the ingredient has any recipe lines or
-    // stock movement history, to protect the audit trail, so rather than
+    // stock movement history, to protect the audit trail (SRS 5.3) — so rather than
     // let that surface as a raw 500 error, it's caught here and turned into a clear,
     // specific message the admin can actually act on.
     public function destroy(Request $request, Ingredient $ingredient){
         try {
             $ingredient->delete();
         } catch (QueryException $e) {
-            $message = "Can't delete \"{$ingredient->ingredient_name}\", it has recipe or stock movement history tied to it.";
+            $message = "Can't delete \"{$ingredient->ingredient_name}\" — it has recipe or stock movement history tied to it.";
 
             if ($request->wantsJson()) {
                 return response()->json([
@@ -415,7 +369,7 @@ class InventoryController extends Controller{
     }
 
     // Record a stock-in, waste, or manual adjustment entry against an ingredient's
-    // ledger. 'sale_deduction' is deliberately not offered here, an admin
+    // ledger. 'sale_deduction' is deliberately not offered here — a human admin
     // manually picking that type would defeat the point of it being automated;
     // see the MOVEMENT_TYPES docblock at the top of this class.
     public function recordMovement(Request $request, Ingredient $ingredient){
@@ -452,7 +406,7 @@ class InventoryController extends Controller{
 
     // Directly correct a previously recorded stock movement. This is a deliberate
     // exception to the append-only pattern used elsewhere (orders/payments remain
-    // immutable), ingredient stock entries may be corrected by an admin to fix
+    // immutable) — ingredient stock entries may be corrected by an admin to fix
     // data-entry mistakes, since a wrong quantity here otherwise permanently skews
     // current_stock (which is derived by summing this table) until a manual
     // adjustment is layered on top to compensate.
@@ -508,7 +462,7 @@ class InventoryController extends Controller{
         };
     }
 
-    // Per-ingredient movement history, still reachable directly, but no longer the
+    // Per-ingredient movement history — still reachable directly, but no longer the
     // primary way to view ledger data (see ledgerIndex() below).
     public function history(Ingredient $ingredient){
         $movements = $ingredient->stockMovements()
@@ -522,7 +476,7 @@ class InventoryController extends Controller{
         ]);
     }
 
-    // Consolidated Stock Movement Ledger across every ingredient,
+    // Consolidated Stock Movement Ledger across every ingredient (Figure 3.7) —
     // the primary, discoverable way to reach ledger data via a tab, rather than a
     // small action icon buried in a specific ingredient's row.
     public function ledgerIndex(Request $request){
@@ -574,9 +528,9 @@ class InventoryController extends Controller{
     // Total Movements (today) / Restocks (all-time completed deliveries) /
     // Waste Recorded (distinct ingredients with at least one waste entry) /
     // Net Stock (% change in total inventory value vs. 7 days ago).
-    //
+
     // "Net Stock" specifically doesn't correspond to anything in the current
-    // SRS or schema as a named metric, it's defined here concretely as the
+    // SRS or schema as a named metric — it's defined here concretely as the
     // percentage change in total inventory value (current_stock × unit_cost,
     // summed across every ingredient) between right now and 7 days ago,
     // reconstructed from the append-only ledger rather than any stored

@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\OrderMonitorController;
 use App\Http\Controllers\Admin\SmartAssistantController;
 use App\Http\Controllers\Admin\NotificationController;
+use App\Http\Controllers\Admin\ProtectedFileController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -25,6 +26,11 @@ Route::middleware('guest')->group(function () {
 Route::post('/logout', [AuthController::class, 'logout'])
     ->middleware('auth')
     ->name('logout');
+
+Route::get('/files/{type}/{filename}', [ProtectedFileController::class, 'show'])
+    ->name('files.show')
+    ->where('type', 'menu-items|ingredients')
+    ->where('filename', '[A-Za-z0-9_-]+\.(jpg|jpeg|png)');
 
 // 'role:admin', see App\Http\Middleware\EnsureUserHasRole. Cashier and
 // Kitchen Staff accounts exist in the users table (Staff Management already

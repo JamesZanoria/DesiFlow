@@ -3,15 +3,16 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Admin\Concerns\ClampsPaginationPage;
+use App\Http\Controllers\Admin\Concerns\HandlesProtectedImageUploads;
 use App\Http\Controllers\Controller;
 use App\Models\MenuItem;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class MenuController extends Controller{
     use ClampsPaginationPage;
+    use HandlesProtectedImageUploads;
 
     // Display a paginated, filterable listing of all menu items.
     public function index(Request $request){
@@ -185,8 +186,7 @@ class MenuController extends Controller{
         $validated['category'] = trim($validated['category']);
 
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('menu-items', 'public');
-            $validated['image_url'] = Storage::url($path);
+            $validated['image_url'] = $this->storeProtectedImage($request->file('image'), 'menu-items');
         }
         // 'image' isn't a real column, it was only used above to derive image_url.
         unset($validated['image']);
@@ -252,8 +252,7 @@ class MenuController extends Controller{
         }
 
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('menu-items', 'public');
-            $validated['image_url'] = Storage::url($path);
+            $validated['image_url'] = $this->storeProtectedImage($request->file('image'), 'menu-items');
         } elseif ($request->boolean('remove_image')) {
             // The Remove button in the dropzone previously had no way to
             // actually signal intent to the server, this only ever reacted
@@ -261,9 +260,7 @@ class MenuController extends Controller{
             // the UI but the existing image_url was silently kept on save.
             // Delete the old file from disk before nulling the column, so a
             // removed image doesn't linger as an orphaned file in storage.
-            if ($menuItem->image_url) {
-                Storage::disk('public')->delete(str_replace('/storage/', '', $menuItem->image_url));
-            }
+            $this->deleteProtectedImage($menuItem->image_url, 'menu-items');
             $validated['image_url'] = null;
         }
         // Neither a new file nor an explicit removal -> image_url is left out
