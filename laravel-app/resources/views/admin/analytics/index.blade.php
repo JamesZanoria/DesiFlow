@@ -84,18 +84,18 @@
         // because only the top 5 fit in the chart.
         $forecastExportRows = $demandForecast->map(fn ($row) => [
             'ingredient' => $row['record']->ingredient_name,
-            'forecast' => isset($row['data']['forecasted_qty']) ? number_format($row['data']['forecasted_qty'], 1) . ' ' . $row['record']->unit_of_measurement : '—',
+            'forecast' => isset($row['data']['forecasted_qty']) ? number_format($row['data']['forecasted_qty'], 1) . ' ' . $row['record']->unit_of_measurement : ',',
             'confidence' => $row['data']['confidence'] ?? 'insufficient data',
         ]);
         $riskExportRows = $spoilageRisk->map(fn ($row) => [
             'ingredient' => $row['record']->ingredient_name,
-            'days_left' => $row['data']['days_until_expiry'] ?? '—',
+            'days_left' => $row['data']['days_until_expiry'] ?? ',',
             'risk' => $row['data']['risk_level'] ?? 'not yet scored',
         ]);
 
         // Highlights "up/down N%" phrases and any currently high/critical-risk
-        // ingredient name mentioned in the summary sentence — matching the
-        // reference design's colored-keyword callout — grounded in data we
+        // ingredient name mentioned in the summary sentence, matching the
+        // reference design's colored-keyword callout, grounded in data we
         // actually have rather than guessing at arbitrary phrasing. If the
         // FastAPI microservice's summary text doesn't happen to use "up/down N%"
         // phrasing or name a flagged ingredient verbatim, this simply falls
@@ -156,7 +156,7 @@
                 </div>
                 @php $score = $healthData['score'] ?? null; @endphp
                 <div class="text-right">
-                    <span class="text-3xl font-bold {{ $score === null ? 'text-gray-400' : ($score >= 70 ? 'text-green-600' : ($score >= 40 ? 'text-amber-500' : 'text-red-600')) }}">{{ $score ?? '—' }}</span>
+                    <span class="text-3xl font-bold {{ $score === null ? 'text-gray-400' : ($score >= 70 ? 'text-green-600' : ($score >= 40 ? 'text-amber-500' : 'text-red-600')) }}">{{ $score ?? ',' }}</span>
                     <span class="text-xs text-gray-400"> / 100 Today</span>
                 </div>
             </div>

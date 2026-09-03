@@ -20,7 +20,7 @@ class SmartAssistantController extends Controller{
     // Anything that doesn't match a known pattern gets a polite decline instead of a guess.
     // This assistant only knows about Desi Zaika's own data, nothing else.
     public function ask(Request $request){
-        // Deliberately not $request->validate() — that relies on Laravel's
+        // Deliberately not $request->validate(), that relies on Laravel's
         // automatic expectsJson() detection to decide redirect-vs-422, which
         // was found unreliable elsewhere in this app (see MenuController) and
         // would surface here as the chat's fetch() call receiving an HTML
@@ -73,7 +73,7 @@ class SmartAssistantController extends Controller{
         return "I'm sorry, I can only answer questions about Desi Zaika Snack House's own operations, things like current stock, today's earnings, dish performance, or reorder recommendations. Could you rephrase your question around one of those?";
     }
 
-    // Shared source of truth for "which ingredients need attention right now" —
+    // Shared source of truth for "which ingredients need attention right now",
     // both answerCurrentStock() and answerReorderRecommendations() were computing
     // this identically before, just formatting the result differently.
     private function lowStockIngredients(){

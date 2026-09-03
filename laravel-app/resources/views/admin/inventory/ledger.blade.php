@@ -12,7 +12,7 @@
             'spoilage' => ['label' => 'Waste', 'badge' => 'bg-red-50 text-red-700 border border-red-200'],
         ];
 
-        // Deterministic color per recorded-by name (not tied to role — this
+        // Deterministic color per recorded-by name (not tied to role, this
         // system only has admin/cashier/kitchen roles, none of which map to
         // the mockup's implied "Manager" distinction) so the same person
         // always gets the same avatar color across the table.
@@ -34,7 +34,7 @@
 
     {{-- Stat cards. Net Stock is defined concretely as the % change in total
          inventory value (current_stock × unit_cost, summed across every
-         ingredient) vs. 7 days ago, reconstructed from this same ledger —
+         ingredient) vs. 7 days ago, reconstructed from this same ledger,
          see InventoryController::ledgerStats() for the full rationale. --}}
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div class="bg-white border rounded-xl shadow-sm p-4">
@@ -91,7 +91,7 @@
                 'options' => $ingredients->mapWithKeys(fn ($i) => [$i->ingredient_id => $i->ingredient_name]),
             ])
 
-            {{-- Movement-type pills. Plain navigation links (not AJAX) —
+            {{-- Movement-type pills. Plain navigation links (not AJAX),
                  consistent with this page's existing architecture, where
                  Record/Edit Movement already uses a full reload / direct DOM
                  patch rather than the fragment-swap pattern Menu/Inventory's
@@ -114,6 +114,7 @@
             'name' => 'search',
             'placeholder' => 'Search ingredient or recorded by...',
             'value' => request('search'),
+            'suggestions' => $searchSuggestions,
         ])
     </form>
 
@@ -134,7 +135,7 @@
                 @forelse ($movements as $movement)
                     @php
                         $typeMeta = $typeBadgeMeta[$movement->movement_type] ?? ['label' => ucfirst(str_replace('_', ' ', $movement->movement_type)), 'badge' => 'bg-gray-100 text-gray-700 border border-gray-200'];
-                        $recordedByName = $movement->recordedBy->name ?? '—';
+                        $recordedByName = $movement->recordedBy->name ?? ',';
                         $avatarColor = $avatarPalette[crc32($recordedByName) % count($avatarPalette)];
                     @endphp
                     <tr id="movement-row-{{ $movement->movement_id }}">
@@ -149,7 +150,7 @@
                                     @endif
                                 </div>
                                 <a href="{{ route('admin.inventory.history', ['ingredient' => $movement->ingredient_id]) }}" class="hover:underline">
-                                    {{ $movement->ingredient->ingredient_name ?? '—' }}
+                                    {{ $movement->ingredient->ingredient_name ?? ',' }}
                                 </a>
                             </div>
                         </td>
@@ -169,7 +170,7 @@
                                 <span class="text-gray-600 truncate">{{ $recordedByName }}</span>
                             </div>
                         </td>
-                        <td class="px-4 py-3 text-gray-500 cell-notes truncate max-w-[12rem]">{{ $movement->waste_reason ?? '—' }}</td>
+                        <td class="px-4 py-3 text-gray-500 cell-notes truncate max-w-[12rem]">{{ $movement->waste_reason ?? ',' }}</td>
                         <td class="px-4 py-3 text-right">
                             <button type="button"
                                 class="edit-movement-btn inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50"
@@ -222,10 +223,10 @@
         </div>
     </div>
 
-    {{-- Record / Edit Movement popup — unchanged from before, including all
+    {{-- Record / Edit Movement popup, unchanged from before, including all
          of its JS below. Ingredient selection still uses a plain native
          <select> here deliberately (not the _filter_select popover used for
-         the page's own filter row) — this one drives which ingredient a NEW
+         the page's own filter row), this one drives which ingredient a NEW
          movement gets recorded against inside a modal, a different job from
          filtering the table, and swapping it would be change for its own
          sake rather than fixing anything. --}}
@@ -259,6 +260,7 @@
                         <select name="movement_type" id="movement-type-select" class="w-full border rounded-lg px-3 py-2 text-sm">
                             <option value="delivery">Delivery (Stock-In)</option>
                             <option value="spoilage">Spoilage (Waste)</option>
+                            <option value="manual_adjustment">Manual Adjustment</option>
                         </select>
                     </div>
 
@@ -300,7 +302,7 @@
             const recordUrlBase = '{{ url('admin/inventory') }}';
 
             // Adjusts the quantity field's label, hint, and allowed sign based on the
-            // selected type — this is what stops an admin from having to remember
+            // selected type, this is what stops an admin from having to remember
             // "spoilage needs a minus sign." Delivery/Spoilage always take a plain
             // positive magnitude; the server decides the actual direction from the type.
             function syncQtyFieldToType() {
@@ -393,7 +395,7 @@
                 qtyCell.className = `px-4 py-3 cell-qty ${qty < 0 ? 'text-red-600' : 'text-green-700'}`;
                 qtyCell.textContent = `${qty > 0 ? '+' : ''}${qty.toFixed(2)}`;
 
-                row.querySelector('.cell-notes').textContent = movement.waste_reason ?? '—';
+                row.querySelector('.cell-notes').textContent = movement.waste_reason ?? ',';
 
                 const editBtn = row.querySelector('.edit-movement-btn');
                 editBtn.dataset.type = movement.movement_type;

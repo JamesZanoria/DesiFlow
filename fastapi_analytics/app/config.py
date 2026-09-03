@@ -22,12 +22,17 @@ class Settings(BaseSettings):
     # approval updates orders.status.
     excluded_order_statuses: tuple[str, ...] = ("voided", "cancelled", "refunded")
 
-    # stock_movements.movement_type strings — same caveat, confirm against
-    # InventoryController.php.
-    movement_type_stock_in: str = "stock_in"
-    movement_type_stock_out: str = "stock_out"
-    movement_type_waste: str = "waste"
-    movement_type_adjustment: str = "adjustment"
+    # stock_movements.movement_type strings, confirmed against
+    # InventoryController.php's MOVEMENT_TYPES const. 'sale_deduction' has no
+    # writer yet (per that file's own comment: it's meant to be created by
+    # the Kitchen Display's Serve action, which doesn't exist as a built
+    # module yet), so demand_forecast/spoilage_risk/waste figures that
+    # depend on it will legitimately stay empty/neutral until that module
+    # ships, not because of a wrong string here.
+    movement_type_stock_in: str = "delivery"
+    movement_type_stock_out: str = "sale_deduction"
+    movement_type_waste: str = "spoilage"
+    movement_type_adjustment: str = "manual_adjustment"
 
 
 settings = Settings()

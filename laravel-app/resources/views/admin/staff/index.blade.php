@@ -39,7 +39,7 @@
 
     {{-- Table + pagination now live in a shared partial, wrapped in this container so
          the JS can swap the whole thing out after Add/Edit/Delete or a Prev/Next click
-         without a full browser reload — see refreshTable() below. --}}
+         without a full browser reload, see refreshTable() below. --}}
     <div id="staff-table-container">
         @include('admin.staff._table')
     </div>
@@ -258,7 +258,7 @@
             const strengthHint = document.getElementById('password-strength-hint');
 
             // Human-readable text for whichever rules aren't met yet, condensed
-            // into one line rather than a persistent checklist — closer to how
+            // into one line rather than a persistent checklist, closer to how
             // Google's own "create a password" field just tells you the one
             // thing still missing rather than listing every rule at once.
             const ruleLabels = {
@@ -367,7 +367,7 @@
 
             // Confirm-password mismatch already surfaces immediately (rather than
             // waiting for blur) since a mismatch here is always meaningful the
-            // moment it happens — there's no "still typing the first character"
+            // moment it happens, there's no "still typing the first character"
             // ambiguity the way there is for email/password strength.
             function checkPasswordsMatch() {
                 const pw = form.password.value;
@@ -401,18 +401,18 @@
             });
 
             // ---------------------------------------------------------------
-            // Email format feedback — soft client-side hint only; the server's
+            // Email format feedback, soft client-side hint only; the server's
             // email:rfc,filter rule is the real source of truth.
             //
             // Deliberately doesn't touch errorBox (the banner above Full Name)
-            // for a plain format problem — the red border + inline hint right
+            // for a plain format problem, the red border + inline hint right
             // under the field is enough on its own, and reserves the banner
             // for things that aren't obvious from the field itself (like a
             // duplicate email, which still uses showDuplicateEmailError below).
             //
             // emailTouched delays the red state until the admin has actually
             // left the field once, so nothing turns red mid-typing on the
-            // first pass — but green can appear immediately once valid, since
+            // first pass, but green can appear immediately once valid, since
             // positive feedback doesn't have the same "don't be premature"
             // problem that a red error does.
             // ---------------------------------------------------------------
@@ -466,7 +466,7 @@
                     attachRowListeners(container);
                     attachPaginationListeners(container);
 
-                    // Keeps the search suggestions list current — without
+                    // Keeps the search suggestions list current, without
                     // this, an account just added/renamed/deleted wouldn't
                     // show up in suggestions until a real page reload.
                     if (data.staffSuggestionsHtml) {
@@ -519,7 +519,7 @@
                     passwordEditHint.classList.remove('hidden');
 
                     // Captured after the fields above are populated, so it reflects
-                    // exactly what the admin is looking at when the modal opens —
+                    // exactly what the admin is looking at when the modal opens,
                     // Save stays disabled until something differs from this.
                     editSnapshot = {
                         name: data.name.trim(),
@@ -544,7 +544,7 @@
                 const userId = form.dataset.userId;
 
                 // Client-side pre-checks so an obviously-invalid submission never
-                // even reaches the server — the server re-checks everything
+                // even reaches the server, the server re-checks everything
                 // regardless, this is purely to save the admin a round trip.
                 const emailValue = form.email.value.trim();
                 if (!emailPattern.test(emailValue)) {
@@ -577,12 +577,12 @@
                     toastKind: mode === 'create' ? 'success' : 'edit',
                     onSuccess: async () => {
                         // Re-fetch the current page from the server instead of
-                        // patching the DOM by hand — guarantees row count, sort
+                        // patching the DOM by hand, guarantees row count, sort
                         // order, and Prev/Next state are correct immediately.
                         await refreshTable(mode === 'create' ? indexUrl : window.location.href);
                         closeModal();
                     },
-                    // A 422 lands here instead of the generic bullet-list — same
+                    // A 422 lands here instead of the generic bullet-list, same
                     // duplicate-vs-format detection style as Menu Management/Inventory.
                     onValidationError: (data) => {
                         const errors = data?.errors || {};
@@ -635,7 +635,7 @@
                         // Deletion can shift pagination too, so resync from the server.
                         refreshTable(window.location.href);
                     },
-                    // onError is intentionally left unhandled here — submitAjaxAction
+                    // onError is intentionally left unhandled here, submitAjaxAction
                     // already shows the server's specific message (e.g. "can't delete,
                     // they have order or stock movement history") via the toast itself.
                 });

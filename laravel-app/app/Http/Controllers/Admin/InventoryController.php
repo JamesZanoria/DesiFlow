@@ -2,18 +2,21 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\ClampsPaginationPage;
 use App\Http\Controllers\Controller;
 use App\Models\Ingredient;
 use App\Models\StockMovement;
+use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class InventoryController extends Controller{
+    use ClampsPaginationPage;
     // Movement types the ledger understands. 'sale_deduction' has no writer
     // yet, it's meant to be created automatically by the Kitchen Display's
-    // Serve action (backflushing), which doesn't exist as a built
+    // Serve action, which doesn't exist as a built
     // module yet. It's included here so the ledger's type filter is already
     // correct and future-proofed; it will simply show zero results until
     // that module is built, rather than being retrofitted in later.
@@ -27,47 +30,53 @@ class InventoryController extends Controller{
     // Display a paginated, searchable, filterable listing of all ingredients
     // with current stock level.
     public function index(Request $request){
-        $query = Ingredient::withCurrentStock();
+        $ingredients = $this->paginateClamped(function () use ($request) {
+            $query = Ingredient::withCurrentStock();
 
-        if ($request->filled('search')) {
-            $query->where('ingredient_name', 'ILIKE', '%' . $request->input('search') . '%');
-        }
+            if ($request->filled('search')) {
+                $query->where('ingredient_name', 'ILIKE', '%' . $request->input('search') . '%');
+            }
 
-        if ($request->filled('category')) {
-            $query->where('category', $request->input('category'));
-        }
+            if ($request->filled('category')) {
+                $query->where('category', $request->input('category'));
+            }
 
-        // "Critical First" sorts by stock severity (out of stock, then low
-        // stock, then active), each tier alphabetical within itself,
-        // otherwise plain alphabetical by name. Sorting has to happen in the
-        // database, not in PHP after fetching, since the result is paginated;
-        // `current_stock` here refers to the SELECT-list alias withCurrentStock()
-        // creates via withSum(), which Postgres allows ordering by directly.
-        if ($request->input('sort') === 'critical') {
-            $query->orderByRaw('
-                CASE
-                    WHEN COALESCE(current_stock, 0) <= 0 THEN 0
-                    WHEN COALESCE(current_stock, 0) <= restock_threshold THEN 1
-                    ELSE 2
-                END ASC
-            ');
-        }
+            if ($request->input('sort') === 'critical') {
+                $query->orderByRaw('
+                    CASE
+                        WHEN COALESCE(current_stock, 0) <= 0 THEN 0
+                        WHEN COALESCE(current_stock, 0) <= restock_threshold THEN 1
+                        ELSE 2
+                    END ASC
+                ');
+            }
 
-        $ingredients = $query->orderBy('ingredient_name')
-            ->paginate(5)
-            ->appends($request->query());
+            // Latest-added ingredients first. Ingredient doesn't track
+            // created_at ($timestamps = false on the model), so ingredient_id
+            // an auto-incrementing primary key, stands in as a reliable
+            // proxy for insertion order. When "Critical First" is also
+            // selected, this becomes the tiebreaker within each criticality
+            // tier rather than the sole sort key.
+            return $query->orderByDesc('ingredient_id');
+        }, $request, 5);
 
         $units = Ingredient::query()->select('unit_of_measurement')->distinct()->orderBy('unit_of_measurement')->pluck('unit_of_measurement');
         $categories = Ingredient::query()->whereNotNull('category')->select('category')->distinct()->orderBy('category')->pluck('category');
         $stats = $this->currentStockStats();
 
+        // Full, unpaginated list of ingredient names for the search box's
+        // suggestions dropdown, deliberately separate from $ingredients
+        // (only the current page of up to 5 results), since suggestions need
+        // to cover every ingredient, not just whichever page is showing.
+        $allIngredientNames = Ingredient::query()->orderBy('ingredient_name')->pluck('ingredient_name');
+
         // AJAX refresh: after Add/Edit/Delete, or a Prev/Next/numbered-page click,
         // the frontend re-requests this same endpoint asking for JSON instead of a
         // full page, and swaps in just the table+pagination fragment
-        // (admin.inventory._table) plus the stat cards and category filter, both
-        // of which can go stale the same way Menu Management's did — an ingredient
-        // added with a new category, or one that crosses a stock threshold,
-        // otherwise wouldn't show up until a real page reload.
+        // (admin.inventory._table) plus the stat cards, category filter, and search
+        // suggestions, all three can go stale the same way Menu Management's did:
+        // an ingredient added with a new category or name, or one that crosses a
+        // stock threshold, otherwise wouldn't show up until a real page reload.
         if ($request->wantsJson()) {
             return response()->json([
                 'html' => view('admin.inventory._table', [
@@ -82,6 +91,9 @@ class InventoryController extends Controller{
                     'value' => $request->input('category'),
                     'options' => $categories->mapWithKeys(fn ($c) => [$c => $c]),
                 ])->render(),
+                'ingredientSuggestionsHtml' => view('admin.partials._search_suggestions', [
+                    'suggestions' => $allIngredientNames,
+                ])->render(),
             ]);
         }
 
@@ -90,6 +102,7 @@ class InventoryController extends Controller{
             'units' => $units,
             'categories' => $categories,
             'stats' => $stats,
+            'allIngredientNames' => $allIngredientNames,
         ]);
     }
 
@@ -128,17 +141,8 @@ class InventoryController extends Controller{
         return view('admin.inventory.create');
     }
 
-    // Shared validation rules: required text that must not contain any digits
-    // (0-9), matches ingredient_name and unit_of_measurement, both of which the
-    // frontend already blocks digits on while typing.
-    private function textNoDigitsRule(): array{
-        return ['required', 'string', 'regex:/^[^0-9]+$/u'];
-    }
-
     private function validationMessages(): array{
         return [
-            'ingredient_name.regex' => 'Ingredient name must not contain any numbers.',
-            'unit_of_measurement.regex' => 'Unit of measurement must not contain any numbers.',
             'image.mimes' => 'Please upload a JPG, JPEG, or PNG image.',
         ];
     }
@@ -158,7 +162,7 @@ class InventoryController extends Controller{
         };
     }
 
-    // Postgres unique_violation is SQLSTATE 23505 — the same last-line-of-defense
+    // Postgres unique_violation is SQLSTATE 23505, the same last-line-of-defense
     // pattern as MenuController, for the ingredients_ingredient_name_unique index.
     private function isDuplicateNameViolation(QueryException $e): bool{
         return $e->getCode() === '23505'
@@ -202,9 +206,9 @@ class InventoryController extends Controller{
     // Also accepts an optional image, handled the same way MenuController does.
     public function store(Request $request){
         $validator = Validator::make($request->all(), [
-            'ingredient_name' => [...$this->textNoDigitsRule(), 'max:100', $this->duplicateNameRule()],
-            'category' => ['nullable', 'string', 'max:50', 'regex:/^[^0-9]*$/u'],
-            'unit_of_measurement' => [...$this->textNoDigitsRule(), 'max:20'],
+            'ingredient_name' => ['required', 'string', 'max:100', $this->duplicateNameRule()],
+            'category' => ['nullable', 'string', 'max:50'],
+            'unit_of_measurement' => ['required', 'string', 'max:20'],
             'unit_cost' => 'required|numeric|min:0',
             'restock_threshold' => 'required|numeric|min:0',
             'shelf_life_days' => 'nullable|integer|min:0',
@@ -277,9 +281,9 @@ class InventoryController extends Controller{
     // that's only ever changed through recordMovement().
     public function update(Request $request, Ingredient $ingredient){
         $validator = Validator::make($request->all(), [
-            'ingredient_name' => [...$this->textNoDigitsRule(), 'max:100', $this->duplicateNameRule($ingredient->ingredient_id)],
-            'category' => ['nullable', 'string', 'max:50', 'regex:/^[^0-9]*$/u'],
-            'unit_of_measurement' => [...$this->textNoDigitsRule(), 'max:20'],
+            'ingredient_name' => ['required', 'string', 'max:100', $this->duplicateNameRule($ingredient->ingredient_id)],
+            'category' => ['nullable', 'string', 'max:50'],
+            'unit_of_measurement' => ['required', 'string', 'max:20'],
             'unit_cost' => 'required|numeric|min:0',
             'restock_threshold' => 'required|numeric|min:0',
             'shelf_life_days' => 'nullable|integer|min:0',
@@ -343,7 +347,7 @@ class InventoryController extends Controller{
         try {
             $ingredient->delete();
         } catch (QueryException $e) {
-            $message = "Can't delete \"{$ingredient->ingredient_name}\" — it has recipe or stock movement history tied to it.";
+            $message = "Can't delete \"{$ingredient->ingredient_name}\", it has recipe or stock movement history tied to it.";
 
             if ($request->wantsJson()) {
                 return response()->json([
@@ -368,7 +372,7 @@ class InventoryController extends Controller{
     }
 
     // Record a stock-in, waste, or manual adjustment entry against an ingredient's
-    // ledger. 'sale_deduction' is deliberately not offered here, a human admin
+    // ledger. 'sale_deduction' is deliberately not offered here, an admin
     // manually picking that type would defeat the point of it being automated;
     // see the MOVEMENT_TYPES docblock at the top of this class.
     public function recordMovement(Request $request, Ingredient $ingredient){
@@ -479,30 +483,40 @@ class InventoryController extends Controller{
     // the primary, discoverable way to reach ledger data via a tab, rather than a
     // small action icon buried in a specific ingredient's row.
     public function ledgerIndex(Request $request){
-        $query = StockMovement::with(['ingredient', 'recordedBy']);
+        $movements = $this->paginateClamped(function () use ($request) {
+            $query = StockMovement::with(['ingredient', 'recordedBy']);
 
-        if ($request->filled('ingredient_id')) {
-            $query->where('ingredient_id', $request->input('ingredient_id'));
-        }
+            if ($request->filled('ingredient_id')) {
+                $query->where('ingredient_id', $request->input('ingredient_id'));
+            }
 
-        if ($request->filled('type') && array_key_exists($request->input('type'), self::MOVEMENT_TYPES)) {
-            $query->where('movement_type', $request->input('type'));
-        }
+            if ($request->filled('type') && array_key_exists($request->input('type'), self::MOVEMENT_TYPES)) {
+                $query->where('movement_type', $request->input('type'));
+            }
 
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->whereHas('ingredient', fn ($iq) => $iq->where('ingredient_name', 'ILIKE', "%{$search}%"))
-                    ->orWhereHas('recordedBy', fn ($uq) => $uq->where('name', 'ILIKE', "%{$search}%"));
-            });
-        }
+            if ($request->filled('search')) {
+                $search = $request->input('search');
+                $query->where(function ($q) use ($search) {
+                    $q->whereHas('ingredient', fn ($iq) => $iq->where('ingredient_name', 'ILIKE', "%{$search}%"))
+                        ->orWhereHas('recordedBy', fn ($uq) => $uq->where('name', 'ILIKE', "%{$search}%"));
+                });
+            }
 
-        $movements = $query->orderByDesc('recorded_at')
-            ->paginate(5)
-            ->appends($request->query());
+            return $query->orderByDesc('recorded_at');
+        }, $request, 5);
 
         $ingredients = Ingredient::orderBy('ingredient_name')
             ->get(['ingredient_id', 'ingredient_name', 'unit_of_measurement']);
+
+        // The search box matches either an ingredient name or a recorded-by
+        // name (see the whereHas/orWhereHas above), so suggestions merge both
+        // into one alphabetized list rather than only suggesting one of the
+        // two things it's actually possible to search for.
+        $searchSuggestions = Ingredient::pluck('ingredient_name')
+            ->merge(User::pluck('name'))
+            ->unique()
+            ->sort()
+            ->values();
 
         return view('admin.inventory.ledger', [
             'movements' => $movements,
@@ -510,12 +524,14 @@ class InventoryController extends Controller{
             'selectedIngredientId' => $request->input('ingredient_id'),
             'selectedType' => $request->input('type'),
             'stats' => $this->ledgerStats(),
+            'searchSuggestions' => $searchSuggestions,
         ]);
     }
 
     // Total Movements (today) / Restocks (all-time completed deliveries) /
     // Waste Recorded (distinct ingredients with at least one waste entry) /
     // Net Stock (% change in total inventory value vs. 7 days ago).
+    //
     // "Net Stock" specifically doesn't correspond to anything in the current
     // SRS or schema as a named metric, it's defined here concretely as the
     // percentage change in total inventory value (current_stock × unit_cost,

@@ -1,5 +1,5 @@
 {{--
-    Reusable search box — search icon, text input, inline clear (x) button,
+    Reusable search box, search icon, text input, inline clear (x) button,
     and an optional live suggestions dropdown.
 
     Usage (unchanged, no suggestions):
@@ -17,14 +17,14 @@
             'suggestions' => $allItemNames,   // flat list of strings
         ])
 
-    Suggestions only appear once the admin has typed at least one character —
-    not on empty focus — and are filtered entirely client-side against the
+    Suggestions only appear once the admin has typed at least one character,
+    not on empty focus, and are filtered entirely client-side against the
     full list passed in, so there's no per-keystroke network round trip. That
     fits a small single-location menu's realistic size (SRS scopes this to
     one restaurant) and keeps search working even if the connection to the
     local server is briefly slow.
 
-    Must be placed inside the page's <form method="GET"> — the clear button
+    Must be placed inside the page's <form method="GET">, the clear button
     and clicking a suggestion both submit that surrounding form. Behavior
     lives in admin.js (delegated), not here.
 --}}

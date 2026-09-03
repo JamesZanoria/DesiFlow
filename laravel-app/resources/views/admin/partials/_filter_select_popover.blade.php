@@ -1,6 +1,6 @@
 {{--
     Inner content of a filter-select popover (the optional search box + the
-    option list) — split out from _filter_select.blade.php so a controller
+    option list), split out from _filter_select.blade.php so a controller
     can re-render just this piece after data changes (e.g. a new menu
     category from an AJAX-created item) without a full page reload, using
     the exact same template as the initial page load. Rendering this

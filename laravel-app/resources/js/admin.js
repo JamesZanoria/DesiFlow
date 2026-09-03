@@ -2,7 +2,8 @@
 // (Menu, Inventory, Staff, etc.) so pages call one shared implementation
 // instead of each page re-writing fetch/error-handling/toast logic itself.
 
-// Chart.js is imported once here and exposed on window, same as the helpers below, so
+// Chart.js (already committed) is
+// imported once here and exposed on window, same as the helpers below, so
 // the Analytics page's inline <script> block can call `new Chart(...)`
 // directly without every chart-using page needing its own Vite entry point.
 // Requires `npm install chart.js`, the 'chart.js/auto' import auto-registers
@@ -10,6 +11,23 @@
 // individual pieces don't need to be registered by hand.
 import Chart from 'chart.js/auto';
 window.Chart = Chart;
+
+// Escapes text before it's ever interpolated into an innerHTML template
+// literal. This exists because several places in this app build a message
+// server-side that embeds a user-submitted value verbatim, e.g.
+// InventoryController::destroy()'s conflict message includes the actual
+// ingredient name ("Can't delete "X", it has..."), and the notification
+// bell's low-stock alerts include it too (NotificationController). Nothing
+// currently stops an ingredient, menu item, or staff name from containing HTML.
+// Every place in this file (and every page's own inline script, via
+// window.escapeHtml below) that interpolates a value that ultimately traces
+// back to something a user typed uses this first.
+function escapeHtml(value) {
+    const div = document.createElement('div');
+    div.textContent = value ?? '';
+    return div.innerHTML;
+}
+window.escapeHtml = escapeHtml;
 
 // Icon presets: each action gets a color + icon combination so the toast communicates
 // *what* happened at a glance, not just whether it succeeded. Callers pass a `kind`
@@ -48,7 +66,7 @@ function showToast(message, kind = 'success') {
                 <path stroke-linecap="round" stroke-linejoin="round" d="${iconPath}" />
             </svg>
         </span>
-        <span class="text-sm text-gray-800 font-medium flex-1">${message}</span>
+        <span class="text-sm text-gray-800 font-medium flex-1">${escapeHtml(message)}</span>
         <button type="button" class="toast-close text-gray-400 hover:text-gray-600 flex-shrink-0">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -117,9 +135,9 @@ function submitAjaxForm({ form, url, method = 'POST', errorBox, toastKind, onUpl
         errorBox.classList.remove('hidden');
         if (data && data.errors && typeof data.errors === 'object') {
             errorBox.innerHTML = '<ul class="list-disc list-inside">' +
-                Object.values(data.errors).flat().map((m) => `<li>${m}</li>`).join('') + '</ul>';
+                Object.values(data.errors).flat().map((m) => `<li>${escapeHtml(m)}</li>`).join('') + '</ul>';
         } else {
-            // Response was a 422 but not in Laravel's usual {errors: {...}} shape —
+            // Response was a 422 but not in Laravel's usual {errors: {...}} shape,
             // fall back to whatever message is available instead of throwing.
             errorBox.textContent = (data && data.message) || 'Please check the form and try again.';
         }
@@ -258,10 +276,10 @@ window.submitAjaxAction = submitAjaxAction;
  * rather than per-page, since the button only ever does one thing regardless
  * of which page or field it's attached to: blank out its own field and
  * resubmit the surrounding GET filter form.
- *
+ 
  * Resubmitting the whole form (rather than just navigating to a hand-built
  * URL) is what lets clearing one filter leave any other active filter in the
- * same form untouched — e.g. clearing Category on Menu Management preserves
+ * same form untouched, e.g. clearing Category on Menu Management preserves
  * an active Search term, and vice versa, instead of a single "Clear" link
  * wiping every filter at once.
  */
@@ -514,8 +532,8 @@ function initNotificationBell() {
                 </svg>
             </span>
             <span class="min-w-0">
-                <span class="block text-sm font-semibold text-gray-800 truncate">${alert.title}</span>
-                <span class="block text-xs text-gray-500">${alert.message}</span>
+                <span class="block text-sm font-semibold text-gray-800 truncate">${escapeHtml(alert.title)}</span>
+                <span class="block text-xs text-gray-500">${escapeHtml(alert.message)}</span>
                 <span class="block text-xs text-gray-400 mt-0.5">${timeAgo(alert.timestamp)}</span>
             </span>
         `;

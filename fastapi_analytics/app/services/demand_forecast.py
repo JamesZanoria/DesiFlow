@@ -1,21 +1,25 @@
 """
-Demand Forecast (SRS REQ-4.7-5): time-series projection of expected
+Demand Forecast: time-series projection of expected
 ingredient consumption over the next N days.
 
 Uses a simple linear trend fit (numpy polyfit) over daily stock_out
-consumption — easy to explain in a defense, and matches what Capstone 1
-Ch.3 commits to (pandas/statsmodels/scikit-learn available, no specific
-algorithm mandated).
+consumption.
 
 Items with fewer than min_data_points days of stock-out history are skipped
-entirely (no snapshot row) — Laravel shows "Insufficient Data" for those via
+entirely (no snapshot row), Laravel shows "Insufficient Data" for those via
 the same gap-handling as menu_engineering.py.
 
-REAL SCHEMA USED (from schema.sql):
+REAL SCHEMA USED (confirmed against StockMovement.php, InventoryController.php):
   stock_movements(movement_id, ingredient_id, movement_type, qty_changed, recorded_at, waste_reason, user_id)
-    -> qty_changed assumed signed (negative for stock_out); ABS() is applied
-       so the magnitude is what gets forecasted, regardless of sign
-       convention on write.
+    -> movement_type value confirmed as 'sale_deduction' (settings.movement_type_stock_out),
+       not 'stock_out', see InventoryController.php's MOVEMENT_TYPES const.
+       'sale_deduction' has no writer yet (it's meant to come from the
+       Kitchen Display's Serve action, which isn't a built module as of this
+       writing), so this will legitimately return an empty list, every
+       ingredient falls into "Insufficient Data", until that module ships
+       and starts recording consumption. qty_changed is assumed signed
+       (negative for sale_deduction); ABS() is applied so the magnitude is
+       what gets forecasted, regardless of sign convention on write.
 """
 
 from datetime import date, timedelta
@@ -24,6 +28,8 @@ import numpy as np
 import pandas as pd
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.config import settings
 
 DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
@@ -40,13 +46,13 @@ async def compute_demand_forecast(
                 """
                 SELECT ingredient_id, recorded_at::date AS day, SUM(ABS(qty_changed)) AS qty
                 FROM stock_movements
-                WHERE movement_type = 'stock_out'
+                WHERE movement_type = :movement_type
                   AND recorded_at >= CURRENT_DATE - make_interval(days => :days)
                 GROUP BY ingredient_id, recorded_at::date
                 ORDER BY ingredient_id, day
                 """
             ),
-            {"days": usage_lookback_days},
+            {"movement_type": settings.movement_type_stock_out, "days": usage_lookback_days},
         )
     ).all()
 

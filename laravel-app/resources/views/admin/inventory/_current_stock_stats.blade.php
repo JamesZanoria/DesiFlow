@@ -1,5 +1,5 @@
 {{--
-    Current Stock stat cards — Total Items / Low Stock / Out of Stock / Total
+    Current Stock stat cards, Total Items / Low Stock / Out of Stock / Total
     Value. Rendered both on initial page load and re-rendered server-side
     into the AJAX response after Add/Edit/Delete, so these numbers can never
     go stale the way Menu Management's category filter briefly did.

@@ -29,7 +29,7 @@ app = FastAPI(
 @app.get("/health")
 async def health():
     """
-    Simple liveness check — hit this first after `uvicorn app.main:app`
+    Simple liveness check, hit this first after `uvicorn app.main:app`
     to confirm the service is up and the DB connection string parses,
     before worrying about whether the actual queries match the schema.
     """
@@ -40,7 +40,7 @@ async def health():
 async def trigger_analytics_run():
     """
     Manually triggers the same computation the daily scheduler runs.
-    NOT meant to be customer- or even cashier-facing — this exists purely so
+    NOT meant to be customer- or even cashier-facing, this exists purely so
     later we can force a fresh snapshot without waiting for
     2 AM while developing. Wire this behind an internal/admin-only check
     before anything resembling production use.

@@ -10,7 +10,7 @@
             <p class="text-sm text-gray-500 mt-1">Live view of every order currently in progress across the restaurant.</p>
         </div>
 
-        {{-- Status filter (REQ-4.3-3) — pills instead of a dropdown so the current
+        {{-- Status filter (REQ-4.3-3), pills instead of a dropdown so the current
              filter and the total-active-orders count stay visible at a glance. --}}
         <div id="status-filter-pills" class="flex items-center gap-2">
             <a href="{{ route('admin.orders.index') }}"
@@ -54,7 +54,7 @@
             const baseUrl = '{{ url('admin/orders') }}';
 
             // ---------------------------------------------------------------
-            // Live elapsed-time labels ("3 min ago") — computed client-side
+            // Live elapsed-time labels ("3 min ago"), computed client-side
             // from each card's data-created-at so the numbers keep ticking up
             // between polls without needing a server round trip just for that.
             // ---------------------------------------------------------------
@@ -107,7 +107,7 @@
             }
 
             // ---------------------------------------------------------------
-            // Board polling — stand-in for real-time WebSocket push (REQ-4.3-2)
+            // Board polling, stand-in for real-time WebSocket push (REQ-4.3-2)
             // until Laravel Reverb is wired into this module. Refreshes the
             // whole board fragment from the server on an interval, and again
             // whenever the tab regains focus (catches up instantly instead of

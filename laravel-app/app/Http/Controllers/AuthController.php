@@ -52,7 +52,7 @@ class AuthController extends Controller{
         RateLimiter::clear($this->throttleKey($request));
         $request->session()->regenerate();
 
-        // Real-Time Orders, not "Dashboard" — app.blade.php's Dashboard link
+        // Real-Time Orders, not "Dashboard", app.blade.php's Dashboard link
         // is still a coming-soon placeholder, so landing there after login
         // would drop the admin on a dead page. Swap this once Dashboard ships.
         return redirect()->intended(route('admin.orders.index'));
@@ -66,7 +66,7 @@ class AuthController extends Controller{
         return redirect()->route('login');
     }
 
-    // 5 attempts per minute, keyed by email + IP together — keyed on both so
+    // 5 attempts per minute, keyed by email + IP together, keyed on both so
     // one attacker can't lock a real admin out just by repeatedly guessing
     // their email from a different device, and so the same IP trying many
     // different emails doesn't get an unfairly high combined budget.

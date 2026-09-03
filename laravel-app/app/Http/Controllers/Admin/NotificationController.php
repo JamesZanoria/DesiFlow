@@ -7,7 +7,7 @@ use App\Models\Ingredient;
 
 class NotificationController extends Controller{
     // Returns all current system alerts as JSON, for the notification bell dropdown
-    // in the shared layout. Currently only surfaces low-stock ingredients — structured
+    // in the shared layout. Currently only surfaces low-stock ingredients, structured
     // so additional alert types can be appended here later without changing how the
     // bell consumes this endpoint.
     //

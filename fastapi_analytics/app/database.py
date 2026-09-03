@@ -8,6 +8,6 @@ AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=As
 
 
 async def get_session() -> AsyncSession:
-    """FastAPI dependency — `session: AsyncSession = Depends(get_session)`."""
+    """FastAPI dependency, `session: AsyncSession = Depends(get_session)`."""
     async with AsyncSessionLocal() as session:
         yield session

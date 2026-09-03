@@ -2,8 +2,8 @@
     Board fragment for Real-Time Order Monitoring (REQ-4.3-1).
 
     Rendered two ways from OrderMonitorController@index:
-      1. Normal page load — included directly inside admin.orders.index.
-      2. AJAX poll refresh — returned alone (as HTML inside a JSON envelope)
+      1. Normal page load, included directly inside admin.orders.index.
+      2. AJAX poll refresh, returned alone (as HTML inside a JSON envelope)
          every few seconds, so newly confirmed/prepared/served orders appear
          without the admin reloading the page. See setInterval in index.blade.php.
 

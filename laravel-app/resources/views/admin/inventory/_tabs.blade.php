@@ -2,13 +2,13 @@
     $activeTab is either 'stock' or 'ledger'.
 
     Deliberately flat (no bg-white/border/shadow card wrapper) to match the
-    reference screenshot — just a full-width hairline under both tabs, with
+    reference screenshot, just a full-width hairline under both tabs, with
     the active tab's own border overlapping it in amber.
 
     Anti-"jump" details, all load-bearing:
     - Both tabs share the exact same font-weight (font-semibold) and padding
       in EVERY state. Nothing about a tab's own box size changes when it
-      becomes active/inactive — only color does. A font-weight or padding
+      becomes active/inactive, only color does. A font-weight or padding
       difference between states is the #1 cause of a tab bar visibly
       shifting width when you switch, so this is deliberately never varied.
     - border-b-2 is present on both tabs at all times; only its color

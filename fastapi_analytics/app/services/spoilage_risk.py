@@ -1,18 +1,26 @@
 """
-Spoilage Risk Monitor (SRS REQ-4.7-6): urgency rating per ingredient from
+Spoilage Risk Monitor: urgency rating per ingredient from
 expiration vs usage rate.
 
-REAL SCHEMA USED (from schema.sql):
+REAL SCHEMA USED (confirmed against Ingredient.php, StockMovement.php, InventoryController.php):
   ingredients(ingredient_id, ..., shelf_life_days INTEGER NULLABLE, ...)
     -> there is NO expiry_date column. shelf_life_days is a duration, not a
        date, so "days until expiry" has to be derived: shelf_life_days minus
        how many days have passed since the ingredient's most recent stock-in
        movement. This assumes each restock effectively resets the shelf-life
-       clock for that ingredient's whole current stock (a simplification —
+       clock for that ingredient's whole current stock (a simplification,
        true batch/FEFO tracking would need a separate ingredient_batches
-       table, which schema.sql doesn't have).
+       table, which the schema doesn't have).
   stock_movements(movement_id, ingredient_id, movement_type, qty_changed, recorded_at, waste_reason, user_id)
-    -> most recent recorded_at WHERE movement_type = 'stock_in' = last restock date.
+    -> movement_type values confirmed as 'delivery' (settings.movement_type_stock_in)
+       and 'sale_deduction' (settings.movement_type_stock_out), see
+       InventoryController.php's MOVEMENT_TYPES const, not 'stock_in'/
+       'stock_out'. 'sale_deduction' has no writer yet (Kitchen Display's
+       Serve action isn't a built module as of this writing), so the
+       usage-rate side of this will stay at 0 until that ships, the
+       days-until-expiry side (based on 'delivery') is unaffected and works
+       today. Most recent recorded_at WHERE movement_type = 'delivery' =
+       last restock date.
 
 For ingredients with shelf_life_days = NULL (shelf-stable items like spices,
 rice, etc.) or with no stock-in history yet, risk falls back to a pure
@@ -24,6 +32,8 @@ from datetime import date
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.config import settings
 
 
 def _classify_risk(days_remaining: float | None) -> str:
@@ -51,13 +61,13 @@ async def compute_spoilage_risk(session: AsyncSession, usage_lookback_days: int)
                 last_restock AS (
                     SELECT ingredient_id, MAX(recorded_at) AS last_stock_in
                     FROM stock_movements
-                    WHERE movement_type = 'stock_in'
+                    WHERE movement_type = :stock_in_type
                     GROUP BY ingredient_id
                 ),
                 usage AS (
                     SELECT ingredient_id, SUM(ABS(qty_changed)) / (:days)::float AS avg_daily_usage
                     FROM stock_movements
-                    WHERE movement_type = 'stock_out'
+                    WHERE movement_type = :stock_out_type
                       AND recorded_at >= CURRENT_DATE - make_interval(days => (:days)::int)
                     GROUP BY ingredient_id
                 )
@@ -73,7 +83,11 @@ async def compute_spoilage_risk(session: AsyncSession, usage_lookback_days: int)
                 LEFT JOIN usage u ON u.ingredient_id = i.ingredient_id
                 """
             ),
-            {"days": usage_lookback_days},
+            {
+                "days": usage_lookback_days,
+                "stock_in_type": settings.movement_type_stock_in,
+                "stock_out_type": settings.movement_type_stock_out,
+            },
         )
     ).all()
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\ClampsPaginationPage;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Database\QueryException;
@@ -10,24 +11,26 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
 
 class StaffController extends Controller{
+    use ClampsPaginationPage;
+
     // Display a paginated, searchable listing of all staff accounts.
     public function index(Request $request){
-        $query = User::query();
+        $staff = $this->paginateClamped(function () use ($request) {
+            $query = User::query();
 
-        if ($request->filled('search')) {
-            $query->where(function ($q) use ($request) {
-                $q->where('name', 'ILIKE', '%' . $request->input('search') . '%')
-                    ->orWhere('email', 'ILIKE', '%' . $request->input('search') . '%');
-            });
-        }
+            if ($request->filled('search')) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('name', 'ILIKE', '%' . $request->input('search') . '%')
+                        ->orWhere('email', 'ILIKE', '%' . $request->input('search') . '%');
+                });
+            }
 
-        if ($request->filled('role')) {
-            $query->where('role', $request->input('role'));
-        }
+            if ($request->filled('role')) {
+                $query->where('role', $request->input('role'));
+            }
 
-        $staff = $query->orderByDesc('user_id')
-            ->paginate(8)
-            ->appends($request->query());
+            return $query->orderByDesc('user_id');
+        }, $request, 8);
 
         // Full, unpaginated list of staff names for the search box's
         // suggestions dropdown, deliberately separate from $staff (only the
@@ -81,6 +84,13 @@ class StaffController extends Controller{
         return ['required', 'string', 'email:rfc,filter', 'max:150'];
     }
 
+    // Required text that must not contain any digits (0-9), same rule
+    // MenuController applies to item_name/category, used here for the staff
+    // full-name field.
+    private function textNoDigitsRule(): array{
+        return ['required', 'string', 'max:100', 'regex:/^[^0-9]+$/u'];
+    }
+
     // A staff account can't be created with a weak password: at least 10
     // characters, upper + lower case, at least one number, and at least one
     // symbol. `uncompromised()` (a live Have I Been Pwned lookup) is deliberately
@@ -98,6 +108,7 @@ class StaffController extends Controller{
         return [
             'email.email' => 'Please enter a valid email address.',
             'password.confirmed' => 'Password confirmation does not match.',
+            'name.regex' => 'Full name must not contain any numbers.',
         ];
     }
 
@@ -260,7 +271,7 @@ class StaffController extends Controller{
         try {
             $user->delete();
         } catch (QueryException $e) {
-            $message = "Can't delete \"{$user->name}\" — they have order or stock movement history tied to their account.";
+            $message = "Can't delete \"{$user->name}\", they have order or stock movement history tied to their account.";
 
             if ($request->wantsJson()) {
                 return response()->json([

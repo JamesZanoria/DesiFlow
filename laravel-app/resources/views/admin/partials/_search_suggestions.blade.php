@@ -1,5 +1,5 @@
 {{--
-    Suggestion button list for the search-with-suggestions dropdown — split
+    Suggestion button list for the search-with-suggestions dropdown, split
     out from _filter_search.blade.php so a controller can re-render just this
     piece after data changes (a new/renamed/deleted item), using the exact
     same template as the initial page load, rather than duplicating this

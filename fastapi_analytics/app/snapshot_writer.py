@@ -20,7 +20,7 @@ async def write_snapshot(
     Deliberately just INSERTs rather than upserting. AnalyticsController.php's
     latestBatchWithNames() and latestOfType() both key off MAX(generated_at)
     per type, so old rows are naturally superseded without needing to be
-    deleted — and for 'business_health' specifically, old rows are *supposed*
+    deleted, and for 'business_health' specifically, old rows are *supposed*
     to stick around, since that's what the 30-day trend line reads.
     """
     generated_at = generated_at or datetime.now(timezone.utc)

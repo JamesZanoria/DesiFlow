@@ -1,17 +1,17 @@
 {{--
-    Reusable dropdown filter chip — funnel icon + "Label: Value" pill that
+    Reusable dropdown filter chip, funnel icon + "Label: Value" pill that
     opens a custom popover (not a native <select>) with an optional search box
     and a scroll-capped option list.
 
     Rebuilt from a native-<select>-based version after long option labels
     (e.g. "Main Course") were visually overlapping the chevron/clear icons.
     Root cause: the text span was a flex child without min-w-0, so it refused
-    to shrink and `truncate` never actually engaged — a native <select>'s
+    to shrink and `truncate` never actually engaged, a native <select>'s
     rendered value also doesn't reliably respect text-overflow: ellipsis
     across browsers regardless. This version sidesteps both: the chevron is
     now a normal (non-absolute) flex sibling that can never be overlapped,
     and a hidden <input type="hidden"> carries the actual submitted value, so
-    the surrounding GET filter form works exactly as before — no controller
+    the surrounding GET filter form works exactly as before, no controller
     or route changes needed.
 
     Usage (identical to the previous version):
@@ -22,7 +22,7 @@
             'options' => ['admin' => 'Admin / Manager', 'cashier' => 'Cashier'],
         ])
 
-    Must be placed inside the page's <form method="GET"> — both the clear (x)
+    Must be placed inside the page's <form method="GET">, both the clear (x)
     button and option selection submit that surrounding form. The actual
     open/close/search/select behavior lives in admin.js (delegated, so this
     partial can be included any number of times on one page without each
@@ -49,7 +49,7 @@
 
     @if ($value)
         {{-- Sibling of the trigger button, not nested inside it (a <button>
-             inside a <button> is invalid HTML and breaks click handling) —
+             inside a <button> is invalid HTML and breaks click handling),
              layered on top via DOM order so it always catches its own
              clicks before they'd reach the trigger underneath. --}}
         <button type="button"

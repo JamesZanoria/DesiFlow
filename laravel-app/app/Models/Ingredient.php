@@ -45,7 +45,7 @@ class Ingredient extends Model{
 
     // Scope: attach each ingredient's current stock as a single aggregated query
     // (SUM of qty_changed across its ledger) instead of running one SUM query per
-    // ingredient in a loop. Use this anywhere current_stock is needed on a list —
+    // ingredient in a loop. Use this anywhere current_stock is needed on a list,
     // Ingredient::withCurrentStock()->get(), and read it via $ingredient->current_stock.
     public function scopeWithCurrentStock($query){
         return $query->withSum('stockMovements as current_stock', 'qty_changed');
@@ -54,7 +54,7 @@ class Ingredient extends Model{
     // True when current stock is at or below the restock threshold. Relies on
     // current_stock being present, i.e. the model was loaded via withCurrentStock().
     // Kept alongside stockStatus() below (rather than replaced by it) since
-    // several places, the notification bell, the Smart Assistant — only care
+    // several places, the notification bell, the Smart Assistant, only care
     // about the binary "needs attention?" question, not which of the two
     // low/out-of-stock tiers it falls into.
     public function isLowStock(): bool{

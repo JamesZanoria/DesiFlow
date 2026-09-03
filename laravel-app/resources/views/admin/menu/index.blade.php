@@ -35,14 +35,14 @@
 
     {{-- Table + pagination now live in a shared partial, wrapped in this container so
          the JS can swap the whole thing out after Add/Edit/Delete or a Prev/Next click
-         without a full browser reload — see refreshTable() below. --}}
+         without a full browser reload, see refreshTable() below. --}}
     <div id="menu-table-container">
         @include('admin.menu._table')
     </div>
 
     {{-- Add / Edit popup. overflow-y-auto on the backdrop + max-h-[90vh] on the panel is what
          stops the modal from overflowing past the viewport ("jumping out of the page") once
-         it has enough content — Description, Category, Price and the image uploader
+         it has enough content, Description, Category, Price and the image uploader
          all stacked together are taller than the old version. --}}
     <div id="menu-modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-y-auto">
         <div class="bg-white rounded-xl shadow-xl w-full max-w-md my-8 max-h-[90vh] overflow-y-auto">
@@ -77,7 +77,7 @@
                         </div>
                     </div>
 
-                    {{-- Status is intentionally not an editable field here — it's
+                    {{-- Status is intentionally not an editable field here, it's
                          managed exclusively through the quick-toggle dropdown on
                          each table row (see _table.blade.php / handleStatusChange
                          below), which is faster for the common case of just
@@ -163,7 +163,7 @@
             const indexUrl = '{{ route('admin.menu.index') }}';
 
             // ---------------------------------------------------------------
-            // Field error display — shown only after the admin clicks Save and
+            // Field error display, shown only after the admin clicks Save and
             // the server rejects the submission (duplicate name, numbers in a
             // text field, etc.). Nothing is checked or blocked while typing;
             // this mirrors how the duplicate-name error already works.
@@ -176,7 +176,7 @@
                 });
             }
 
-            // Filled red circle + white exclamation mark — matches the reference
+            // Filled red circle + white exclamation mark, matches the reference
             // design exactly. Shared by every error message in this modal so the
             // visual language stays consistent.
             function errorIconSvg() {
@@ -190,7 +190,7 @@
             }
 
             // Renders the same plain icon + red text treatment for any field/message
-            // pair — no boxed background, matching the reference design — plus a
+            // pair, no boxed background, matching the reference design, plus a
             // border around whichever input caused it. The modal is never closed.
             function showFieldError(fieldName, message) {
                 errorBox.classList.remove('hidden');
@@ -213,11 +213,11 @@
             // showFieldError() above, because the desired behavior differs by mode:
             //   - Add New Item: clear the whole form (the error message stays
             //     visible) so the admin can immediately type a completely
-            //     different item — but the Item Name field keeps its red outline
+            //     different item, but the Item Name field keeps its red outline
             //     even once emptied, exactly as shown in the reference design,
             //     as a persistent visual cue that this is the field to fix.
             //   - Edit: the admin is mid-change on a specific existing item, so
-            //     wiping the form would lose legitimate edits — just highlight
+            //     wiping the form would lose legitimate edits, just highlight
             //     the conflicting field instead, same as any other field error.
             function showDuplicateError(mode) {
                 errorBox.classList.remove('hidden');
@@ -244,7 +244,7 @@
             // Once the admin starts editing any field that previously errored,
             // clear that field's red outline so it doesn't linger after they've
             // clearly started correcting it. The message stays until they submit
-            // again — only re-submitting (successfully or not) refreshes it.
+            // again, only re-submitting (successfully or not) refreshes it.
             errorableFields.forEach((name) => {
                 const field = form.elements[name];
                 if (!field) return;
@@ -258,9 +258,9 @@
             // Table refresh (fixes pagination going stale after Add/Edit/Delete)
             //
             // Instead of hand-patching the DOM (appending a row, decrementing a
-            // counter, etc.) — which drifts out of sync with the real, sorted,
+            // counter, etc.), which drifts out of sync with the real, sorted,
             // server-side pagination the moment a page fills up or an item's
-            // alphabetical position changes — every mutation just re-asks the
+            // alphabetical position changes, every mutation just re-asks the
             // server for the current page's table+pagination fragment and swaps
             // it in. This is what makes pagination "automatic": no manual
             // reload is ever required to see correct page counts/links again.
@@ -280,7 +280,7 @@
                     attachRowListeners(container);
                     attachPaginationListeners(container);
 
-                    // Keeps the Category filter chip's option list current —
+                    // Keeps the Category filter chip's option list current,
                     // without this, a category introduced (or removed) by the
                     // add/edit/delete that just happened wouldn't show up
                     // until a real page reload, since this popover was
@@ -293,7 +293,7 @@
                         if (categoryPopover) categoryPopover.innerHTML = data.categoryOptionsHtml;
                     }
 
-                    // Same idea for the search box's suggestion list — an
+                    // Same idea for the search box's suggestion list, an
                     // item just added/renamed/deleted should be reflected in
                     // suggestions immediately, not just in the table.
                     if (data.itemSuggestionsHtml) {
@@ -362,7 +362,7 @@
 
             // ---------------------------------------------------------------
             // Disable Save until something has actually changed from what the
-            // modal opened with — applies to both Add (a still-blank form
+            // modal opened with, applies to both Add (a still-blank form
             // shouldn't be submittable) and Edit (no point re-saving
             // unmodified data). A snapshot of every field Save would actually
             // submit is captured the moment the modal opens; Save stays
@@ -377,7 +377,7 @@
 
                 // A File object can't be meaningfully diffed by value, so a
                 // newly-selected file is represented by its name+size+modified
-                // timestamp instead — enough to detect "a different file was
+                // timestamp instead, enough to detect "a different file was
                 // chosen" without needing to read the file's actual bytes.
                 const file = fileInput.files[0];
                 fields.push(file ? `${file.name}:${file.size}:${file.lastModified}` : '');
@@ -409,7 +409,7 @@
             // showing. Previously each handler (dragover/dragleave/drop/etc.)
             // hid-then-showed states with its own separate add/remove calls,
             // which was how "Click or drag to upload image" and "Release to
-            // upload" ended up rendering on top of each other — nothing
+            // upload" ended up rendering on top of each other, nothing
             // actually enforced that only one could be visible at a time.
             // Routing every state change through this one function makes that
             // combination structurally impossible: it always hides all five
@@ -489,7 +489,7 @@
             }
 
             // accept="..." on the <input> only filters what's offered in the
-            // file picker dialog — it does nothing to police a drag-and-drop,
+            // file picker dialog, it does nothing to police a drag-and-drop,
             // so both paths need this same real check before a file is
             // accepted. The server (MenuController's `mimes:jpeg,png,jpg`
             // rule) is still the actual enforcement, since this can be
@@ -574,13 +574,13 @@
                     onUploadProgress: hasNewFile ? showUploadProgress : undefined,
                     onSuccess: async () => {
                         // Re-fetch the current page from the server instead of patching
-                        // the DOM by hand — guarantees the row count, sort order, and
+                        // the DOM by hand, guarantees the row count, sort order, and
                         // Prev/Next state are all correct immediately, no reload needed.
                         await refreshTable(mode === 'create' ? indexUrl : window.location.href);
                         closeModal();
                     },
                     // A 422 lands here instead of the generic bullet-list. This branch
-                    // never calls showToast and never calls closeModal — the admin stays
+                    // never calls showToast and never calls closeModal, the admin stays
                     // on the form, sees exactly what's wrong (with the same icon + red
                     // outline treatment for every field), and can immediately fix just
                     // that field without losing anything else they'd filled in.
@@ -607,7 +607,7 @@
                         errorBox.classList.remove('hidden');
                         if (data && data.errors && typeof data.errors === 'object') {
                             errorBox.innerHTML = '<ul class="list-disc list-inside">' +
-                                Object.values(data.errors).flat().map((m) => `<li>${m}</li>`).join('') + '</ul>';
+                                Object.values(data.errors).flat().map((m) => `<li>${escapeHtml(m)}</li>`).join('') + '</ul>';
                         } else {
                             errorBox.textContent = (data && data.message) || 'Please check the form and try again.';
                         }
@@ -635,7 +635,7 @@
                     toastMessage: isAvailable ? 'Marked available.' : 'Marked unavailable.',
                     onSuccess: () => {
                         // Availability doesn't change total item count or sort order,
-                        // so a lightweight in-place style swap is enough here — no need
+                        // so a lightweight in-place style swap is enough here, no need
                         // to round-trip the whole table.
                         select.classList.remove('bg-green-50', 'text-green-700', 'border-green-200', 'bg-red-50', 'text-red-700', 'border-red-200');
                         select.classList.add(...(isAvailable

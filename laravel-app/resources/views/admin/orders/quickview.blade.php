@@ -1,8 +1,8 @@
 {{--
-    Order Quick-View — read-only. The admin can observe an order's full detail
+    Order Quick-View, read-only. The admin can observe an order's full detail
     here, but all actions on an order (accepting, preparing, serving, voiding)
     happen through the Cashier/POS or Kitchen Display modules per each role's
-    scoped privileges (SRS §2.3) — this view intentionally has no buttons that
+    scoped privileges (SRS §2.3), this view intentionally has no buttons that
     change order state.
 --}}
 @php
@@ -12,7 +12,7 @@
     <div class="flex items-start justify-between">
         <div>
             <p class="text-lg font-bold text-gray-800">Order #{{ $order->order_id }}</p>
-            <p class="text-xs text-gray-500 mt-0.5">{{ $order->created_at->format('M j, Y — g:i A') }}</p>
+            <p class="text-xs text-gray-500 mt-0.5">{{ $order->created_at->format('M j, Y, g:i A') }}</p>
         </div>
         @if ($meta)
             <span class="px-2.5 py-1 rounded-full text-xs font-medium {{ $meta['badge'] }}">{{ $meta['label'] }}</span>
@@ -25,12 +25,12 @@
         <div class="bg-gray-50 rounded-lg px-3 py-2">
             <p class="text-xs text-gray-500">Order Type</p>
             <p class="font-medium text-gray-800">
-                {{ $order->order_type === 'takeout' ? 'Takeout' : ($order->table_number ? 'Dine-in — Table ' . $order->table_number : 'Dine-in') }}
+                {{ $order->order_type === 'takeout' ? 'Takeout' : ($order->table_number ? 'Dine-in, Table ' . $order->table_number : 'Dine-in') }}
             </p>
         </div>
         <div class="bg-gray-50 rounded-lg px-3 py-2">
             <p class="text-xs text-gray-500">Handled By</p>
-            <p class="font-medium text-gray-800">{{ $order->cashier->name ?? '—' }}</p>
+            <p class="font-medium text-gray-800">{{ $order->cashier->name ?? ',' }}</p>
         </div>
     </div>
 
@@ -56,8 +56,8 @@
             <p class="text-xs text-gray-500 mb-1">Payment</p>
             <p class="font-medium text-gray-800">
                 {{ ucfirst($order->payment->payment_method) }}
-                @if ($order->payment->gcash_ref_num)
-                    — Ref #{{ $order->payment->gcash_ref_num }}
+                @if ($order->payment->gcash_ref_num), 
+                Ref #{{ $order->payment->gcash_ref_num }}
                 @endif
             </p>
         </div>

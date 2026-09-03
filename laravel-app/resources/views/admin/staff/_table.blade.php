@@ -2,8 +2,8 @@
     Table + pagination fragment for Staff Accounts Management.
 
     Rendered two ways from StaffController@index:
-      1. Normal page load — included directly inside admin.staff.index.
-      2. AJAX refresh — returned alone (as HTML inside a JSON envelope) after
+      1. Normal page load , included directly inside admin.staff.index.
+      2. AJAX refresh , returned alone (as HTML inside a JSON envelope) after
          an Add/Edit/Delete, or when a Prev/Next pagination link is clicked.
          This keeps pagination accurate automatically, without a manual reload.
 --}}

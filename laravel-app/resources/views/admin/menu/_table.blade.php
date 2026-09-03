@@ -2,15 +2,15 @@
     Table + pagination fragment for Menu Management.
 
     This is rendered two ways from MenuController@index:
-      1. Normal page load — included directly inside admin.menu.index.
-      2. AJAX refresh — returned alone (as HTML inside a JSON envelope) whenever
+      1. Normal page load, included directly inside admin.menu.index.
+      2. AJAX refresh, returned alone (as HTML inside a JSON envelope) whenever
          the frontend needs to resync the table after an Add/Edit/Delete, or when
          the admin clicks a Prev/Next pagination link. This is what keeps
          pagination accurate automatically, without the admin reloading the page.
 
     Because it's swapped in wholesale via container.innerHTML on refresh, every
     element inside here (rows, empty state, pagination links) is safe to
-    re-query by id/class after a refresh — nothing outside this fragment should
+    re-query by id/class after a refresh, nothing outside this fragment should
     depend on a cached reference to something inside it.
 --}}
 <div class="bg-white border rounded-xl shadow-sm overflow-hidden">

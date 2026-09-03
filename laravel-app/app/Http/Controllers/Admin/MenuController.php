@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\ClampsPaginationPage;
 use App\Http\Controllers\Controller;
 use App\Models\MenuItem;
 use Illuminate\Database\QueryException;
@@ -10,21 +11,23 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class MenuController extends Controller{
+    use ClampsPaginationPage;
+
     // Display a paginated, filterable listing of all menu items.
     public function index(Request $request){
-        $query = MenuItem::query();
+        $menuItems = $this->paginateClamped(function () use ($request) {
+            $query = MenuItem::query();
 
-        if ($request->filled('search')) {
-            $query->where('item_name', 'ILIKE', '%' . $request->input('search') . '%');
-        }
+            if ($request->filled('search')) {
+                $query->where('item_name', 'ILIKE', '%' . $request->input('search') . '%');
+            }
 
-        if ($request->filled('category')) {
-            $query->where('category', $request->input('category'));
-        }
+            if ($request->filled('category')) {
+                $query->where('category', $request->input('category'));
+            }
 
-        $menuItems = $query->orderByDesc('menu_item_id')
-            ->paginate(8)
-            ->appends($request->query());
+            return $query->orderByDesc('menu_item_id');
+        }, $request, 8);
 
         // Distinct list of categories currently in use, to populate the filter dropdown
         // and the Add/Edit modal's category suggestions.

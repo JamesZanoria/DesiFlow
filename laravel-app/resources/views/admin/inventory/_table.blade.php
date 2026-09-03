@@ -2,8 +2,8 @@
     Table + pagination fragment for Inventory Management (Current Stock tab).
 
     Rendered two ways from InventoryController@index:
-      1. Normal page load — included directly inside admin.inventory.index.
-      2. AJAX refresh — returned alone (as HTML inside a JSON envelope) after
+      1. Normal page load, included directly inside admin.inventory.index.
+      2. AJAX refresh, returned alone (as HTML inside a JSON envelope) after
          an Add/Edit/Delete, or when a pagination link is clicked. This keeps
          pagination accurate automatically, without a manual reload.
 --}}

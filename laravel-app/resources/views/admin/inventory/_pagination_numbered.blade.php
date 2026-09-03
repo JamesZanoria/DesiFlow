@@ -1,5 +1,5 @@
 {{--
-    Numbered pagination (1 2 3 ... N) — a step up from the plain prev/next
+    Numbered pagination (1 2 3 ... N), a step up from the plain prev/next
     arrows used elsewhere, for pages where seeing "how many pages total" and
     jumping directly to one is actually useful (Current Stock can run to
     hundreds of ingredients; the Ledger's chronological list doesn't benefit
@@ -8,7 +8,7 @@
     Expects: $paginator (any LengthAwarePaginator).
 
     Every link reuses the existing .pagination-link class and data-ajax-page
-    convention — attachPaginationListeners() (already defined in the page's
+    convention, attachPaginationListeners() (already defined in the page's
     own <script>) picks these up automatically after every AJAX refresh, so
     this partial needed zero JS changes to become clickable.
 --}}

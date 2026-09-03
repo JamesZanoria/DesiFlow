@@ -50,12 +50,13 @@
             'name' => 'search',
             'placeholder' => 'Search items...',
             'value' => request('search'),
+            'suggestions' => $allIngredientNames,
         ])
     </form>
 
     {{-- Table + pagination now live in a shared partial, wrapped in this container so
          the JS can swap the whole thing out after Add/Edit/Delete or a pagination click
-         without a full browser reload — see refreshTable() below. --}}
+         without a full browser reload, see refreshTable() below. --}}
     <div id="inventory-table-container">
         @include('admin.inventory._table')
     </div>
@@ -127,7 +128,7 @@
                     <div id="ingredient-initial-stock-field" class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Initial Stock (optional)</label>
                         <input type="number" step="0.01" min="0" name="initial_stock" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="0.00">
-                        <p class="text-xs text-gray-400 mt-1">If you already have some on hand, enter it here — this records a stock-in movement automatically.</p>
+                        <p class="text-xs text-gray-400 mt-1">If you already have some on hand, enter it here, this records a stock-in movement automatically.</p>
                     </div>
 
                     <div class="mb-6">
@@ -198,7 +199,7 @@
             }
 
             // ---------------------------------------------------------------
-            // Field error display — shown only after Save is clicked and the
+            // Field error display, shown only after Save is clicked and the
             // server rejects the submission (duplicate name, numbers in a text
             // field). Same visual language as Menu Management: a filled red
             // circle icon + plain red text, no boxed background, and a red
@@ -266,37 +267,20 @@
                 if (mode !== 'create') form.ingredient_name.select();
             }
 
-            // ---------------------------------------------------------------
-            // No-numbers input guard (Ingredient Name, Unit of Measurement)
-            // — Category is deliberately excluded, matching Menu Management's
-            // Category field, which had this same restriction removed.
-            // ---------------------------------------------------------------
-            function blockDigitKeydown(e) {
-                if (e.key && e.key.length === 1 && /[0-9]/.test(e.key)) {
-                    e.preventDefault();
-                }
-            }
-
+            // Once the admin starts editing a field that previously errored
+            // (e.g. the duplicate-name check), clear its red outline so it
+            // doesn't linger after they've clearly started correcting it.
             errorableFields.forEach((name) => {
                 const field = form.elements[name];
                 if (!field) return;
 
-                field.addEventListener('keydown', blockDigitKeydown);
-
                 field.addEventListener('input', () => {
                     field.classList.remove('border-red-400', 'ring-1', 'ring-red-300');
-
-                    const cleaned = field.value.replace(/[0-9]/g, '');
-                    if (cleaned !== field.value) {
-                        const caret = field.selectionStart ?? cleaned.length;
-                        field.value = cleaned;
-                        field.setSelectionRange(caret, caret);
-                    }
                 });
             });
 
             // ---------------------------------------------------------------
-            // Image dropzone — adapted directly from Menu Management, same
+            // Image dropzone, adapted directly from Menu Management, same
             // setDropzoneState() single-source-of-truth pattern that fixed the
             // "two states visible at once" bug there. See that page's
             // comments for the full rationale.
@@ -446,7 +430,7 @@
                     // total item count), and the Category filter's options (a
                     // brand-new category, or the last item using one removed).
                     // Without this, both would silently show stale numbers
-                    // until a real page reload — the same bug Menu
+                    // until a real page reload, the same bug Menu
                     // Management's category filter had.
                     if (data.statsHtml) {
                         document.getElementById('inventory-stats-container').innerHTML = data.statsHtml;
@@ -454,6 +438,15 @@
                     if (data.categoryOptionsHtml) {
                         const categoryPopover = document.querySelector('[data-filter-select][data-name="category"] .filter-select-popover');
                         if (categoryPopover) categoryPopover.innerHTML = data.categoryOptionsHtml;
+                    }
+
+                    // Same idea for the search box's suggestion list, an
+                    // ingredient just added/renamed/deleted should be
+                    // reflected in suggestions immediately, not just in the
+                    // table.
+                    if (data.ingredientSuggestionsHtml) {
+                        const suggestList = document.querySelector('[data-search-suggest] .search-suggest-list');
+                        if (suggestList) suggestList.innerHTML = data.ingredientSuggestionsHtml;
                     }
 
                     history.replaceState(null, '', targetUrl);
@@ -472,6 +465,46 @@
                     });
                 });
             }
+
+            // ---------------------------------------------------------------
+            // Automatic refresh, the admin should never need to click
+            // anything or reload the page to see current stock levels: "The Admin Dashboard, Real-Time Order Monitoring view,
+            // and low-stock alerts shall reflect changes in active orders and
+            // inventory within 2 seconds, without requiring a manual page
+            // refresh"). This page doesn't have a WebSocket push (Laravel
+            // Echo/Reverb) wired in yet, that would be the more precise way
+            // to hit that 2-second figure exactly, so short-interval polling
+            // is the interim approach: it re-fetches on a timer instead of
+            // waiting for the admin to take any action.
+            
+            // Every tick reuses the exact same refreshTable() used for
+            // Add/Edit/Delete/pagination, so it honors whatever search,
+            // category, sort, and page the admin currently has open rather
+            // than resetting the view.
+            
+            // A tick is skipped (not rescheduled, just quietly skipped, the
+            // interval keeps ticking) when:
+            //   - the Add/Edit modal is open, so a background swap can't
+            //     interrupt someone actively filling out a form;
+            //   - the browser tab isn't visible, so an admin with this page
+            //     open in an unfocused tab isn't silently hammering the
+            //     server the whole time;
+            //   - a refresh is already in flight, so a slow response can't
+            //     overlap with the next tick and race against itself.
+            // ---------------------------------------------------------------
+            const AUTO_REFRESH_INTERVAL_MS = 5000;
+            let refreshInFlight = false;
+
+            setInterval(() => {
+                if (refreshInFlight) return;
+                if (!modal.classList.contains('hidden')) return;
+                if (document.hidden) return;
+
+                refreshInFlight = true;
+                refreshTable().finally(() => {
+                    refreshInFlight = false;
+                });
+            }, AUTO_REFRESH_INTERVAL_MS);
 
             function openModal(mode, data) {
                 form.reset();
@@ -526,12 +559,12 @@
                     toastKind: mode === 'create' ? 'success' : 'edit',
                     onSuccess: async () => {
                         // Re-fetch the current page from the server instead of
-                        // patching the DOM by hand — guarantees row count, sort
+                        // patching the DOM by hand, guarantees row count, sort
                         // order, and pagination state are correct immediately.
                         await refreshTable(mode === 'create' ? indexUrl : window.location.href);
                         closeModal();
                     },
-                    // A 422 lands here instead of the generic bullet-list — same
+                    // A 422 lands here instead of the generic bullet-list, same
                     // duplicate-vs-numbers detection as Menu Management.
                     onValidationError: (data) => {
                         const errors = data?.errors || {};
@@ -539,18 +572,6 @@
                         const duplicateMsg = errors.ingredient_name?.find((m) => m.toLowerCase().includes('already'));
                         if (duplicateMsg) {
                             showDuplicateError(mode);
-                            return;
-                        }
-
-                        const nameNumberMsg = errors.ingredient_name?.find((m) => m.toLowerCase().includes('number'));
-                        if (nameNumberMsg) {
-                            showFieldError('ingredient_name', 'Ingredient name cannot contain numbers. Please remove any numbers and try again.');
-                            return;
-                        }
-
-                        const unitNumberMsg = errors.unit_of_measurement?.find((m) => m.toLowerCase().includes('number'));
-                        if (unitNumberMsg) {
-                            showFieldError('unit_of_measurement', 'Unit of measurement cannot contain numbers. Please remove any numbers and try again.');
                             return;
                         }
 
@@ -566,7 +587,7 @@
                         errorBox.classList.remove('hidden');
                         if (data && data.errors && typeof data.errors === 'object') {
                             errorBox.innerHTML = '<ul class="list-disc list-inside">' +
-                                Object.values(data.errors).flat().map((m) => `<li>${m}</li>`).join('') + '</ul>';
+                                Object.values(data.errors).flat().map((m) => `<li>${escapeHtml(m)}</li>`).join('') + '</ul>';
                         } else {
                             errorBox.textContent = (data && data.message) || 'Please check the form and try again.';
                         }
@@ -584,7 +605,7 @@
                         // Deletion can shift pagination too, so resync from the server.
                         refreshTable(window.location.href);
                     },
-                    // onError is intentionally left unhandled here — submitAjaxAction
+                    // onError is intentionally left unhandled here, submitAjaxAction
                     // already shows the server's specific message (e.g. "can't delete,
                     // it has recipe or stock movement history") via the toast itself.
                 });
@@ -600,17 +621,24 @@
             }
 
             // ---------------------------------------------------------------
-            // Export — current page's visible table as CSV, generated
+            // Export, current page's visible table as CSV, generated
             // entirely client-side (no backend endpoint, no outbound network
             // call), consistent with the system's offline-capable
-            // local-network design (SRS §2.6).
+            // local-network design.
+            
+            // sanitizeCsvCell() guards against formula/CSV injection, see
+            // the identical helper and full rationale in Analytics' export.
             // ---------------------------------------------------------------
+            function sanitizeCsvCell(text) {
+                return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+            }
+
             document.getElementById('inventory-export-btn').addEventListener('click', () => {
                 const table = tableContainer().querySelector('table');
                 const rows = [...table.querySelectorAll('tr')].map((tr) =>
                     [...tr.querySelectorAll('th, td')]
-                        .slice(0, -1) // drop the Actions column — nothing meaningful to export there
-                        .map((cell) => `"${cell.innerText.trim().replace(/\s+/g, ' ').replace(/"/g, '""')}"`)
+                        .slice(0, -1) // drop the Actions column, nothing meaningful to export there
+                        .map((cell) => `"${sanitizeCsvCell(cell.innerText.trim().replace(/\s+/g, ' ')).replace(/"/g, '""')}"`)
                         .join(',')
                 );
                 const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });

@@ -18,7 +18,7 @@ async def run_all_analytics() -> dict:
     """
     Runs all four calculators in one pass and writes their snapshots.
     This is the single function both the daily scheduler AND the manual
-    /internal/run-analytics endpoint call — one code path, two triggers.
+    /internal/run-analytics endpoint call, one code path, two triggers.
     """
     summary = {}
 
@@ -59,7 +59,7 @@ def start_scheduler() -> AsyncIOScheduler:
     )
     scheduler.start()
     logger.info(
-        "Scheduler started — daily analytics run at %02d:%02d",
+        "Scheduler started, daily analytics run at %02d:%02d",
         settings.daily_run_hour,
         settings.daily_run_minute,
     )
