@@ -132,9 +132,8 @@
                             <input type="number" step="0.01" min="0" name="restock_threshold" required class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="e.g. 5.00">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Shelf Life (days)</label>
-                            <input type="number" min="0" name="shelf_life_days" required class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="e.g. 7">
-                            <p class="text-xs text-gray-400 mt-1">Used to warn you before this ingredient expires.</p>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Expiration Date</label>
+                            <input type="date" name="expiration_date" required class="w-full border rounded-lg px-3 py-2 text-sm">
                         </div>
                     </div>
 
@@ -202,6 +201,7 @@
             const storeUrl = '{{ route('admin.inventory.store') }}';
             const baseUrl = '{{ url('admin/inventory') }}';
             const indexUrl = '{{ route('admin.inventory.index') }}';
+            const todayDateStr = '{{ now()->toDateString() }}';
 
             const initialStockField = document.getElementById('ingredient-initial-stock-field');
             const currentStockDisplay = document.getElementById('ingredient-current-stock-display');
@@ -533,6 +533,9 @@
                     initialStockField.classList.remove('hidden');
                     currentStockDisplay.classList.add('hidden');
                     resetImageDropzone(null);
+                    // No delivery yet to anchor an earlier date to (see
+                    // InventoryController::store()) — can't pick before today.
+                    form.expiration_date.min = todayDateStr;
                 } else {
                     title.textContent = 'Edit Ingredient';
                     form.dataset.mode = 'edit';
@@ -542,7 +545,10 @@
                     form.unit_of_measurement.value = data.unit;
                     form.unit_cost.value = data.cost;
                     form.restock_threshold.value = data.threshold;
-                    form.shelf_life_days.value = data.shelfLife || '';
+                    // No min: the anchor (last delivery) may already be in the
+                    // past, and correcting an already-expired date is valid.
+                    form.expiration_date.removeAttribute('min');
+                    form.expiration_date.value = data.expirationDate || '';
 
                     initialStockField.classList.add('hidden');
                     currentStockDisplay.classList.remove('hidden');

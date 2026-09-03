@@ -10,6 +10,7 @@ use App\Models\StockMovement;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator;
 
 class InventoryController extends Controller{
@@ -32,7 +33,10 @@ class InventoryController extends Controller{
     // with current stock level.
     public function index(Request $request){
         $ingredients = $this->paginateClamped(function () use ($request) {
-            $query = Ingredient::withCurrentStock();
+            // withLastDeliveryAt() alongside withCurrentStock(): stockStatus()/expiryDate()
+            // need last_delivery_at loaded to tell expired/expiring-soon apart — the same
+            // two-scopes-together requirement documented on Ingredient::scopeWithLastDeliveryAt().
+            $query = Ingredient::withCurrentStock()->withLastDeliveryAt();
 
             if ($request->filled('search')) {
                 $query->where('ingredient_name', 'ILIKE', '%' . $request->input('search') . '%');
@@ -148,6 +152,20 @@ class InventoryController extends Controller{
         ];
     }
 
+    // Converts the admin's picked calendar date into the shelf_life_days value
+    // the ingredients table still stores. $anchor is the date to count from —
+    // store() omits it (defaults to today, there's no delivery yet to anchor
+    // to); update() passes the ingredient's last delivery date so the edit
+    // changes the expiry of stock already on the shelf, not some future batch.
+    private function shelfLifeDaysFromExpirationDate(?string $expirationDate, ?Carbon $anchor = null): ?int{
+        if (! $expirationDate) {
+            return null;
+        }
+
+        return (int) ($anchor ?? now())->copy()->startOfDay()
+            ->diffInDays(Carbon::parse($expirationDate)->startOfDay(), false);
+    }
+
     // Rejects an ingredient name that already exists (case-insensitive,
     // whitespace-trimmed), mirroring the same rule used for menu items.
     // $ignoreId excludes the record currently being edited from the check.
@@ -212,7 +230,12 @@ class InventoryController extends Controller{
             'unit_of_measurement' => ['required', 'string', 'max:20'],
             'unit_cost' => 'required|numeric|min:0',
             'restock_threshold' => 'required|numeric|min:0',
-            'shelf_life_days' => 'nullable|integer|min:0',
+            // Replaces the old raw "days" number field — the admin now picks the
+            // actual expiration date, and shelfLifeDaysFromExpirationDate() below
+            // converts it back into the schema's shelf_life_days column. Restricted
+            // to today-or-later: a brand-new ingredient has no delivery yet to
+            // anchor an earlier date to.
+            'expiration_date' => 'nullable|date|after_or_equal:today',
             'initial_stock' => 'nullable|numeric|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ], $this->validationMessages());
@@ -227,6 +250,9 @@ class InventoryController extends Controller{
         if (isset($validated['category'])) {
             $validated['category'] = trim($validated['category']) ?: null;
         }
+
+        $validated['shelf_life_days'] = $this->shelfLifeDaysFromExpirationDate($validated['expiration_date'] ?? null);
+        unset($validated['expiration_date']);
 
         $initialStock = $validated['initial_stock'] ?? 0;
         unset($validated['initial_stock']);
@@ -286,7 +312,11 @@ class InventoryController extends Controller{
             'unit_of_measurement' => ['required', 'string', 'max:20'],
             'unit_cost' => 'required|numeric|min:0',
             'restock_threshold' => 'required|numeric|min:0',
-            'shelf_life_days' => 'nullable|integer|min:0',
+            // See store() re: expiration_date replacing shelf_life_days. No
+            // after_or_equal:today here — the anchor below may already be in
+            // the past (this ingredient's last delivery), and correcting an
+            // already-expired batch's date is a legitimate edit.
+            'expiration_date' => 'nullable|date',
             'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ], $this->validationMessages());
 
@@ -300,6 +330,15 @@ class InventoryController extends Controller{
         if (isset($validated['category'])) {
             $validated['category'] = trim($validated['category']) ?: null;
         }
+
+        // Anchor the day-count off this ingredient's most recent delivery (if it
+        // has one) rather than today, so picking a new date here changes the
+        // expiry of stock already on the shelf. Falls back to today the same way
+        // store() does when nothing's been delivered yet.
+        $lastDeliveryAt = $ingredient->deliveryMovements()->max('recorded_at');
+        $anchor = $lastDeliveryAt ? Carbon::parse($lastDeliveryAt) : now();
+        $validated['shelf_life_days'] = $this->shelfLifeDaysFromExpirationDate($validated['expiration_date'] ?? null, $anchor);
+        unset($validated['expiration_date']);
 
         if ($request->hasFile('image')) {
             $validated['image_url'] = $this->storeProtectedImage($request->file('image'), 'ingredients');
