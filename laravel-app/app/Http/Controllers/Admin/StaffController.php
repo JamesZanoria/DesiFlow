@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
 class StaffController extends Controller{
@@ -109,6 +110,7 @@ class StaffController extends Controller{
             'email.email' => 'Please enter a valid email address.',
             'password.confirmed' => 'Password confirmation does not match.',
             'name.regex' => 'Full name must not contain any numbers.',
+            'role.in' => 'Only Cashier or Kitchen Staff roles can be assigned here.',
         ];
     }
 
@@ -168,10 +170,16 @@ class StaffController extends Controller{
         return redirect()->back()->withErrors($validator)->withInput();
     }
 
-    // Store a newly created staff account in the database.
+    // Store a newly created staff account in the database. Role is
+    // restricted to cashier/kitchen — an admin can't create another admin
+    // account through this form, since this system is scoped to a single
+    // owner/administrator (SRS §2.3's user class table lists exactly one
+    // Owner/Administrator role, not several). If a second admin is ever
+    // genuinely needed, that's a deliberate decision to make outside this
+    // form, not something reachable by accident here.
     public function store(Request $request){
         $validator = Validator::make($request->all(), [
-            'role' => 'required|in:admin,cashier,kitchen',
+            'role' => 'required|in:cashier,kitchen',
             'name' => $this->textNoDigitsRule(),
             'email' => [...$this->emailRules(), $this->duplicateEmailRule()],
             'password' => $this->passwordRules(required: true),
@@ -218,9 +226,18 @@ class StaffController extends Controller{
     // Update an existing staff account in the database. Password is optional here,
     // left blank, the existing password is preserved; filled in, it's held to
     // the exact same strength policy as account creation.
+    //
+    // Role validation depends on the account's CURRENT role, not a fixed
+    // list: editing an existing admin (e.g. the owner's own account) still
+    // allows 'admin' — as a no-op preservation of what's already there,
+    // never as something newly assigned — so the one legitimate admin
+    // account can still have its name/email/password updated through this
+    // same form. Editing a cashier/kitchen account is restricted to
+    // cashier/kitchen, same as store() — no path in this form can ever
+    // promote someone to admin.
     public function update(Request $request, User $user){
         $validator = Validator::make($request->all(), [
-            'role' => 'required|in:admin,cashier,kitchen',
+            'role' => ['required', Rule::in($user->role === 'admin' ? ['admin'] : ['cashier', 'kitchen'])],
             'name' => $this->textNoDigitsRule(),
             'email' => [...$this->emailRules(), $this->duplicateEmailRule($user->user_id)],
             'password' => $this->passwordRules(required: false),

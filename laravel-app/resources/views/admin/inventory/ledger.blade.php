@@ -6,10 +6,13 @@
 
     @php
         $typeBadgeMeta = [
-            'delivery' => ['label' => 'Delivery', 'badge' => 'bg-green-50 text-green-700 border border-green-200'],
+            'delivery' => ['label' => 'Supplier Delivery', 'badge' => 'bg-green-50 text-green-700 border border-green-200'],
+            'opening_balance' => ['label' => 'Opening Balance', 'badge' => 'bg-teal-50 text-teal-700 border border-teal-200'],
             'sale_deduction' => ['label' => 'Sale', 'badge' => 'bg-blue-50 text-blue-700 border border-blue-200'],
-            'manual_adjustment' => ['label' => 'Manual Adj', 'badge' => 'bg-amber-50 text-amber-700 border border-amber-200'],
-            'spoilage' => ['label' => 'Waste', 'badge' => 'bg-red-50 text-red-700 border border-red-200'],
+            'manual_adjustment' => ['label' => 'Physical Count', 'badge' => 'bg-amber-50 text-amber-700 border border-amber-200'],
+            'spoilage' => ['label' => 'Waste / Damage', 'badge' => 'bg-red-50 text-red-700 border border-red-200'],
+            'internal_use' => ['label' => 'Internal Use', 'badge' => 'bg-purple-50 text-purple-700 border border-purple-200'],
+            'void' => ['label' => 'Voided Entry', 'badge' => 'bg-gray-100 text-gray-600 border border-gray-300'],
         ];
 
         // Deterministic color per recorded-by name (not tied to role, this
@@ -91,23 +94,12 @@
                 'options' => $ingredients->mapWithKeys(fn ($i) => [$i->ingredient_id => $i->ingredient_name]),
             ])
 
-            {{-- Movement-type pills. Plain navigation links (not AJAX),
-                 consistent with this page's existing architecture, where
-                 Record/Edit Movement already uses a full reload / direct DOM
-                 patch rather than the fragment-swap pattern Menu/Inventory's
-                 Current Stock tab use. --}}
-            <div class="flex items-center gap-1.5">
-                <a href="{{ request()->fullUrlWithQuery(['type' => null]) }}"
-                    class="px-3 py-1.5 rounded-full text-xs font-medium border {{ !$selectedType ? 'bg-gray-800 text-white border-gray-800' : 'text-gray-600 border-gray-300 hover:bg-gray-50' }}">
-                    All
-                </a>
-                @foreach (\App\Http\Controllers\Admin\InventoryController::MOVEMENT_TYPES as $typeKey => $typeLabel)
-                    <a href="{{ request()->fullUrlWithQuery(['type' => $typeKey]) }}"
-                        class="px-3 py-1.5 rounded-full text-xs font-medium border {{ $selectedType === $typeKey ? 'bg-gray-800 text-white border-gray-800' : 'text-gray-600 border-gray-300 hover:bg-gray-50' }}">
-                        {{ $typeLabel }}
-                    </a>
-                @endforeach
-            </div>
+            @include('admin.partials._filter_select', [
+                'name' => 'type',
+                'label' => 'Type',
+                'value' => $selectedType,
+                'options' => \App\Http\Controllers\Admin\InventoryController::MOVEMENT_TYPES,
+            ])
         </div>
 
         @include('admin.partials._filter_search', [
@@ -158,6 +150,9 @@
                             <span class="cell-type-badge px-2.5 py-1 rounded-full text-xs font-medium {{ $typeMeta['badge'] }}">
                                 {{ $typeMeta['label'] }}
                             </span>
+                            @if ($movement->voided_at)
+                                <span class="ml-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-500 border border-gray-300">Voided</span>
+                            @endif
                         </td>
                         <td class="px-4 py-3 cell-qty {{ $movement->qty_changed < 0 ? 'text-red-600' : 'text-green-700' }}">
                             {{ $movement->qty_changed > 0 ? '+' : '' }}{{ number_format($movement->qty_changed, 2) }}
@@ -170,26 +165,39 @@
                                 <span class="text-gray-600 truncate">{{ $recordedByName }}</span>
                             </div>
                         </td>
-                        <td class="px-4 py-3 text-gray-500 cell-notes truncate max-w-[12rem]">{{ $movement->waste_reason ?? ',' }}</td>
+                        <td class="px-4 py-3 text-gray-500 cell-notes truncate max-w-[12rem]">
+                            {{ $movement->notes ?? ',' }}
+                            @if ($movement->reference_number)
+                                <p class="text-xs text-gray-400">Ref: {{ $movement->reference_number }}</p>
+                            @endif
+                            @if ($movement->edit_reason)
+                                <p class="text-xs text-gray-400">Edited: {{ $movement->edit_reason }}</p>
+                            @endif
+                        </td>
                         <td class="px-4 py-3 text-right">
-                            <button type="button"
-                                class="edit-movement-btn inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50"
-                                title="Edit"
-                                data-id="{{ $movement->movement_id }}"
-                                data-ingredient-id="{{ $movement->ingredient_id }}"
-                                data-ingredient-name="{{ $movement->ingredient->ingredient_name ?? '' }}"
-                                data-ingredient-unit="{{ $movement->ingredient->unit_of_measurement ?? '' }}"
-                                data-type="{{ $movement->movement_type }}"
-                                data-qty="{{ abs($movement->qty_changed) }}"
-                                data-notes="{{ $movement->waste_reason }}">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
-                            </button>
-                            <button type="button"
-                                class="delete-movement-btn inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"
-                                title="Delete"
-                                data-id="{{ $movement->movement_id }}">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
-                            </button>
+                            @if ($movement->movement_type !== 'void' && ! $movement->voided_at)
+                                <button type="button"
+                                    class="edit-movement-btn inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+                                    title="Edit"
+                                    data-id="{{ $movement->movement_id }}"
+                                    data-ingredient-id="{{ $movement->ingredient_id }}"
+                                    data-ingredient-name="{{ $movement->ingredient->ingredient_name ?? '' }}"
+                                    data-ingredient-unit="{{ $movement->ingredient->unit_of_measurement ?? '' }}"
+                                    data-type="{{ $movement->movement_type }}"
+                                    data-type-label="{{ $typeMeta['label'] }}"
+                                    data-qty="{{ $movement->movement_type === 'manual_adjustment' ? $movement->qty_changed : abs($movement->qty_changed) }}"
+                                    data-recorded-at="{{ $movement->recorded_at->timezone('Asia/Manila')->toDateString() }}">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
+                                </button>
+                                <button type="button"
+                                    class="void-movement-btn inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"
+                                    title="Void"
+                                    data-id="{{ $movement->movement_id }}">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" /></svg>
+                                </button>
+                            @else
+                                <span class="text-xs text-gray-300">Locked</span>
+                            @endif
                         </td>
                     </tr>
                 @empty
@@ -223,13 +231,16 @@
         </div>
     </div>
 
-    {{-- Record / Edit Movement popup, unchanged from before, including all
-         of its JS below. Ingredient selection still uses a plain native
-         <select> here deliberately (not the _filter_select popover used for
-         the page's own filter row), this one drives which ingredient a NEW
-         movement gets recorded against inside a modal, a different job from
-         filtering the table, and swapping it would be change for its own
-         sake rather than fixing anything. --}}
+    {{-- Record / Edit Movement popup. Record and Edit now diverge enough
+         (Edit locks the ingredient and type, and adds its own audit fields)
+         that most of the form is wrapped into #movement-create-only-fields /
+         #movement-edit-only-fields, toggled as a group in the script below
+         rather than field-by-field. Ingredient selection still uses a plain
+         native <select> here deliberately (not the _filter_select popover
+         used for the page's own filter row), this one drives which
+         ingredient a NEW movement gets recorded against inside a modal, a
+         different job from filtering the table, and swapping it would be
+         change for its own sake rather than fixing anything. --}}
     <div id="movement-modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-y-auto">
         <div class="bg-white rounded-xl shadow-xl w-full max-w-md my-8 max-h-[90vh] overflow-y-auto">
             <div class="bg-indigo-50 rounded-t-xl px-6 py-4 flex items-center justify-between sticky top-0">
@@ -241,6 +252,7 @@
                 <div id="movement-modal-errors" class="hidden mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm"></div>
 
                 <form id="movement-modal-form">
+                    {{-- Record mode: pick which ingredient this movement is against. --}}
                     <div class="mb-4" id="movement-ingredient-select-field">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Ingredient</label>
                         <select name="ingredient_select" id="movement-ingredient-select" required class="w-full border rounded-lg px-3 py-2 text-sm">
@@ -250,18 +262,26 @@
                             @endforeach
                         </select>
                     </div>
+
+                    {{-- Edit mode: the ingredient and reason code are locked in from
+                         the original entry (see InventoryController::updateMovement())
+                         and just shown for context, not re-selectable. --}}
                     <div class="mb-4 hidden" id="movement-ingredient-display-field">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Ingredient</label>
                         <p id="movement-ingredient-display-text" class="text-sm text-gray-800 bg-gray-50 border rounded-lg px-3 py-2"></p>
                     </div>
 
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                        <select name="movement_type" id="movement-type-select" class="w-full border rounded-lg px-3 py-2 text-sm">
-                            <option value="delivery">Delivery (Stock-In)</option>
-                            <option value="spoilage">Spoilage (Waste)</option>
-                            <option value="manual_adjustment">Manual Adjustment</option>
-                        </select>
+                    <div id="movement-create-only-fields">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Reason</label>
+                            <select name="movement_type" id="movement-type-select" required class="w-full border rounded-lg px-3 py-2 text-sm">
+                                <option value="delivery">Supplier Delivery / Purchase</option>
+                                <option value="opening_balance">Opening Balance</option>
+                                <option value="manual_adjustment">Physical Count Adjustment</option>
+                                <option value="spoilage">Waste / Spillage / Damage</option>
+                                <option value="internal_use">Internal Consumption / Testing</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="mb-4">
@@ -270,9 +290,32 @@
                         <p class="text-xs text-gray-400 mt-1" id="movement-qty-hint">This amount will be added to stock.</p>
                     </div>
 
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Reason / Notes (optional)</label>
-                        <input type="text" name="waste_reason" class="w-full border rounded-lg px-3 py-2 text-sm">
+                    <div id="movement-create-only-fields-2">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Reference Number / Invoice (optional)</label>
+                            <input type="text" name="reference_number" placeholder="e.g. DR# or invoice number" class="w-full border rounded-lg px-3 py-2 text-sm">
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Remarks / Notes (optional)</label>
+                            <input type="text" name="notes" placeholder="e.g. Supplier delivered dented cans" class="w-full border rounded-lg px-3 py-2 text-sm">
+                        </div>
+                    </div>
+
+                    {{-- Edit mode only: correcting an existing entry always requires
+                         saying why, and can optionally backdate/forward-date it —
+                         see InventoryController::updateMovement(). --}}
+                    <div class="hidden" id="movement-edit-only-fields">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Reason for Edit</label>
+                            <input type="text" name="edit_reason" id="movement-edit-reason-input" placeholder="e.g. Typo, meant to type 5 instead of 50" class="w-full border rounded-lg px-3 py-2 text-sm">
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Date of Transaction (optional)</label>
+                            <input type="date" name="recorded_at" id="movement-recorded-at-input" class="w-full border rounded-lg px-3 py-2 text-sm">
+                            <p class="text-xs text-gray-400 mt-1">Only set this if the original date itself was wrong.</p>
+                        </div>
                     </div>
 
                     <div class="flex justify-end gap-3">
@@ -294,6 +337,11 @@
             const ingredientSelect = document.getElementById('movement-ingredient-select');
             const ingredientDisplayField = document.getElementById('movement-ingredient-display-field');
             const ingredientDisplayText = document.getElementById('movement-ingredient-display-text');
+            const createOnlyFields = document.getElementById('movement-create-only-fields');
+            const createOnlyFields2 = document.getElementById('movement-create-only-fields-2');
+            const editOnlyFields = document.getElementById('movement-edit-only-fields');
+            const editReasonInput = document.getElementById('movement-edit-reason-input');
+            const recordedAtInput = document.getElementById('movement-recorded-at-input');
             const typeSelect = document.getElementById('movement-type-select');
             const qtyInput = document.getElementById('movement-qty-input');
             const qtyLabel = document.getElementById('movement-qty-label');
@@ -301,28 +349,31 @@
             const baseMovementUrl = '{{ url('admin/inventory/movement') }}';
             const recordUrlBase = '{{ url('admin/inventory') }}';
 
+            const QTY_COPY = {
+                delivery: { label: 'Amount Received', hint: 'This amount will be added to stock.' },
+                opening_balance: { label: 'Starting Quantity', hint: 'This becomes the ingredient\u2019s starting stock.' },
+                spoilage: { label: 'Amount Wasted', hint: 'This amount will be deducted from stock.' },
+                internal_use: { label: 'Amount Used', hint: 'This amount will be deducted from stock.' },
+                manual_adjustment: { label: 'Quantity Adjustment', hint: 'Use a positive number to add, negative to subtract.' },
+            };
+
             // Adjusts the quantity field's label, hint, and allowed sign based on the
-            // selected type, this is what stops an admin from having to remember
-            // "spoilage needs a minus sign." Delivery/Spoilage always take a plain
-            // positive magnitude; the server decides the actual direction from the type.
-            function syncQtyFieldToType() {
-                const type = typeSelect.value;
-                if (type === 'delivery') {
-                    qtyLabel.textContent = 'Amount Received';
-                    qtyHint.textContent = 'This amount will be added to stock.';
-                    qtyInput.min = '0.01';
-                } else if (type === 'spoilage') {
-                    qtyLabel.textContent = 'Amount Wasted';
-                    qtyHint.textContent = 'This amount will be deducted from stock.';
-                    qtyInput.min = '0.01';
-                } else {
-                    qtyLabel.textContent = 'Quantity Adjustment';
-                    qtyHint.textContent = 'Use a positive number to add, negative to subtract.';
+            // reason code, this is what stops an admin from having to remember
+            // "waste needs a minus sign." Every reason except Physical Count
+            // Adjustment takes a plain positive magnitude; the server decides the
+            // actual direction from the reason (see normalizeQtySign()).
+            function syncQtyFieldToType(type) {
+                const copy = QTY_COPY[type] ?? QTY_COPY.manual_adjustment;
+                qtyLabel.textContent = copy.label;
+                qtyHint.textContent = copy.hint;
+                if (type === 'manual_adjustment') {
                     qtyInput.removeAttribute('min');
+                } else {
+                    qtyInput.min = '0.01';
                 }
             }
 
-            typeSelect.addEventListener('change', syncQtyFieldToType);
+            typeSelect.addEventListener('change', () => syncQtyFieldToType(typeSelect.value));
 
             function openCreateModal() {
                 form.reset();
@@ -331,11 +382,20 @@
                 title.textContent = 'Record Stock Movement';
                 form.dataset.mode = 'create';
                 form.dataset.movementId = '';
+
                 ingredientSelectField.classList.remove('hidden');
                 ingredientDisplayField.classList.add('hidden');
                 ingredientSelect.required = true;
+
+                createOnlyFields.classList.remove('hidden');
+                createOnlyFields2.classList.remove('hidden');
+                editOnlyFields.classList.add('hidden');
+                editReasonInput.required = false;
+
                 typeSelect.value = 'delivery';
-                syncQtyFieldToType();
+                typeSelect.required = true;
+                syncQtyFieldToType('delivery');
+
                 modal.classList.remove('hidden');
                 document.body.classList.add('overflow-hidden');
             }
@@ -347,16 +407,25 @@
                 title.textContent = 'Edit Stock Movement';
                 form.dataset.mode = 'edit';
                 form.dataset.movementId = data.id;
+                form.dataset.movementType = data.type;
 
                 ingredientSelectField.classList.add('hidden');
                 ingredientSelect.required = false;
                 ingredientDisplayField.classList.remove('hidden');
-                ingredientDisplayText.textContent = `${data.ingredientName} (${data.ingredientUnit})`;
+                ingredientDisplayText.textContent = `${data.ingredientName} (${data.ingredientUnit}) \u2014 ${data.typeLabel}`;
 
-                typeSelect.value = data.type;
+                // Reason code is locked in from the original entry — not part of
+                // this form in edit mode (see InventoryController::updateMovement()).
+                createOnlyFields.classList.add('hidden');
+                createOnlyFields2.classList.add('hidden');
+                typeSelect.required = false;
+
+                editOnlyFields.classList.remove('hidden');
+                editReasonInput.required = true;
+                recordedAtInput.value = data.recordedAt ?? '';
+
                 qtyInput.value = data.qty;
-                form.waste_reason.value = data.notes ?? '';
-                syncQtyFieldToType();
+                syncQtyFieldToType(data.type);
 
                 modal.classList.remove('hidden');
                 document.body.classList.add('overflow-hidden');
@@ -365,42 +434,6 @@
             function closeModal() {
                 modal.classList.add('hidden');
                 document.body.classList.remove('overflow-hidden');
-            }
-
-            const badgeColors = {
-                delivery: 'bg-green-50 text-green-700 border border-green-200',
-                sale_deduction: 'bg-blue-50 text-blue-700 border border-blue-200',
-                spoilage: 'bg-red-50 text-red-700 border border-red-200',
-                manual_adjustment: 'bg-amber-50 text-amber-700 border border-amber-200',
-            };
-
-            const typeLabels = {
-                delivery: 'Delivery',
-                sale_deduction: 'Sale',
-                spoilage: 'Waste',
-                manual_adjustment: 'Manual Adj',
-            };
-
-            function typeLabel(type) {
-                return typeLabels[type] ?? (type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' '));
-            }
-
-            function applyMovementToRow(row, movement) {
-                const qty = parseFloat(movement.qty_changed);
-                const badge = row.querySelector('.cell-type-badge');
-                badge.className = `cell-type-badge px-2.5 py-1 rounded-full text-xs font-medium ${badgeColors[movement.movement_type] ?? 'bg-gray-100 text-gray-700 border border-gray-200'}`;
-                badge.textContent = typeLabel(movement.movement_type);
-
-                const qtyCell = row.querySelector('.cell-qty');
-                qtyCell.className = `px-4 py-3 cell-qty ${qty < 0 ? 'text-red-600' : 'text-green-700'}`;
-                qtyCell.textContent = `${qty > 0 ? '+' : ''}${qty.toFixed(2)}`;
-
-                row.querySelector('.cell-notes').textContent = movement.waste_reason ?? ',';
-
-                const editBtn = row.querySelector('.edit-movement-btn');
-                editBtn.dataset.type = movement.movement_type;
-                editBtn.dataset.qty = Math.abs(qty);
-                editBtn.dataset.notes = movement.waste_reason ?? '';
             }
 
             form.addEventListener('submit', async (e) => {
@@ -435,30 +468,29 @@
                         method: 'PUT',
                         errorBox,
                         toastKind: 'edit',
-                        onSuccess: (data) => {
-                            const row = document.getElementById(`movement-row-${movementId}`);
-                            if (row) applyMovementToRow(row, data.movement);
+                        onSuccess: () => {
+                            // A corrected quantity/date also shifts the stat cards
+                            // (Net Stock especially), so resync from the server
+                            // rather than hand-patching just this one row.
                             closeModal();
+                            window.location.reload();
                         },
                     });
                 }
             });
 
-            function deleteMovement(btn) {
+            // "Delete" never erases a row — it voids it, see
+            // InventoryController::destroyMovement(). A full reload picks up
+            // both the now-locked original row and the new reversing entry,
+            // plus refreshed stat cards, the same reasoning as create() above.
+            function voidMovement(btn) {
                 submitAjaxAction({
                     url: `${baseMovementUrl}/${btn.dataset.id}`,
                     method: 'DELETE',
-                    confirmMessage: "Delete this stock movement entry? This will change the ingredient's current stock and cannot be undone.",
+                    confirmMessage: "Void this stock movement? This records a reversing entry rather than erasing it, and cannot be undone.",
                     toastKind: 'delete',
                     onSuccess: () => {
-                        document.getElementById(`movement-row-${btn.dataset.id}`)?.remove();
-                        const tbody = document.getElementById('ledger-table-body');
-                        if (tbody.children.length === 0) {
-                            const tr = document.createElement('tr');
-                            tr.id = 'ledger-empty-row';
-                            tr.innerHTML = '<td colspan="7" class="px-4 py-6 text-center text-gray-400">No stock movements recorded yet.</td>';
-                            tbody.appendChild(tr);
-                        }
+                        window.location.reload();
                     },
                 });
             }
@@ -469,12 +501,13 @@
                     ingredientName: btn.dataset.ingredientName,
                     ingredientUnit: btn.dataset.ingredientUnit,
                     type: btn.dataset.type,
+                    typeLabel: btn.dataset.typeLabel,
                     qty: btn.dataset.qty,
-                    notes: btn.dataset.notes,
+                    recordedAt: btn.dataset.recordedAt,
                 }));
             });
-            document.querySelectorAll('.delete-movement-btn').forEach((btn) => {
-                btn.addEventListener('click', () => deleteMovement(btn));
+            document.querySelectorAll('.void-movement-btn').forEach((btn) => {
+                btn.addEventListener('click', () => voidMovement(btn));
             });
 
             document.getElementById('record-movement-btn').addEventListener('click', openCreateModal);

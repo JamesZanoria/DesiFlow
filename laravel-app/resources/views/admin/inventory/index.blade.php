@@ -100,87 +100,121 @@
 
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                        <input type="text" name="category" list="ingredient-category-options"
-                            class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="e.g. Spices, Grains, Dairy (optional)">
-                        <datalist id="ingredient-category-options">
-                            @foreach ($categories as $category)
-                                <option value="{{ $category }}"></option>
-                            @endforeach
-                        </datalist>
+                        {{-- Creatable select: pick an existing category, or type a new
+                             one via "+ Add New Category". See initCreatableSelect() in
+                             the script below — this markup shape (hidden input +
+                             trigger button + popover with an options list and an
+                             add-row) is reused for Unit of Measurement too. --}}
+                        <div class="relative creatable-select" data-name="category" data-placeholder="Uncategorized" data-add-label="+ Add New Category" data-new-placeholder="New category name">
+                            <input type="hidden" name="category">
+                            <button type="button" class="creatable-select-trigger w-full border rounded-lg px-3 py-2 text-sm text-left bg-white flex items-center justify-between">
+                                <span class="creatable-select-trigger-text text-gray-400">Uncategorized</span>
+                                <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                            </button>
+                            <div class="creatable-select-menu hidden absolute z-20 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-56 overflow-y-auto">
+                                <div class="creatable-select-options">
+                                    <button type="button" class="creatable-select-option w-full text-left px-3 py-2 text-sm hover:bg-gray-50" data-value="">Uncategorized</button>
+                                    @foreach ($categories as $category)
+                                        <button type="button" class="creatable-select-option w-full text-left px-3 py-2 text-sm hover:bg-gray-50" data-value="{{ $category }}">{{ $category }}</button>
+                                    @endforeach
+                                </div>
+                                <div class="border-t">
+                                    <button type="button" class="creatable-select-add-btn w-full text-left px-3 py-2 text-sm text-amber-600 hover:bg-amber-50 font-medium">+ Add New Category</button>
+                                    <div class="creatable-select-add-row hidden p-2 flex gap-1.5">
+                                        <input type="text" class="creatable-select-new-input flex-1 border rounded-lg px-2 py-1.5 text-sm" placeholder="New category name">
+                                        <button type="button" class="creatable-select-new-confirm px-2.5 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-medium hover:bg-amber-600">Add</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-3 mb-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Unit of Measurement</label>
-                            <input type="text" name="unit_of_measurement" list="ingredient-unit-options" required
-                                class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="e.g. kg, g, pcs, L">
-                            <datalist id="ingredient-unit-options">
-                                @foreach ($units as $unit)
-                                    <option value="{{ $unit }}"></option>
-                                @endforeach
-                            </datalist>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Unit Cost (₱)</label>
-                            <input type="number" step="0.01" min="0" name="unit_cost" required class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="0.00">
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3 mb-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Restock Threshold</label>
-                            <input type="number" step="0.01" min="0" name="restock_threshold" required class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="e.g. 5.00">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Expiration Date</label>
-                            <input type="date" name="expiration_date" required class="w-full border rounded-lg px-3 py-2 text-sm">
-                        </div>
-                    </div>
-
-                    {{-- Add mode only: sets initial stock via a real ledger entry, not a raw field --}}
-                    <div id="ingredient-initial-stock-field" class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Initial Stock (optional)</label>
-                        <input type="number" step="0.01" min="0" name="initial_stock" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="0.00">
-                        <p class="text-xs text-gray-400 mt-1">If you already have some on hand, enter it here, this records a stock-in movement automatically.</p>
-                    </div>
-
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Ingredient Photo (optional)</label>
-                        {{-- Adapted directly from Menu Management's dropzone: same
-                             single-source-of-truth setDropzoneState() pattern, same
-                             JPG/JPEG/PNG-only restriction, same under-dropzone error
-                             slot instead of the shared top error box. IDs renamed
-                             ingredient-image-* to avoid colliding with Menu's if
-                             both were ever on the same page. --}}
-                        <div id="ingredient-image-dropzone" class="relative border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer transition-colors hover:border-amber-400">
-                            <input type="file" id="ingredient-image-input" name="image" accept="image/jpeg,image/png,.jpg,.jpeg,.png" class="hidden">
-                            <input type="hidden" id="ingredient-remove-image" name="remove_image" value="0">
-
-                            <div id="ingredient-image-placeholder" class="pointer-events-none">
-                                <svg class="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l-3.75 3.75M12 9.75l3.75 3.75M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" /></svg>
-                                <p class="text-sm text-gray-600">Click or drag to upload image</p>
-                            </div>
-
-                            <div id="ingredient-image-dragover-state" class="hidden pointer-events-none">
-                                <svg class="w-8 h-8 text-amber-500 mx-auto mb-2" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" /></svg>
-                                <p class="text-sm font-medium text-amber-600">Release to upload</p>
-                            </div>
-
-                            <div id="ingredient-image-preview-wrap" class="hidden pointer-events-none">
-                                <img id="ingredient-image-preview" class="w-16 h-16 object-cover rounded-lg mx-auto mb-2" src="" alt="">
-                                <p id="ingredient-image-filename" class="text-xs text-gray-600 truncate"></p>
-                                <button type="button" id="ingredient-image-clear" class="pointer-events-auto text-xs text-red-600 hover:underline mt-1">Remove</button>
-                            </div>
-
-                            <div id="ingredient-image-uploading" class="hidden pointer-events-none">
-                                <p id="ingredient-image-upload-text" class="text-xs text-gray-600 mb-2">Uploading... 0%</p>
-                                <div class="w-full bg-gray-200 rounded-full h-2">
-                                    <div id="ingredient-image-upload-bar" class="bg-amber-500 h-2 rounded-full transition-all duration-150" style="width: 0%"></div>
+                            <div class="relative creatable-select" data-name="unit_of_measurement" data-placeholder="Select unit" data-add-label="+ Add New Unit" data-new-placeholder="New unit (e.g. L, pcs)">
+                                <input type="hidden" name="unit_of_measurement">
+                                <button type="button" class="creatable-select-trigger w-full border rounded-lg px-3 py-2 text-sm text-left bg-white flex items-center justify-between">
+                                    <span class="creatable-select-trigger-text text-gray-400">Select unit</span>
+                                    <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                                </button>
+                                <div class="creatable-select-menu hidden absolute z-20 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-56 overflow-y-auto">
+                                    <div class="creatable-select-options">
+                                        @foreach ($units as $unit)
+                                            <button type="button" class="creatable-select-option w-full text-left px-3 py-2 text-sm hover:bg-gray-50" data-value="{{ $unit }}">{{ $unit }}</button>
+                                        @endforeach
+                                    </div>
+                                    <div class="border-t">
+                                        <button type="button" class="creatable-select-add-btn w-full text-left px-3 py-2 text-sm text-amber-600 hover:bg-amber-50 font-medium">+ Add New Unit</button>
+                                        <div class="creatable-select-add-row hidden p-2 flex gap-1.5">
+                                            <input type="text" class="creatable-select-new-input flex-1 border rounded-lg px-2 py-1.5 text-sm" placeholder="New unit (e.g. L, pcs)">
+                                            <button type="button" class="creatable-select-new-confirm px-2.5 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-medium hover:bg-amber-600">Add</button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <p class="text-xs text-gray-400 mt-1.5">Accepted formats: JPG, JPEG, PNG only. Max 2MB.</p>
-                        <p id="ingredient-image-error" class="hidden text-xs text-red-600 mt-1"></p>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Minimum Stock Alert Level</label>
+                            <input type="number" step="0.01" min="0" name="restock_threshold" required class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="e.g. 5.00">
+                        </div>
+                    </div>
+
+                    {{-- Add mode only: unit cost, expiration date, and photo are set
+                         once at creation and aren't editable from this form afterward
+                         (see InventoryController::update()). Hidden as one group in
+                         Edit mode rather than field-by-field. --}}
+                    <div id="ingredient-create-only-fields">
+                        <div class="grid grid-cols-2 gap-3 mb-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Unit Cost (₱)</label>
+                                <input type="number" step="0.01" min="0" name="unit_cost" required class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="0.00">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Expiration Date</label>
+                                <input type="date" name="expiration_date" required class="w-full border rounded-lg px-3 py-2 text-sm">
+                                <p class="text-xs text-gray-400 mt-1">Used to warn you before this ingredient expires.</p>
+                            </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Ingredient Photo (optional)</label>
+                            {{-- Adapted directly from Menu Management's dropzone: same
+                                 single-source-of-truth setDropzoneState() pattern, same
+                                 JPG/JPEG/PNG-only restriction, same under-dropzone error
+                                 slot instead of the shared top error box. IDs renamed
+                                 ingredient-image-* to avoid colliding with Menu's if
+                                 both were ever on the same page. --}}
+                            <div id="ingredient-image-dropzone" class="relative border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer transition-colors hover:border-amber-400">
+                                <input type="file" id="ingredient-image-input" name="image" accept="image/jpeg,image/png,.jpg,.jpeg,.png" class="hidden">
+                                <input type="hidden" id="ingredient-remove-image" name="remove_image" value="0">
+
+                                <div id="ingredient-image-placeholder" class="pointer-events-none">
+                                    <svg class="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l-3.75 3.75M12 9.75l3.75 3.75M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" /></svg>
+                                    <p class="text-sm text-gray-600">Click or drag to upload image</p>
+                                </div>
+
+                                <div id="ingredient-image-dragover-state" class="hidden pointer-events-none">
+                                    <svg class="w-8 h-8 text-amber-500 mx-auto mb-2" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" /></svg>
+                                    <p class="text-sm font-medium text-amber-600">Release to upload</p>
+                                </div>
+
+                                <div id="ingredient-image-preview-wrap" class="hidden pointer-events-none">
+                                    <img id="ingredient-image-preview" class="w-16 h-16 object-cover rounded-lg mx-auto mb-2" src="" alt="">
+                                    <p id="ingredient-image-filename" class="text-xs text-gray-600 truncate"></p>
+                                    <button type="button" id="ingredient-image-clear" class="pointer-events-auto text-xs text-red-600 hover:underline mt-1">Remove</button>
+                                </div>
+
+                                <div id="ingredient-image-uploading" class="hidden pointer-events-none">
+                                    <p id="ingredient-image-upload-text" class="text-xs text-gray-600 mb-2">Uploading... 0%</p>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div id="ingredient-image-upload-bar" class="bg-amber-500 h-2 rounded-full transition-all duration-150" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-400 mt-1.5">Accepted formats: JPG, JPEG, PNG only. Max 2MB.</p>
+                            <p id="ingredient-image-error" class="hidden text-xs text-red-600 mt-1"></p>
+                        </div>
                     </div>
 
                     <div class="flex justify-end gap-3">
@@ -203,7 +237,7 @@
             const indexUrl = '{{ route('admin.inventory.index') }}';
             const todayDateStr = '{{ now()->toDateString() }}';
 
-            const initialStockField = document.getElementById('ingredient-initial-stock-field');
+            const createOnlyFields = document.getElementById('ingredient-create-only-fields');
             const currentStockDisplay = document.getElementById('ingredient-current-stock-display');
             const currentStockValue = document.getElementById('ingredient-current-stock-value');
             const currentStockUnit = document.getElementById('ingredient-current-stock-unit');
@@ -211,6 +245,120 @@
             function numberFormat(value) {
                 return Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             }
+
+            // ---------------------------------------------------------------
+            // Creatable select: a dropdown of existing values (Category, Unit
+            // of Measurement) with a "+ Add New ..." row at the bottom that
+            // swaps in a small text input for typing a brand-new one. Backed
+            // by a plain hidden <input> that's what actually submits with the
+            // form — form.category / form.unit_of_measurement below refer to
+            // that hidden input, same as any other named field.
+            //
+            // One instance per .creatable-select wrapper; init() below reads
+            // its own labels/placeholder from data-* attributes on the
+            // wrapper, so this one function covers both fields.
+            // ---------------------------------------------------------------
+            function initCreatableSelect(root) {
+                const hiddenInput = root.querySelector('input[type="hidden"]');
+                const trigger = root.querySelector('.creatable-select-trigger');
+                const triggerText = root.querySelector('.creatable-select-trigger-text');
+                const menu = root.querySelector('.creatable-select-menu');
+                const optionsContainer = root.querySelector('.creatable-select-options');
+                const addBtn = root.querySelector('.creatable-select-add-btn');
+                const addRow = root.querySelector('.creatable-select-add-row');
+                const newInput = root.querySelector('.creatable-select-new-input');
+                const newConfirm = root.querySelector('.creatable-select-new-confirm');
+                const placeholder = root.dataset.placeholder || 'Select';
+
+                function closeMenu() {
+                    menu.classList.add('hidden');
+                    addRow.classList.add('hidden');
+                    addBtn.classList.remove('hidden');
+                }
+
+                function selectValue(value, label) {
+                    hiddenInput.value = value;
+                    triggerText.textContent = label || placeholder;
+                    triggerText.classList.toggle('text-gray-400', !value);
+                    triggerText.classList.toggle('text-gray-800', !!value);
+                    closeMenu();
+                    // Lets the shared red-outline error handling below react to
+                    // a selection the same way it reacts to someone typing —
+                    // this hidden input never gets a real user 'input' event.
+                    hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+
+                function optionButton(value) {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'creatable-select-option w-full text-left px-3 py-2 text-sm hover:bg-gray-50';
+                    btn.dataset.value = value;
+                    btn.textContent = value;
+                    btn.addEventListener('click', () => selectValue(value, value));
+                    return btn;
+                }
+
+                // Adding a new value here only affects this one dropdown for the
+                // rest of the current page load — it's not persisted anywhere
+                // client-side. It becomes a real option again (for every
+                // ingredient's form) once the ingredient is saved and the page
+                // or table refreshes, since Category/Unit's option lists come
+                // from whatever distinct values already exist in the database.
+                function addOption(rawValue) {
+                    const value = rawValue.trim();
+                    if (!value) return;
+
+                    const existing = [...optionsContainer.querySelectorAll('.creatable-select-option')]
+                        .find((btn) => btn.dataset.value.toLowerCase() === value.toLowerCase());
+
+                    if (existing) {
+                        selectValue(existing.dataset.value, existing.textContent.trim());
+                        return;
+                    }
+
+                    optionsContainer.appendChild(optionButton(value));
+                    selectValue(value, value);
+                }
+
+                trigger.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isOpen = !menu.classList.contains('hidden');
+                    document.querySelectorAll('.creatable-select-menu').forEach((m) => m.classList.add('hidden'));
+                    if (!isOpen) menu.classList.remove('hidden');
+                });
+
+                optionsContainer.querySelectorAll('.creatable-select-option').forEach((btn) => {
+                    btn.addEventListener('click', () => selectValue(btn.dataset.value, btn.textContent.trim()));
+                });
+
+                addBtn.addEventListener('click', () => {
+                    addBtn.classList.add('hidden');
+                    addRow.classList.remove('hidden');
+                    newInput.value = '';
+                    newInput.focus();
+                });
+
+                newConfirm.addEventListener('click', () => addOption(newInput.value));
+                newInput.addEventListener('keydown', (e) => {
+                    if (e.key !== 'Enter') return;
+                    e.preventDefault();
+                    addOption(newInput.value);
+                });
+                newInput.addEventListener('click', (e) => e.stopPropagation());
+
+                document.addEventListener('click', (e) => {
+                    if (!root.contains(e.target)) closeMenu();
+                });
+
+                return {
+                    reset(value, label) {
+                        selectValue(value || '', value ? label : placeholder);
+                    },
+                };
+            }
+
+            const categorySelect = initCreatableSelect(document.querySelector('.creatable-select[data-name="category"]'));
+            const unitSelect = initCreatableSelect(document.querySelector('.creatable-select[data-name="unit_of_measurement"]'));
 
             // ---------------------------------------------------------------
             // Field error display, shown only after Save is clicked and the
@@ -222,9 +370,19 @@
             // ---------------------------------------------------------------
             const errorableFields = ['ingredient_name', 'unit_of_measurement'];
 
+            // unit_of_measurement's actual form control is a hidden input (see
+            // the creatable select above) — there's nothing visible to outline
+            // there, so the outline goes on its trigger button instead.
+            function highlightTarget(name) {
+                const field = form.elements[name];
+                if (!field) return null;
+                const creatableRoot = field.closest('.creatable-select');
+                return creatableRoot ? creatableRoot.querySelector('.creatable-select-trigger') : field;
+            }
+
             function clearFieldErrors() {
                 errorableFields.forEach((name) => {
-                    form.elements[name]?.classList.remove('border-red-400', 'ring-1', 'ring-red-300');
+                    highlightTarget(name)?.classList.remove('border-red-400', 'ring-1', 'ring-red-300');
                 });
             }
 
@@ -247,10 +405,10 @@
                     </div>
                 `;
 
-                const field = form.elements[fieldName];
+                const field = highlightTarget(fieldName);
                 if (field) {
                     field.classList.add('border-red-400', 'ring-1', 'ring-red-300');
-                    field.focus();
+                    if (field.focus) field.focus();
                     if (field.select) field.select();
                 }
             }
@@ -272,8 +430,10 @@
                     form.reset();
                     clearFieldErrors();
                     resetImageDropzone(null);
-                    initialStockField.classList.remove('hidden');
+                    createOnlyFields.classList.remove('hidden');
                     currentStockDisplay.classList.add('hidden');
+                    categorySelect.reset();
+                    unitSelect.reset();
                 }
 
                 form.ingredient_name.classList.add('border-red-400', 'ring-1', 'ring-red-300');
@@ -289,7 +449,7 @@
                 if (!field) return;
 
                 field.addEventListener('input', () => {
-                    field.classList.remove('border-red-400', 'ring-1', 'ring-red-300');
+                    highlightTarget(name)?.classList.remove('border-red-400', 'ring-1', 'ring-red-300');
                 });
             });
 
@@ -530,9 +690,13 @@
                     title.textContent = 'Add Ingredient';
                     form.dataset.mode = 'create';
                     form.dataset.ingredientId = '';
-                    initialStockField.classList.remove('hidden');
+                    createOnlyFields.classList.remove('hidden');
                     currentStockDisplay.classList.add('hidden');
                     resetImageDropzone(null);
+                    categorySelect.reset();
+                    unitSelect.reset();
+                    form.unit_cost.required = true;
+                    form.expiration_date.required = true;
                     // No delivery yet to anchor an earlier date to (see
                     // InventoryController::store()) — can't pick before today.
                     form.expiration_date.min = todayDateStr;
@@ -541,20 +705,21 @@
                     form.dataset.mode = 'edit';
                     form.dataset.ingredientId = data.id;
                     form.ingredient_name.value = data.name;
-                    form.category.value = data.category || '';
-                    form.unit_of_measurement.value = data.unit;
-                    form.unit_cost.value = data.cost;
+                    categorySelect.reset(data.category, data.category);
+                    unitSelect.reset(data.unit, data.unit);
                     form.restock_threshold.value = data.threshold;
-                    // No min: the anchor (last delivery) may already be in the
-                    // past, and correcting an already-expired date is valid.
-                    form.expiration_date.removeAttribute('min');
-                    form.expiration_date.value = data.expirationDate || '';
 
-                    initialStockField.classList.add('hidden');
+                    // Unit cost, expiration date, and photo aren't part of Edit
+                    // (see InventoryController::update()) — hide the whole group
+                    // and drop their required-ness so the hidden inputs can't
+                    // block submission.
+                    createOnlyFields.classList.add('hidden');
+                    form.unit_cost.required = false;
+                    form.expiration_date.required = false;
+
                     currentStockDisplay.classList.remove('hidden');
                     currentStockValue.textContent = numberFormat(data.currentStock ?? 0);
                     currentStockUnit.textContent = data.unit;
-                    resetImageDropzone(data.imageUrl || null);
                 }
 
                 modal.classList.remove('hidden');
@@ -570,6 +735,14 @@
                 e.preventDefault();
                 const mode = form.dataset.mode;
                 const ingredientId = form.dataset.ingredientId;
+
+                // The browser's own "required" enforcement skips hidden inputs
+                // (that's what unit_of_measurement's creatable select is backed
+                // by), so this has to be checked by hand before submitting.
+                if (!form.unit_of_measurement.value) {
+                    showFieldError('unit_of_measurement', 'Please select or add a unit of measurement.');
+                    return;
+                }
 
                 await submitAjaxForm({
                     form,
@@ -615,22 +788,6 @@
                 });
             }
 
-            function deleteIngredient(btn) {
-                submitAjaxAction({
-                    url: `${baseUrl}/${btn.dataset.id}`,
-                    method: 'DELETE',
-                    confirmMessage: `Delete "${btn.dataset.name}"? This cannot be undone.`,
-                    toastKind: 'delete',
-                    onSuccess: () => {
-                        // Deletion can shift pagination too, so resync from the server.
-                        refreshTable(window.location.href);
-                    },
-                    // onError is intentionally left unhandled here, submitAjaxAction
-                    // already shows the server's specific message (e.g. "can't delete,
-                    // it has recipe or stock movement history") via the toast itself.
-                });
-            }
-
             // Writes off an expired ingredient's entire current stock as a
             // spoilage entry in one click, rather than sending the admin to
             // the Ledger page to fill out Record Movement by hand for
@@ -646,7 +803,7 @@
                     extraFields: {
                         movement_type: 'spoilage',
                         qty_changed: qty,
-                        waste_reason: 'Marked as waste, past shelf life',
+                        notes: 'Marked as waste, past shelf life',
                     },
                     confirmMessage: `Mark all ${numberFormat(qty)} ${btn.dataset.unit} of "${btn.dataset.name}" as waste? This will zero out its current stock and cannot be undone.`,
                     toastKind: 'delete',
@@ -662,9 +819,6 @@
                 });
                 scope.querySelectorAll('.edit-ingredient-btn').forEach((btn) => {
                     btn.addEventListener('click', () => openModal('edit', btn.dataset));
-                });
-                scope.querySelectorAll('.delete-ingredient-btn').forEach((btn) => {
-                    btn.addEventListener('click', () => deleteIngredient(btn));
                 });
             }
 

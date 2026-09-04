@@ -21,7 +21,9 @@ class StockMovement extends Model{
         'movement_type',
         'qty_changed',
         'recorded_at',
-        'waste_reason',
+        'notes',
+        'reference_number',
+        'voids_movement_id',
     ];
 
     // The attributes that should be cast.

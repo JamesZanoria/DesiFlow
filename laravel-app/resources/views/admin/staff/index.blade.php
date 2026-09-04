@@ -72,10 +72,11 @@
                         <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
                         <select name="role" required class="w-full border rounded-lg px-3 py-2 text-sm bg-white">
                             <option value="">Select a role...</option>
-                            <option value="admin">Admin / Manager</option>
+                            <option value="admin" id="staff-role-admin-option" hidden>Admin / Manager</option>
                             <option value="cashier">Cashier</option>
                             <option value="kitchen">Kitchen Staff</option>
                         </select>
+                        <p id="staff-role-admin-note" class="hidden text-xs text-gray-400 mt-1">The owner/admin role can't be reassigned here — only Cashier and Kitchen Staff accounts can be created or changed.</p>
                     </div>
 
                     <div class="mb-1">
@@ -176,6 +177,30 @@
             const passwordEditHint = document.getElementById('staff-password-edit-hint');
             const emailHint = document.getElementById('staff-email-hint');
             const confirmHint = document.getElementById('staff-confirm-hint');
+            const roleAdminOption = document.getElementById('staff-role-admin-option');
+            const roleAdminNote = document.getElementById('staff-role-admin-note');
+
+            // Locks the Role field to its current value when editing an
+            // account that's already admin — the "admin" option is hidden
+            // in every other case (create, or editing a cashier/kitchen
+            // account), so there is no path in the UI that offers assigning
+            // it. A native <select> has no readonly attribute (unlike
+            // <input>), so "locked" is enforced by blocking the
+            // interactions that would open or change it, rather than
+            // `disabled` — which would also exclude it from the submitted
+            // form data and break the server's required-field check.
+            let roleLocked = false;
+
+            function blockIfRoleLocked(e) {
+                if (roleLocked) e.preventDefault();
+            }
+            form.role.addEventListener('mousedown', blockIfRoleLocked);
+            form.role.addEventListener('keydown', blockIfRoleLocked);
+            form.role.addEventListener('change', () => {
+                if (roleLocked && form.role.value !== 'admin') {
+                    form.role.value = 'admin';
+                }
+            });
 
             const errorableFields = ['name', 'email', 'role', 'password', 'password_confirmation'];
 
@@ -507,13 +532,28 @@
                     passwordEditHint.classList.add('hidden');
                     editSnapshot = null;
                     saveBtn.disabled = false;
+
+                    roleLocked = false;
+                    roleAdminOption.hidden = true;
+                    roleAdminNote.classList.add('hidden');
                 } else {
                     title.textContent = 'Edit Staff';
                     form.dataset.mode = 'edit';
                     form.dataset.userId = data.id;
                     form.name.value = data.name;
                     form.email.value = data.email;
+
+                    // The admin option is only ever shown, and only ever
+                    // locked, when the account being edited is already
+                    // admin, an editing session for a cashier/kitchen
+                    // account never even has "Admin / Manager" as a
+                    // selectable option, so it can't be promoted into by
+                    // accident or otherwise.
+                    roleLocked = data.role === 'admin';
+                    roleAdminOption.hidden = ! roleLocked;
+                    roleAdminNote.classList.toggle('hidden', ! roleLocked);
                     form.role.value = data.role;
+
                     form.password.required = false;
                     form.password.placeholder = 'Leave blank to keep current password';
                     passwordEditHint.classList.remove('hidden');
@@ -617,7 +657,7 @@
                         errorBox.classList.remove('hidden');
                         if (data && data.errors && typeof data.errors === 'object') {
                             errorBox.innerHTML = '<ul class="list-disc list-inside">' +
-                                Object.values(data.errors).flat().map((m) => `<li>${m}</li>`).join('') + '</ul>';
+                                Object.values(data.errors).flat().map((m) => `<li>${escapeHtml(m)}</li>`).join('') + '</ul>';
                         } else {
                             errorBox.textContent = (data && data.message) || 'Please check the form and try again.';
                         }
