@@ -16,6 +16,17 @@ class Ingredient extends Model{
     // build the filter dropdown, so the two can never drift out of sync.
     public const STATUSES = ['out_of_stock', 'expired', 'expiring_soon', 'low_stock', 'active'];
 
+    // Curated starting suggestions for the Add/Edit Ingredient form's Category
+    // and Unit of Measurement fields — offered as <datalist> autocomplete
+    // options (same combo-box pattern as Menu Management's Category field:
+    // a real text input, not a <select>), not an enforced closed list. An
+    // admin can still type something not in either list. InventoryController
+    // merges these with whatever distinct values already exist in the table,
+    // so a category/unit introduced by typing a new one shows up as a
+    // suggestion for the next entry too, exactly like Menu Management's does.
+    public const CATEGORIES = ['Dairy', 'Meat', 'Produce', 'Dry Goods', 'Packaging'];
+    public const UNITS = ['g' ,'kg', 'mL', 'L', 'pcs', 'packs', 'boxes'];
+
     // The table associated with the model.
     protected $table = 'ingredients';
 

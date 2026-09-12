@@ -100,119 +100,132 @@
                 'value' => $selectedType,
                 'options' => \App\Http\Controllers\Admin\InventoryController::MOVEMENT_TYPES,
             ])
+
+            
         </div>
 
         @include('admin.partials._filter_search', [
             'name' => 'search',
-            'placeholder' => 'Search ingredient or recorded by...',
+            'placeholder' => 'Search recorded by...',
             'value' => request('search'),
             'suggestions' => $searchSuggestions,
         ])
     </form>
 
     <div class="bg-white border rounded-xl shadow-sm overflow-hidden">
-        <table class="w-full text-sm text-left">
-            <thead class="text-gray-500 text-xs border-b bg-gray-50">
-                <tr>
-                    <th class="px-4 py-3 font-medium">Date &amp; Time</th>
-                    <th class="px-4 py-3 font-medium">Ingredient</th>
-                    <th class="px-4 py-3 font-medium">Type</th>
-                    <th class="px-4 py-3 font-medium">Qty Changed</th>
-                    <th class="px-4 py-3 font-medium">Recorded By</th>
-                    <th class="px-4 py-3 font-medium">Notes</th>
-                    <th class="px-4 py-3 font-medium text-right">Actions</th>
-                </tr>
-            </thead>
-            <tbody id="ledger-table-body" class="divide-y">
-                @forelse ($movements as $movement)
-                    @php
-                        $typeMeta = $typeBadgeMeta[$movement->movement_type] ?? ['label' => ucfirst(str_replace('_', ' ', $movement->movement_type)), 'badge' => 'bg-gray-100 text-gray-700 border border-gray-200'];
-                        $recordedByName = $movement->recordedBy->name ?? ',';
-                        $avatarColor = $avatarPalette[crc32($recordedByName) % count($avatarPalette)];
-                    @endphp
-                    <tr id="movement-row-{{ $movement->movement_id }}">
-                        <td class="px-4 py-3 text-gray-600 cell-date">{{ $movement->recorded_at->timezone('Asia/Manila')->format('M d, Y g:i A') }}</td>
-                        <td class="px-4 py-3 font-medium text-gray-800 cell-ingredient">
-                            <div class="flex items-center gap-2.5">
-                                <div class="w-8 h-8 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
-                                    @if ($movement->ingredient?->image_url)
-                                        <img src="{{ $movement->ingredient->image_url }}" alt="" class="w-full h-full object-cover">
-                                    @else
-                                        <svg class="w-3.5 h-3.5 text-gray-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M18 10.5h.008v.008H18V10.5zm-12 9h12a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0018 4.5H6a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 006 19.5z" /></svg>
+        <div class="relative">
+            <div id="ledger-scroll-hint-left" class="hidden md:block pointer-events-none absolute left-[360px] top-0 bottom-0 w-6 z-30 bg-gradient-to-r from-black/10 to-transparent transition-opacity"></div>
+            <div id="ledger-scroll-hint-right" class="hidden pointer-events-none absolute right-0 top-0 bottom-0 w-8 z-30 bg-gradient-to-l from-black/10 to-transparent transition-opacity"></div>
+
+            <div id="ledger-scroll-container" class="overflow-x-auto [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumn]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full">
+                <table class="text-sm text-left" style="min-width: 1000px;">
+                    <thead class="text-gray-500 text-xs border-b bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 font-medium sticky left-0 z-10 bg-gray-50" style="width:200px;">Date &amp; Time</th>
+                            <th class="px-4 py-3 font-medium sticky z-10 bg-gray-50 shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]" style="left:200px; width:220px;">Ingredient</th>
+                            <th class="px-4 py-3 font-medium" style="min-width:200px;">Type</th>
+                            <th class="px-4 py-3 font-medium" style="min-width:120px;">Qty Changed</th>
+                            <th class="px-4 py-3 font-medium" style="min-width:150px;">Recorded By</th>
+                            <th class="px-4 py-3 font-medium" style="min-width:200px;">Notes</th>
+                            <th class="px-4 py-3 font-medium" style="min-width:110px;">Reference #</th>
+                            <th class="px-4 py-3 font-medium text-right" style="min-width:110px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledger-table-body" class="divide-y">
+                        @forelse ($movements as $movement)
+                            @php
+                                $typeMeta = $typeBadgeMeta[$movement->movement_type] ?? ['label' => ucfirst(str_replace('_', ' ', $movement->movement_type)), 'badge' => 'bg-gray-100 text-gray-700 border border-gray-200'];
+                                $recordedByName = $movement->recordedBy->name ?? ',';
+                                $avatarColor = $avatarPalette[crc32($recordedByName) % count($avatarPalette)];
+                            @endphp
+                            <tr id="movement-row-{{ $movement->movement_id }}">
+                                <td class="px-4 py-3 text-gray-600 cell-date sticky left-0 z-10 bg-white" style="min-width:200px;">{{ $movement->recorded_at->timezone('Asia/Manila')->format('M d, Y g:i A') }}</td>
+                                <td class="px-4 py-3 font-medium text-gray-800 cell-ingredient sticky z-10 bg-white shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]" style="left:200px; width:220px;">
+                                    <div class="flex items-center gap-2.5 min-w-0">
+                                        <div class="w-8 h-8 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                                            @if ($movement->ingredient?->image_url)
+                                                <img src="{{ $movement->ingredient->image_url }}" alt="" class="w-full h-full object-cover">
+                                            @else
+                                                <svg class="w-3.5 h-3.5 text-gray-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M18 10.5h.008v.008H18V10.5zm-12 9h12a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0018 4.5H6a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 006 19.5z" /></svg>
+                                            @endif
+                                        </div>
+                                        <span class="truncate min-w-0" title="{{ $movement->ingredient->ingredient_name ?? '' }}">
+                                            {{ $movement->ingredient->ingredient_name ?? ',' }}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span class="cell-type-badge px-2.5 py-1 rounded-full text-xs font-medium {{ $typeMeta['badge'] }}">
+                                        {{ $typeMeta['label'] }}
+                                    </span>
+                                    @if ($movement->voided_at)
+                                        <span class="ml-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-500 border border-gray-300">Voided</span>
                                     @endif
-                                </div>
-                                <a href="{{ route('admin.inventory.history', ['ingredient' => $movement->ingredient_id]) }}" class="hover:underline">
-                                    {{ $movement->ingredient->ingredient_name ?? ',' }}
-                                </a>
-                            </div>
-                        </td>
-                        <td class="px-4 py-3">
-                            <span class="cell-type-badge px-2.5 py-1 rounded-full text-xs font-medium {{ $typeMeta['badge'] }}">
-                                {{ $typeMeta['label'] }}
-                            </span>
-                            @if ($movement->voided_at)
-                                <span class="ml-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-500 border border-gray-300">Voided</span>
-                            @endif
-                        </td>
-                        <td class="px-4 py-3 cell-qty {{ $movement->qty_changed < 0 ? 'text-red-600' : 'text-green-700' }}">
-                            {{ $movement->qty_changed > 0 ? '+' : '' }}{{ number_format($movement->qty_changed, 2) }}
-                        </td>
-                        <td class="px-4 py-3 cell-recorded-by">
-                            <div class="flex items-center gap-2">
-                                <div class="w-6 h-6 rounded-full {{ $avatarColor }} text-white flex items-center justify-center text-[10px] font-semibold flex-shrink-0">
-                                    {{ strtoupper(substr($recordedByName, 0, 1)) }}
-                                </div>
-                                <span class="text-gray-600 truncate">{{ $recordedByName }}</span>
-                            </div>
-                        </td>
-                        <td class="px-4 py-3 text-gray-500 cell-notes truncate max-w-[12rem]">
-                            {{ $movement->notes ?? ',' }}
-                            @if ($movement->reference_number)
-                                <p class="text-xs text-gray-400">Ref: {{ $movement->reference_number }}</p>
-                            @endif
-                            @if ($movement->edit_reason)
-                                <p class="text-xs text-gray-400">Edited: {{ $movement->edit_reason }}</p>
-                            @endif
-                        </td>
-                        <td class="px-4 py-3 text-right">
-                            @if ($movement->movement_type !== 'void' && ! $movement->voided_at)
-                                <button type="button"
-                                    class="edit-movement-btn inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50"
-                                    title="Edit"
-                                    data-id="{{ $movement->movement_id }}"
-                                    data-ingredient-id="{{ $movement->ingredient_id }}"
-                                    data-ingredient-name="{{ $movement->ingredient->ingredient_name ?? '' }}"
-                                    data-ingredient-unit="{{ $movement->ingredient->unit_of_measurement ?? '' }}"
-                                    data-type="{{ $movement->movement_type }}"
-                                    data-type-label="{{ $typeMeta['label'] }}"
-                                    data-qty="{{ $movement->movement_type === 'manual_adjustment' ? $movement->qty_changed : abs($movement->qty_changed) }}"
-                                    data-recorded-at="{{ $movement->recorded_at->timezone('Asia/Manila')->toDateString() }}">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
-                                </button>
-                                <button type="button"
-                                    class="void-movement-btn inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"
-                                    title="Void"
-                                    data-id="{{ $movement->movement_id }}">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" /></svg>
-                                </button>
-                            @else
-                                <span class="text-xs text-gray-300">Locked</span>
-                            @endif
-                        </td>
-                    </tr>
-                @empty
-                    <tr id="ledger-empty-row">
-                        <td colspan="7" class="px-4 py-6 text-center text-gray-400">
-                            @if (request('search') || $selectedIngredientId || $selectedType)
-                                No stock movements match your search or filters.
-                            @else
-                                No stock movements recorded yet.
-                            @endif
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+                                </td>
+                                <td class="px-4 py-3 cell-qty {{ $movement->qty_changed < 0 ? 'text-red-600' : 'text-green-700' }}">
+                                    {{ $movement->qty_changed > 0 ? '+' : '' }}{{ number_format($movement->qty_changed, 2) }}
+                                </td>
+                                <td class="px-4 py-3 cell-recorded-by">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-6 h-6 rounded-full {{ $avatarColor }} text-white flex items-center justify-center text-[10px] font-semibold flex-shrink-0">
+                                            {{ strtoupper(substr($recordedByName, 0, 1)) }}
+                                        </div>
+                                        <span class="text-gray-600 truncate">{{ $recordedByName }}</span>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3 text-gray-500 cell-notes">
+                                    @if ($movement->notes || $movement->edit_reason)
+                                        <button type="button" class="view-notes-btn text-left hover:underline hover:text-gray-700 block truncate max-w-[12rem]"
+                                            data-notes="{{ $movement->notes }}"
+                                            data-edit-reason="{{ $movement->edit_reason }}">
+                                            {{ \Illuminate\Support\Str::limit($movement->notes ?? 'View edit reason', 30) }}
+                                        </button>
+                                    @else
+                                        <span class="text-gray-300">—</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 text-gray-600 cell-reference">{{ $movement->reference_number ?? '—' }}</td>
+                                <td class="px-4 py-3 text-right">
+                                    @if ($movement->movement_type !== 'void' && ! $movement->voided_at)
+                                        <button type="button"
+                                            class="edit-movement-btn inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+                                            title="Edit"
+                                            data-id="{{ $movement->movement_id }}"
+                                            data-ingredient-id="{{ $movement->ingredient_id }}"
+                                            data-ingredient-name="{{ $movement->ingredient->ingredient_name ?? '' }}"
+                                            data-ingredient-unit="{{ $movement->ingredient->unit_of_measurement ?? '' }}"
+                                            data-type="{{ $movement->movement_type }}"
+                                            data-type-label="{{ $typeMeta['label'] }}"
+                                            data-qty="{{ $movement->movement_type === 'manual_adjustment' ? $movement->qty_changed : abs($movement->qty_changed) }}"
+                                            data-recorded-at="{{ $movement->recorded_at->timezone('Asia/Manila')->toDateString() }}">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
+                                        </button>
+                                        <button type="button"
+                                            class="void-movement-btn inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"
+                                            title="Void"
+                                            data-id="{{ $movement->movement_id }}">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" /></svg>
+                                        </button>
+                                    @else
+                                        <span class="text-xs text-gray-300">Locked</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr id="ledger-empty-row">
+                                <td colspan="7" class="px-4 py-6 text-center text-gray-400">
+                                    @if (request('search') || $selectedIngredientId || $selectedType)
+                                        No stock movements match your search or filters.
+                                    @else
+                                        No stock movements recorded yet.
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
         <div class="flex items-center justify-between px-4 py-3 border-t">
             <p id="ledger-pagination-summary" class="text-sm text-gray-500">
@@ -230,6 +243,25 @@
             </div>
         </div>
     </div>
+
+    <div id="notes-modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+        <div class="relative bg-amber-50 border border-amber-200 rounded-sm shadow-2xl w-full max-w-sm rotate-[-0.5deg]"
+            style="box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2), 0 4px 6px -4px rgba(0,0,0,0.15);">
+            <div class="absolute -top-3 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-red-500 border-2 border-red-600 shadow-md"></div>
+            <button type="button" id="notes-modal-close" class="absolute top-3 right-3 text-amber-700/50 hover:text-amber-900">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <div class="px-6 pt-8 pb-6">
+                <p class="text-xs font-semibold text-amber-700/70 uppercase tracking-wide mb-2">Note</p>
+                <p id="notes-modal-notes" class="text-sm text-amber-950 whitespace-pre-wrap leading-relaxed font-medium"></p>
+                <div id="notes-modal-edit-reason-wrap" class="hidden mt-4 pt-4 border-t border-dashed border-amber-300">
+                    <p class="text-xs font-semibold text-amber-700/70 uppercase tracking-wide mb-1">Edit Reason</p>
+                    <p id="notes-modal-edit-reason" class="text-sm text-amber-950 whitespace-pre-wrap leading-relaxed"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     {{-- Record / Edit Movement popup. Record and Edit now diverge enough
          (Edit locks the ingredient and type, and adds its own audit fields)
@@ -255,12 +287,28 @@
                     {{-- Record mode: pick which ingredient this movement is against. --}}
                     <div class="mb-4" id="movement-ingredient-select-field">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Ingredient</label>
-                        <select name="ingredient_select" id="movement-ingredient-select" required class="w-full border rounded-lg px-3 py-2 text-sm">
-                            <option value="" disabled selected>Select an ingredient</option>
-                            @foreach ($ingredients as $ingredient)
-                                <option value="{{ $ingredient->ingredient_id }}">{{ $ingredient->ingredient_name }} ({{ $ingredient->unit_of_measurement }})</option>
-                            @endforeach
-                        </select>
+                        <div class="relative" data-combo-select="ingredient_select" data-allow-custom="false" data-placeholder="Select an ingredient">
+                            <input type="hidden" name="ingredient_select" id="movement-ingredient-select" value="">
+                            <button type="button" class="combo-select-trigger w-full flex items-center justify-between gap-2 border rounded-lg px-3 py-2 text-sm text-left hover:border-gray-400 focus:outline-none">
+                                <span class="combo-select-value min-w-0 truncate text-gray-400">Select an ingredient</span>
+                                <svg class="combo-select-chevron w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                            </button>
+                            <div class="combo-select-popover hidden absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg z-30 overflow-hidden">
+                                <div class="p-2 border-b">
+                                    <input type="text" class="combo-select-search w-full border rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-400" placeholder="Search ingredients...">
+                                </div>
+                                <div class="combo-select-list max-h-48 overflow-y-auto py-1">
+                                    @foreach ($ingredients as $ingredient)
+                                        <button type="button" class="combo-select-option w-full flex items-center justify-between gap-2 px-3 py-2 text-xs text-left hover:bg-gray-50 text-gray-600"
+                                            data-value="{{ $ingredient->ingredient_id }}" data-label="{{ $ingredient->ingredient_name }} ({{ $ingredient->unit_of_measurement }})">
+                                            <span class="truncate">{{ $ingredient->ingredient_name }} ({{ $ingredient->unit_of_measurement }})</span>
+                                            <svg class="combo-select-check hidden w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                        </button>
+                                    @endforeach
+                                </div>
+                                <p class="combo-select-empty hidden px-3 py-4 text-center text-xs text-gray-400">No matching ingredients.</p>
+                            </div>
+                        </div>
                     </div>
 
                     {{-- Edit mode: the ingredient and reason code are locked in from
@@ -275,8 +323,8 @@
                         <div class="mb-4">
                             <label class="block text-sm font-medium text-gray-700 mb-1">Reason</label>
                             <select name="movement_type" id="movement-type-select" required class="w-full border rounded-lg px-3 py-2 text-sm">
-                                <option value="delivery">Supplier Delivery / Purchase</option>
                                 <option value="opening_balance">Opening Balance</option>
+                                <option value="delivery">Supplier Delivery / Purchase</option>
                                 <option value="manual_adjustment">Physical Count Adjustment</option>
                                 <option value="spoilage">Waste / Spillage / Damage</option>
                                 <option value="internal_use">Internal Consumption / Testing</option>
@@ -348,6 +396,10 @@
             const qtyHint = document.getElementById('movement-qty-hint');
             const baseMovementUrl = '{{ url('admin/inventory/movement') }}';
             const recordUrlBase = '{{ url('admin/inventory') }}';
+            const container = document.getElementById('ledger-scroll-container');
+            const leftHint = document.getElementById('ledger-scroll-hint-left');
+            const rightHint = document.getElementById('ledger-scroll-hint-right');
+            const saveBtn = form.querySelector('button[type="submit"]');
 
             const QTY_COPY = {
                 delivery: { label: 'Amount Received', hint: 'This amount will be added to stock.' },
@@ -356,6 +408,23 @@
                 internal_use: { label: 'Amount Used', hint: 'This amount will be deducted from stock.' },
                 manual_adjustment: { label: 'Quantity Adjustment', hint: 'Use a positive number to add, negative to subtract.' },
             };
+
+            if (!container) return;
+
+            function updateScrollHints() {
+                const maxScroll = container.scrollWidth - container.clientWidth;
+                const atStart = container.scrollLeft <= 4;
+                const atEnd = container.scrollLeft >= maxScroll - 4;
+                const isScrollable = maxScroll > 4;
+
+                leftHint.classList.toggle('opacity-0', atStart || !isScrollable);
+                rightHint.classList.toggle('hidden', !isScrollable);
+                rightHint.classList.toggle('opacity-0', atEnd);
+            }
+
+            container.addEventListener('scroll', updateScrollHints);
+            window.addEventListener('resize', updateScrollHints);
+            updateScrollHints();
 
             // Adjusts the quantity field's label, hint, and allowed sign based on the
             // reason code, this is what stops an admin from having to remember
@@ -392,15 +461,16 @@
                 editOnlyFields.classList.add('hidden');
                 editReasonInput.required = false;
 
-                typeSelect.value = 'delivery';
+                typeSelect.value = 'opening_balance';
                 typeSelect.required = true;
-                syncQtyFieldToType('delivery');
+                syncQtyFieldToType('opening_balance');
 
                 modal.classList.remove('hidden');
                 document.body.classList.add('overflow-hidden');
             }
 
             function openEditModal(data) {
+                initialSnapshot = null;
                 form.reset();
                 errorBox.classList.add('hidden');
                 errorBox.innerHTML = '';
@@ -424,6 +494,9 @@
                 editReasonInput.required = true;
                 recordedAtInput.value = data.recordedAt ?? '';
 
+                initialSnapshot = snapshotForm();
+                checkDirty();
+
                 qtyInput.value = data.qty;
                 syncQtyFieldToType(data.type);
 
@@ -435,6 +508,26 @@
                 modal.classList.add('hidden');
                 document.body.classList.remove('overflow-hidden');
             }
+
+            let initialSnapshot = null;
+
+            function snapshotForm() {
+                return JSON.stringify({ qty: qtyInput.value, editReason: editReasonInput.value, recordedAt: recordedAtInput.value });
+            }
+
+            function checkDirty() {
+                if (form.dataset.mode !== 'edit' || !initialSnapshot) {
+                    saveBtn.disabled = false;
+                    saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    return;
+                }
+                const dirty = snapshotForm() !== initialSnapshot;
+                saveBtn.disabled = !dirty;
+                saveBtn.classList.toggle('opacity-50', !dirty);
+                saveBtn.classList.toggle('cursor-not-allowed', !dirty);
+            }
+
+            [qtyInput, editReasonInput, recordedAtInput].forEach((el) => el.addEventListener('input', checkDirty));
 
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -509,6 +602,28 @@
             document.querySelectorAll('.void-movement-btn').forEach((btn) => {
                 btn.addEventListener('click', () => voidMovement(btn));
             });
+
+            const notesModal = document.getElementById('notes-modal');
+            const notesModalNotes = document.getElementById('notes-modal-notes');
+            const notesModalEditReasonWrap = document.getElementById('notes-modal-edit-reason-wrap');
+            const notesModalEditReason = document.getElementById('notes-modal-edit-reason');
+
+            document.querySelectorAll('.view-notes-btn').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    // textContent only — notes/edit reasons are free text typed by staff,
+                    // never trust them as HTML.
+                    notesModalNotes.textContent = btn.dataset.notes || '(no notes entered)';
+                    if (btn.dataset.editReason) {
+                        notesModalEditReason.textContent = btn.dataset.editReason;
+                        notesModalEditReasonWrap.classList.remove('hidden');
+                    } else {
+                        notesModalEditReasonWrap.classList.add('hidden');
+                    }
+                    notesModal.classList.remove('hidden');
+                });
+            });
+            document.getElementById('notes-modal-close').addEventListener('click', () => notesModal.classList.add('hidden'));
+            notesModal.addEventListener('click', (e) => { if (e.target === notesModal) notesModal.classList.add('hidden'); });
 
             document.getElementById('record-movement-btn').addEventListener('click', openCreateModal);
             document.getElementById('movement-modal-close').addEventListener('click', closeModal);

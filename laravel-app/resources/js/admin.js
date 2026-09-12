@@ -333,16 +333,13 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    const option = e.target.closest('.filter-select-option');
-    if (option) {
-        const container = option.closest('[data-filter-select]');
-        const form = container.closest('form');
-        const field = form?.elements[container.dataset.name];
-        if (!field) return;
-
-        field.value = option.dataset.optionValue;
-        form.submit();
-    }
+    const option = e.target.closest('.combo-select-option');
+        if (option) {
+            const container = option.closest('[data-combo-select]');
+            setComboSelectValue(container, option.dataset.value, option.dataset.label || option.dataset.value);
+            closeComboSelectPopover(container);
+            return;
+        }
 });
 
 // Live search-as-you-type filtering within an open popover's option list.
@@ -369,6 +366,105 @@ document.addEventListener('keydown', (e) => {
         popover.classList.add('hidden');
         popover.closest('[data-filter-select]')?.querySelector('.filter-select-trigger')?.setAttribute('aria-expanded', 'false');
     });
+});
+
+/**
+ * Category / Unit of Measurement combo-select ("pick from list or type
+ * new") used by Inventory's Add/Edit Ingredient modal. Same popover
+ * interaction as the filter-select chips above, but backs a hidden
+ * <input> (posted as a real form field) instead of a GET filter, and lets
+ * the admin type a value that isn't in the list yet.
+ */
+function setComboSelectValue(container, value, label) {
+    const hidden = container.querySelector('input[type="hidden"]');
+    const trigger = container.querySelector('.combo-select-value');
+    hidden.value = value;
+    hidden.dispatchEvent(new Event('change', { bubbles: true })); // keeps existing 'change' listeners working
+    const displayLabel = label ?? value;
+    trigger.textContent = displayLabel || container.dataset.placeholder || 'Select or type new';
+    trigger.classList.toggle('text-gray-400', !value);
+    trigger.classList.toggle('text-gray-800', !!value);
+    container.querySelectorAll('.combo-select-option').forEach((opt) => {
+        opt.querySelector('.combo-select-check')?.classList.toggle('hidden', opt.dataset.value !== value);
+    });
+}
+window.setComboSelectValue = setComboSelectValue; // used by index.blade.php's openModal() to sync Edit mode
+
+function closeComboSelectPopover(container) {
+    container.querySelector('.combo-select-popover')?.classList.add('hidden');
+}
+
+function filterComboSelectOptions(container) {
+    const allowCustom = container.dataset.allowCustom !== 'false';
+    const search = container.querySelector('.combo-select-search');
+    const query = (search?.value || '').trim().toLowerCase();
+    const useTypedBtn = container.querySelector('.combo-select-use-typed');
+    const typedValueEl = container.querySelector('.combo-select-typed-value');
+    const emptyMsg = container.querySelector('.combo-select-empty');
+    let anyVisible = false;
+    let exactMatch = false;
+
+    container.querySelectorAll('.combo-select-option').forEach((opt) => {
+        const label = opt.dataset.value.toLowerCase();
+        const matches = !query || label.includes(query);
+        opt.classList.toggle('hidden', !matches);
+        if (matches) anyVisible = true;
+        if (query && label === query) exactMatch = true;
+    });
+
+    if (allowCustom && query && !exactMatch) {
+        typedValueEl.textContent = search.value.trim();
+        useTypedBtn.classList.remove('hidden');
+    } else {
+        useTypedBtn.classList.add('hidden');
+    }
+    emptyMsg.classList.toggle('hidden', anyVisible || (allowCustom && !!query));
+}
+
+document.addEventListener('click', (e) => {
+    document.querySelectorAll('[data-combo-select]').forEach((container) => {
+        if (!container.contains(e.target)) closeComboSelectPopover(container);
+    });
+
+    const trigger = e.target.closest('.combo-select-trigger');
+    if (trigger) {
+        const container = trigger.closest('[data-combo-select]');
+        const popover = container.querySelector('.combo-select-popover');
+        const wasOpen = !popover.classList.contains('hidden');
+        popover.classList.toggle('hidden');
+        if (!wasOpen) {
+            const search = container.querySelector('.combo-select-search');
+            if (search) { search.value = ''; search.focus(); }
+            filterComboSelectOptions(container);
+        }
+        return;
+    }
+
+    const option = e.target.closest('.combo-select-option');
+    if (option) {
+        const container = option.closest('[data-combo-select]');
+        setComboSelectValue(container, option.dataset.value);
+        closeComboSelectPopover(container);
+        return;
+    }
+
+    const useTyped = e.target.closest('.combo-select-use-typed');
+    if (useTyped) {
+        const container = useTyped.closest('[data-combo-select]');
+        const typed = container.querySelector('.combo-select-typed-value').textContent.trim();
+        if (typed) { setComboSelectValue(container, typed); closeComboSelectPopover(container); }
+        return;
+    }
+});
+
+document.addEventListener('input', (e) => {
+    if (!e.target.matches('.combo-select-search')) return;
+    filterComboSelectOptions(e.target.closest('[data-combo-select]'));
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    document.querySelectorAll('.combo-select-popover:not(.hidden)').forEach((p) => p.classList.add('hidden'));
 });
 
 /**

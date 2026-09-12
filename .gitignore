@@ -11,3 +11,5 @@ fastapi_analytics/**/*.egg-info/
 
 *.dump
 *.sql.bak
+
+CLAUDE.md

@@ -67,9 +67,6 @@
         ])
     </form>
 
-    {{-- Table + pagination now live in a shared partial, wrapped in this container so
-         the JS can swap the whole thing out after Add/Edit/Delete or a pagination click
-         without a full browser reload, see refreshTable() below. --}}
     <div id="inventory-table-container">
         @include('admin.inventory._table')
     </div>
@@ -85,7 +82,6 @@
             <div class="p-6">
                 <div id="ingredient-modal-errors" class="hidden mb-4 text-sm"></div>
 
-                {{-- Edit mode only: current stock is derived from the ledger, not editable here --}}
                 <div id="ingredient-current-stock-display" class="hidden mb-4 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
                     <p class="text-xs text-gray-500">Current Stock</p>
                     <p class="text-sm font-semibold text-gray-800"><span id="ingredient-current-stock-value">0</span> <span id="ingredient-current-stock-unit"></span></p>
@@ -100,31 +96,30 @@
 
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                        {{-- Creatable select: pick an existing category, or type a new
-                             one via "+ Add New Category". See initCreatableSelect() in
-                             the script below — this markup shape (hidden input +
-                             trigger button + popover with an options list and an
-                             add-row) is reused for Unit of Measurement too. --}}
-                        <div class="relative creatable-select" data-name="category" data-placeholder="Uncategorized" data-add-label="+ Add New Category" data-new-placeholder="New category name">
-                            <input type="hidden" name="category">
-                            <button type="button" class="creatable-select-trigger w-full border rounded-lg px-3 py-2 text-sm text-left bg-white flex items-center justify-between">
-                                <span class="creatable-select-trigger-text text-gray-400">Uncategorized</span>
-                                <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                        <div class="relative" data-combo-select="category" data-allow-custom="true" data-placeholder="Select or type new">
+                            <input type="hidden" name="category" value="">
+                            <button type="button"
+                                class="combo-select-trigger w-full flex items-center justify-between gap-2 border rounded-lg px-3 py-2 text-sm text-left hover:border-gray-400 focus:outline-none">
+                                <span class="combo-select-value min-w-0 truncate text-gray-400">Select or type new</span>
+                                <svg class="combo-select-chevron w-4 h-4 text-gray-400 flex-shrink-0 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
                             </button>
-                            <div class="creatable-select-menu hidden absolute z-20 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-56 overflow-y-auto">
-                                <div class="creatable-select-options">
-                                    <button type="button" class="creatable-select-option w-full text-left px-3 py-2 text-sm hover:bg-gray-50" data-value="">Uncategorized</button>
+
+                            <div class="combo-select-popover hidden absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg z-30 overflow-hidden">
+                                <div class="p-2 border-b">
+                                    <input type="text" class="combo-select-search w-full border rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-400" placeholder="Search or type a new category...">
+                                </div>
+                                <div class="combo-select-list max-h-48 overflow-y-auto py-1">
                                     @foreach ($categories as $category)
-                                        <button type="button" class="creatable-select-option w-full text-left px-3 py-2 text-sm hover:bg-gray-50" data-value="{{ $category }}">{{ $category }}</button>
+                                        <button type="button" class="combo-select-option w-full flex items-center justify-between gap-2 px-3 py-2 text-xs text-left hover:bg-gray-50 text-gray-600" data-value="{{ $category }}" data-label="{{ $category }}">
+                                            <span class="truncate">{{ $category }}</span>
+                                            <svg class="combo-select-check hidden w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                        </button>
                                     @endforeach
                                 </div>
-                                <div class="border-t">
-                                    <button type="button" class="creatable-select-add-btn w-full text-left px-3 py-2 text-sm text-amber-600 hover:bg-amber-50 font-medium">+ Add New Category</button>
-                                    <div class="creatable-select-add-row hidden p-2 flex gap-1.5">
-                                        <input type="text" class="creatable-select-new-input flex-1 border rounded-lg px-2 py-1.5 text-sm" placeholder="New category name">
-                                        <button type="button" class="creatable-select-new-confirm px-2.5 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-medium hover:bg-amber-600">Add</button>
-                                    </div>
-                                </div>
+                                <button type="button" class="combo-select-use-typed hidden w-full text-left px-3 py-2 text-xs text-amber-700 bg-amber-50 hover:bg-amber-100 border-t">
+                                    Use "<span class="combo-select-typed-value font-medium"></span>"
+                                </button>
+                                <p class="combo-select-empty hidden px-3 py-4 text-center text-xs text-gray-400">Type to add a new category.</p>
                             </div>
                         </div>
                     </div>
@@ -132,25 +127,27 @@
                     <div class="grid grid-cols-2 gap-3 mb-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Unit of Measurement</label>
-                            <div class="relative creatable-select" data-name="unit_of_measurement" data-placeholder="Select unit" data-add-label="+ Add New Unit" data-new-placeholder="New unit (e.g. L, pcs)">
-                                <input type="hidden" name="unit_of_measurement">
-                                <button type="button" class="creatable-select-trigger w-full border rounded-lg px-3 py-2 text-sm text-left bg-white flex items-center justify-between">
-                                    <span class="creatable-select-trigger-text text-gray-400">Select unit</span>
-                                    <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                            <div class="relative" data-combo-select="unit_of_measurement" data-allow-custom="false" data-placeholder="Select a unit">
+                                <input type="hidden" name="unit_of_measurement" value="">
+                                <button type="button"
+                                    class="combo-select-trigger w-full flex items-center justify-between gap-2 border rounded-lg px-3 py-2 text-sm text-left hover:border-gray-400 focus:outline-none">
+                                    <span class="combo-select-value min-w-0 truncate text-gray-400">Select a unit</span>
+                                    <svg class="combo-select-chevron w-4 h-4 text-gray-400 flex-shrink-0 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
                                 </button>
-                                <div class="creatable-select-menu hidden absolute z-20 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-56 overflow-y-auto">
-                                    <div class="creatable-select-options">
+
+                                <div class="combo-select-popover hidden absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg z-30 overflow-hidden">
+                                    <div class="p-2 border-b">
+                                        <input type="text" class="combo-select-search w-full border rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-400" placeholder="Search units...">
+                                    </div>
+                                    <div class="combo-select-list max-h-48 overflow-y-auto py-1">
                                         @foreach ($units as $unit)
-                                            <button type="button" class="creatable-select-option w-full text-left px-3 py-2 text-sm hover:bg-gray-50" data-value="{{ $unit }}">{{ $unit }}</button>
+                                            <button type="button" class="combo-select-option w-full flex items-center justify-between gap-2 px-3 py-2 text-xs text-left hover:bg-gray-50 text-gray-600" data-value="{{ $unit }}" data-label="{{ $unit }}">
+                                                <span class="truncate">{{ $unit }}</span>
+                                                <svg class="combo-select-check hidden w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                            </button>
                                         @endforeach
                                     </div>
-                                    <div class="border-t">
-                                        <button type="button" class="creatable-select-add-btn w-full text-left px-3 py-2 text-sm text-amber-600 hover:bg-amber-50 font-medium">+ Add New Unit</button>
-                                        <div class="creatable-select-add-row hidden p-2 flex gap-1.5">
-                                            <input type="text" class="creatable-select-new-input flex-1 border rounded-lg px-2 py-1.5 text-sm" placeholder="New unit (e.g. L, pcs)">
-                                            <button type="button" class="creatable-select-new-confirm px-2.5 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-medium hover:bg-amber-600">Add</button>
-                                        </div>
-                                    </div>
+                                    <p class="combo-select-empty hidden px-3 py-4 text-center text-xs text-gray-400">No matching units.</p>
                                 </div>
                             </div>
                         </div>
@@ -160,31 +157,19 @@
                         </div>
                     </div>
 
-                    {{-- Add mode only: unit cost, expiration date, and photo are set
-                         once at creation and aren't editable from this form afterward
-                         (see InventoryController::update()). Hidden as one group in
-                         Edit mode rather than field-by-field. --}}
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Unit Cost (₱)</label>
+                        <input type="number" step="0.01" min="0" name="unit_cost" required class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="0.00">
+                    </div>
+
                     <div id="ingredient-create-only-fields">
-                        <div class="grid grid-cols-2 gap-3 mb-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Unit Cost (₱)</label>
-                                <input type="number" step="0.01" min="0" name="unit_cost" required class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="0.00">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Expiration Date</label>
-                                <input type="date" name="expiration_date" required class="w-full border rounded-lg px-3 py-2 text-sm">
-                                <p class="text-xs text-gray-400 mt-1">Used to warn you before this ingredient expires.</p>
-                            </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Expiration Date</label>
+                            <input type="date" name="expiration_date" required class="w-full border rounded-lg px-3 py-2 text-sm">
                         </div>
 
                         <div class="mb-6">
                             <label class="block text-sm font-medium text-gray-700 mb-1">Ingredient Photo (optional)</label>
-                            {{-- Adapted directly from Menu Management's dropzone: same
-                                 single-source-of-truth setDropzoneState() pattern, same
-                                 JPG/JPEG/PNG-only restriction, same under-dropzone error
-                                 slot instead of the shared top error box. IDs renamed
-                                 ingredient-image-* to avoid colliding with Menu's if
-                                 both were ever on the same page. --}}
                             <div id="ingredient-image-dropzone" class="relative border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer transition-colors hover:border-amber-400">
                                 <input type="file" id="ingredient-image-input" name="image" accept="image/jpeg,image/png,.jpg,.jpeg,.png" class="hidden">
                                 <input type="hidden" id="ingredient-remove-image" name="remove_image" value="0">
@@ -219,7 +204,7 @@
 
                     <div class="flex justify-end gap-3">
                         <button type="button" id="ingredient-modal-cancel" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100">Cancel</button>
-                        <button type="submit" class="bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-600">Save</button>
+                        <button type="submit" id="ingredient-form-save-btn" class="bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed">Save</button>
                     </div>
                 </form>
             </div>
@@ -232,6 +217,7 @@
             const form = document.getElementById('ingredient-form');
             const title = document.getElementById('ingredient-modal-title');
             const errorBox = document.getElementById('ingredient-modal-errors');
+            const saveBtn = document.getElementById('ingredient-form-save-btn');
             const storeUrl = '{{ route('admin.inventory.store') }}';
             const baseUrl = '{{ url('admin/inventory') }}';
             const indexUrl = '{{ route('admin.inventory.index') }}';
@@ -247,142 +233,49 @@
             }
 
             // ---------------------------------------------------------------
-            // Creatable select: a dropdown of existing values (Category, Unit
-            // of Measurement) with a "+ Add New ..." row at the bottom that
-            // swaps in a small text input for typing a brand-new one. Backed
-            // by a plain hidden <input> that's what actually submits with the
-            // form — form.category / form.unit_of_measurement below refer to
-            // that hidden input, same as any other named field.
-            //
-            // One instance per .creatable-select wrapper; init() below reads
-            // its own labels/placeholder from data-* attributes on the
-            // wrapper, so this one function covers both fields.
+            // Dirty-check: in Edit mode, Save stays disabled until at least one
+            // of the editable fields (name, category, unit, threshold) differs
+            // from what the modal was opened with. Create mode is never gated
+            // this way, there's nothing to compare a brand-new ingredient
+            // against. Category and Unit are combo-selects backed by hidden
+            // inputs, setComboSelectValue() (admin.js) dispatches a real
+            // 'change' event on them so this listens for that alongside plain
+            // 'input' on the two text fields.
             // ---------------------------------------------------------------
-            function initCreatableSelect(root) {
-                const hiddenInput = root.querySelector('input[type="hidden"]');
-                const trigger = root.querySelector('.creatable-select-trigger');
-                const triggerText = root.querySelector('.creatable-select-trigger-text');
-                const menu = root.querySelector('.creatable-select-menu');
-                const optionsContainer = root.querySelector('.creatable-select-options');
-                const addBtn = root.querySelector('.creatable-select-add-btn');
-                const addRow = root.querySelector('.creatable-select-add-row');
-                const newInput = root.querySelector('.creatable-select-new-input');
-                const newConfirm = root.querySelector('.creatable-select-new-confirm');
-                const placeholder = root.dataset.placeholder || 'Select';
+            let initialSnapshot = null;
 
-                function closeMenu() {
-                    menu.classList.add('hidden');
-                    addRow.classList.add('hidden');
-                    addBtn.classList.remove('hidden');
-                }
-
-                function selectValue(value, label) {
-                    hiddenInput.value = value;
-                    triggerText.textContent = label || placeholder;
-                    triggerText.classList.toggle('text-gray-400', !value);
-                    triggerText.classList.toggle('text-gray-800', !!value);
-                    closeMenu();
-                    // Lets the shared red-outline error handling below react to
-                    // a selection the same way it reacts to someone typing —
-                    // this hidden input never gets a real user 'input' event.
-                    hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-
-                function optionButton(value) {
-                    const btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.className = 'creatable-select-option w-full text-left px-3 py-2 text-sm hover:bg-gray-50';
-                    btn.dataset.value = value;
-                    btn.textContent = value;
-                    btn.addEventListener('click', () => selectValue(value, value));
-                    return btn;
-                }
-
-                // Adding a new value here only affects this one dropdown for the
-                // rest of the current page load — it's not persisted anywhere
-                // client-side. It becomes a real option again (for every
-                // ingredient's form) once the ingredient is saved and the page
-                // or table refreshes, since Category/Unit's option lists come
-                // from whatever distinct values already exist in the database.
-                function addOption(rawValue) {
-                    const value = rawValue.trim();
-                    if (!value) return;
-
-                    const existing = [...optionsContainer.querySelectorAll('.creatable-select-option')]
-                        .find((btn) => btn.dataset.value.toLowerCase() === value.toLowerCase());
-
-                    if (existing) {
-                        selectValue(existing.dataset.value, existing.textContent.trim());
-                        return;
-                    }
-
-                    optionsContainer.appendChild(optionButton(value));
-                    selectValue(value, value);
-                }
-
-                trigger.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const isOpen = !menu.classList.contains('hidden');
-                    document.querySelectorAll('.creatable-select-menu').forEach((m) => m.classList.add('hidden'));
-                    if (!isOpen) menu.classList.remove('hidden');
+            function snapshotEditableFields() {
+                return JSON.stringify({
+                    name: form.ingredient_name.value.trim(),
+                    category: form.category.value,
+                    unit: form.unit_of_measurement.value,
+                    threshold: form.restock_threshold.value,
+                    cost: form.unit_cost.value,
                 });
-
-                optionsContainer.querySelectorAll('.creatable-select-option').forEach((btn) => {
-                    btn.addEventListener('click', () => selectValue(btn.dataset.value, btn.textContent.trim()));
-                });
-
-                addBtn.addEventListener('click', () => {
-                    addBtn.classList.add('hidden');
-                    addRow.classList.remove('hidden');
-                    newInput.value = '';
-                    newInput.focus();
-                });
-
-                newConfirm.addEventListener('click', () => addOption(newInput.value));
-                newInput.addEventListener('keydown', (e) => {
-                    if (e.key !== 'Enter') return;
-                    e.preventDefault();
-                    addOption(newInput.value);
-                });
-                newInput.addEventListener('click', (e) => e.stopPropagation());
-
-                document.addEventListener('click', (e) => {
-                    if (!root.contains(e.target)) closeMenu();
-                });
-
-                return {
-                    reset(value, label) {
-                        selectValue(value || '', value ? label : placeholder);
-                    },
-                };
             }
 
-            const categorySelect = initCreatableSelect(document.querySelector('.creatable-select[data-name="category"]'));
-            const unitSelect = initCreatableSelect(document.querySelector('.creatable-select[data-name="unit_of_measurement"]'));
+            function checkDirty() {
+                if (form.dataset.mode !== 'edit' || initialSnapshot === null) {
+                    saveBtn.disabled = false;
+                    return;
+                }
+                saveBtn.disabled = snapshotEditableFields() === initialSnapshot;
+            }
+
+            ['ingredient_name', 'restock_threshold', 'unit_cost'].forEach((name) => {
+                form.elements[name]?.addEventListener('input', checkDirty);
+            });
+            form.category.addEventListener('change', checkDirty);
+            form.unit_of_measurement.addEventListener('change', checkDirty);
 
             // ---------------------------------------------------------------
-            // Field error display, shown only after Save is clicked and the
-            // server rejects the submission (duplicate name, numbers in a text
-            // field). Same visual language as Menu Management: a filled red
-            // circle icon + plain red text, no boxed background, and a red
-            // outline around whichever field caused the problem. The modal is
-            // never closed by any of this.
+            // Field error display
             // ---------------------------------------------------------------
             const errorableFields = ['ingredient_name', 'unit_of_measurement'];
 
-            // unit_of_measurement's actual form control is a hidden input (see
-            // the creatable select above) — there's nothing visible to outline
-            // there, so the outline goes on its trigger button instead.
-            function highlightTarget(name) {
-                const field = form.elements[name];
-                if (!field) return null;
-                const creatableRoot = field.closest('.creatable-select');
-                return creatableRoot ? creatableRoot.querySelector('.creatable-select-trigger') : field;
-            }
-
             function clearFieldErrors() {
                 errorableFields.forEach((name) => {
-                    highlightTarget(name)?.classList.remove('border-red-400', 'ring-1', 'ring-red-300');
+                    form.elements[name]?.classList.remove('border-red-400', 'ring-1', 'ring-red-300');
                 });
             }
 
@@ -405,18 +298,14 @@
                     </div>
                 `;
 
-                const field = highlightTarget(fieldName);
+                const field = form.elements[fieldName];
                 if (field) {
                     field.classList.add('border-red-400', 'ring-1', 'ring-red-300');
-                    if (field.focus) field.focus();
+                    field.focus();
                     if (field.select) field.select();
                 }
             }
 
-            // Duplicate-name errors: Add mode resets the whole form (Ingredient
-            // Name keeps its red outline even once emptied, as a persistent cue)
-            // so the admin can immediately enter a different ingredient. Edit mode
-            // just highlights the field instead, to avoid losing other changes.
             function showDuplicateError(mode) {
                 errorBox.classList.remove('hidden');
                 errorBox.innerHTML = `
@@ -430,10 +319,9 @@
                     form.reset();
                     clearFieldErrors();
                     resetImageDropzone(null);
+                    document.querySelectorAll('[data-combo-select]').forEach((c) => setComboSelectValue(c, '', ''));
                     createOnlyFields.classList.remove('hidden');
                     currentStockDisplay.classList.add('hidden');
-                    categorySelect.reset();
-                    unitSelect.reset();
                 }
 
                 form.ingredient_name.classList.add('border-red-400', 'ring-1', 'ring-red-300');
@@ -441,23 +329,16 @@
                 if (mode !== 'create') form.ingredient_name.select();
             }
 
-            // Once the admin starts editing a field that previously errored
-            // (e.g. the duplicate-name check), clear its red outline so it
-            // doesn't linger after they've clearly started correcting it.
             errorableFields.forEach((name) => {
                 const field = form.elements[name];
                 if (!field) return;
-
                 field.addEventListener('input', () => {
-                    highlightTarget(name)?.classList.remove('border-red-400', 'ring-1', 'ring-red-300');
+                    field.classList.remove('border-red-400', 'ring-1', 'ring-red-300');
                 });
             });
 
             // ---------------------------------------------------------------
-            // Image dropzone, adapted directly from Menu Management, same
-            // setDropzoneState() single-source-of-truth pattern that fixed the
-            // "two states visible at once" bug there. See that page's
-            // comments for the full rationale.
+            // Image dropzone
             // ---------------------------------------------------------------
             const dropzone = document.getElementById('ingredient-image-dropzone');
             const fileInput = document.getElementById('ingredient-image-input');
@@ -579,10 +460,7 @@
             });
 
             // ---------------------------------------------------------------
-            // Table + stats + category filter refresh (fixes pagination going
-            // stale after Add/Edit/Delete). Same pattern as Menu Management:
-            // re-request this endpoint asking for JSON and swap in the fresh
-            // fragments, instead of hand-patching the DOM.
+            // Table + stats + category filter refresh
             // ---------------------------------------------------------------
             function tableContainer() {
                 return document.getElementById('inventory-table-container');
@@ -599,13 +477,6 @@
                     attachRowListeners(container);
                     attachPaginationListeners(container);
 
-                    // An ingredient just added/edited/deleted can change every
-                    // one of these: the stat cards (crossed a stock threshold,
-                    // total item count), and the Category filter's options (a
-                    // brand-new category, or the last item using one removed).
-                    // Without this, both would silently show stale numbers
-                    // until a real page reload, the same bug Menu
-                    // Management's category filter had.
                     if (data.statsHtml) {
                         document.getElementById('inventory-stats-container').innerHTML = data.statsHtml;
                     }
@@ -613,11 +484,6 @@
                         const categoryPopover = document.querySelector('[data-filter-select][data-name="category"] .filter-select-popover');
                         if (categoryPopover) categoryPopover.innerHTML = data.categoryOptionsHtml;
                     }
-
-                    // Same idea for the search box's suggestion list, an
-                    // ingredient just added/renamed/deleted should be
-                    // reflected in suggestions immediately, not just in the
-                    // table.
                     if (data.ingredientSuggestionsHtml) {
                         const suggestList = document.querySelector('[data-search-suggest] .search-suggest-list');
                         if (suggestList) suggestList.innerHTML = data.ingredientSuggestionsHtml;
@@ -640,32 +506,6 @@
                 });
             }
 
-            // ---------------------------------------------------------------
-            // Automatic refresh, the admin should never need to click
-            // anything or reload the page to see current stock levels: "The Admin Dashboard, Real-Time Order Monitoring view,
-            // and low-stock alerts shall reflect changes in active orders and
-            // inventory within 2 seconds, without requiring a manual page
-            // refresh"). This page doesn't have a WebSocket push (Laravel
-            // Echo/Reverb) wired in yet, that would be the more precise way
-            // to hit that 2-second figure exactly, so short-interval polling
-            // is the interim approach: it re-fetches on a timer instead of
-            // waiting for the admin to take any action.
-            
-            // Every tick reuses the exact same refreshTable() used for
-            // Add/Edit/Delete/pagination, so it honors whatever search,
-            // category, sort, and page the admin currently has open rather
-            // than resetting the view.
-            
-            // A tick is skipped (not rescheduled, just quietly skipped, the
-            // interval keeps ticking) when:
-            //   - the Add/Edit modal is open, so a background swap can't
-            //     interrupt someone actively filling out a form;
-            //   - the browser tab isn't visible, so an admin with this page
-            //     open in an unfocused tab isn't silently hammering the
-            //     server the whole time;
-            //   - a refresh is already in flight, so a slow response can't
-            //     overlap with the next tick and race against itself.
-            // ---------------------------------------------------------------
             const AUTO_REFRESH_INTERVAL_MS = 5000;
             let refreshInFlight = false;
 
@@ -685,6 +525,7 @@
                 errorBox.classList.add('hidden');
                 errorBox.innerHTML = '';
                 clearFieldErrors();
+                document.querySelectorAll('[data-combo-select]').forEach((c) => setComboSelectValue(c, '', ''));
 
                 if (mode === 'create') {
                     title.textContent = 'Add Ingredient';
@@ -693,33 +534,32 @@
                     createOnlyFields.classList.remove('hidden');
                     currentStockDisplay.classList.add('hidden');
                     resetImageDropzone(null);
-                    categorySelect.reset();
-                    unitSelect.reset();
-                    form.unit_cost.required = true;
                     form.expiration_date.required = true;
-                    // No delivery yet to anchor an earlier date to (see
-                    // InventoryController::store()) — can't pick before today.
                     form.expiration_date.min = todayDateStr;
+
+                    initialSnapshot = null;
+                    saveBtn.disabled = false;
                 } else {
                     title.textContent = 'Edit Ingredient';
                     form.dataset.mode = 'edit';
                     form.dataset.ingredientId = data.id;
                     form.ingredient_name.value = data.name;
-                    categorySelect.reset(data.category, data.category);
-                    unitSelect.reset(data.unit, data.unit);
+                    setComboSelectValue(document.querySelector('[data-combo-select="category"]'), data.category || '', data.category || '');
+                    setComboSelectValue(document.querySelector('[data-combo-select="unit_of_measurement"]'), data.unit || '', data.unit || '');
                     form.restock_threshold.value = data.threshold;
+                    form.unit_cost.value = data.cost;
 
-                    // Unit cost, expiration date, and photo aren't part of Edit
-                    // (see InventoryController::update()) — hide the whole group
-                    // and drop their required-ness so the hidden inputs can't
-                    // block submission.
                     createOnlyFields.classList.add('hidden');
-                    form.unit_cost.required = false;
                     form.expiration_date.required = false;
 
                     currentStockDisplay.classList.remove('hidden');
                     currentStockValue.textContent = numberFormat(data.currentStock ?? 0);
                     currentStockUnit.textContent = data.unit;
+
+                    // Snapshot taken AFTER the fields above are populated, this
+                    // is the "unchanged" baseline Save stays disabled against.
+                    initialSnapshot = snapshotEditableFields();
+                    saveBtn.disabled = true;
                 }
 
                 modal.classList.remove('hidden');
@@ -736,11 +576,9 @@
                 const mode = form.dataset.mode;
                 const ingredientId = form.dataset.ingredientId;
 
-                // The browser's own "required" enforcement skips hidden inputs
-                // (that's what unit_of_measurement's creatable select is backed
-                // by), so this has to be checked by hand before submitting.
                 if (!form.unit_of_measurement.value) {
-                    showFieldError('unit_of_measurement', 'Please select or add a unit of measurement.');
+                    errorBox.classList.remove('hidden');
+                    errorBox.innerHTML = `<div class="flex items-start gap-2 text-red-700">${errorIconSvg()}<p>Please select a unit of measurement.</p></div>`;
                     return;
                 }
 
@@ -751,14 +589,9 @@
                     errorBox,
                     toastKind: mode === 'create' ? 'success' : 'edit',
                     onSuccess: async () => {
-                        // Re-fetch the current page from the server instead of
-                        // patching the DOM by hand, guarantees row count, sort
-                        // order, and pagination state are correct immediately.
                         await refreshTable(mode === 'create' ? indexUrl : window.location.href);
                         closeModal();
                     },
-                    // A 422 lands here instead of the generic bullet-list, same
-                    // duplicate-vs-numbers detection as Menu Management.
                     onValidationError: (data) => {
                         const errors = data?.errors || {};
 
@@ -768,10 +601,6 @@
                             return;
                         }
 
-                        // Server-side image errors (e.g. a file over 2MB, which
-                        // the client-side check above never catches) get the
-                        // same under-dropzone treatment as a client-rejected
-                        // file, not the generic top-of-form error box.
                         if (errors.image?.length) {
                             showImageError(errors.image[0]);
                             return;
@@ -788,13 +617,6 @@
                 });
             }
 
-            // Writes off an expired ingredient's entire current stock as a
-            // spoilage entry in one click, rather than sending the admin to
-            // the Ledger page to fill out Record Movement by hand for
-            // something the system already knows the answer to (type:
-            // spoilage, quantity: everything that's left). Reuses the same
-            // recordMovement endpoint the Ledger's own form posts to, no new
-            // backend route needed.
             function markAsWaste(btn) {
                 const qty = parseFloat(btn.dataset.currentStock);
                 submitAjaxAction({
@@ -813,6 +635,16 @@
                 });
             }
 
+            function deleteIngredient(btn) {
+                submitAjaxAction({
+                    url: `${baseUrl}/${btn.dataset.id}`,
+                    method: 'DELETE',
+                    confirmMessage: `Delete "${btn.dataset.name}"? This only works if it has no recipe or stock movement history, and cannot be undone.`,
+                    toastKind: 'delete',
+                    onSuccess: () => refreshTable(window.location.href),
+                });
+            }
+
             function attachRowListeners(scope) {
                 scope.querySelectorAll('.mark-waste-btn').forEach((btn) => {
                     btn.addEventListener('click', () => markAsWaste(btn));
@@ -820,17 +652,11 @@
                 scope.querySelectorAll('.edit-ingredient-btn').forEach((btn) => {
                     btn.addEventListener('click', () => openModal('edit', btn.dataset));
                 });
+                scope.querySelectorAll('.delete-ingredient-btn').forEach((btn) => {
+                    btn.addEventListener('click', () => deleteIngredient(btn));
+                });
             }
 
-            // ---------------------------------------------------------------
-            // Export, current page's visible table as CSV, generated
-            // entirely client-side (no backend endpoint, no outbound network
-            // call), consistent with the system's offline-capable
-            // local-network design.
-            
-            // sanitizeCsvCell() guards against formula/CSV injection, see
-            // the identical helper and full rationale in Analytics' export.
-            // ---------------------------------------------------------------
             function sanitizeCsvCell(text) {
                 return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
             }
@@ -839,7 +665,7 @@
                 const table = tableContainer().querySelector('table');
                 const rows = [...table.querySelectorAll('tr')].map((tr) =>
                     [...tr.querySelectorAll('th, td')]
-                        .slice(0, -1) // drop the Actions column, nothing meaningful to export there
+                        .slice(0, -1)
                         .map((cell) => `"${sanitizeCsvCell(cell.innerText.trim().replace(/\s+/g, ' ')).replace(/"/g, '""')}"`)
                         .join(',')
                 );
