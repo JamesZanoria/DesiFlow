@@ -129,23 +129,18 @@ function submitAjaxForm({ form, url, method = 'POST', errorBox, toastKind, onUpl
     }
 
     function showGenericError() {
-        if (errorBox) {
-            errorBox.classList.remove('hidden');
-            errorBox.textContent = 'Something went wrong. Please try again.';
-        }
         showToast('Something went wrong. Please try again.', 'error');
     }
 
     function renderValidationErrors(data) {
         if (!errorBox) return;
-        errorBox.classList.remove('hidden');
         if (data && data.errors && typeof data.errors === 'object') {
+            errorBox.classList.remove('hidden');
             errorBox.innerHTML = '<ul class="list-disc list-inside">' +
                 Object.values(data.errors).flat().map((m) => `<li>${escapeHtml(m)}</li>`).join('') + '</ul>';
         } else {
-            // Response was a 422 but not in Laravel's usual {errors: {...}} shape,
-            // fall back to whatever message is available instead of throwing.
-            errorBox.textContent = (data && data.message) || 'Please check the form and try again.';
+            errorBox.classList.add('hidden');
+            errorBox.innerHTML = '';
         }
     }
 
@@ -178,11 +173,9 @@ function submitAjaxForm({ form, url, method = 'POST', errorBox, toastKind, onUpl
             }
 
             if (xhr.status === 422) {
-                // A 422 NEVER shows a toast and NEVER calls onSuccess, the form stays
-                // open exactly as the user left it so they can correct the input. If the
-                // caller supplied onValidationError (e.g. to show a friendlier, field-
-                // specific message for something like a duplicate name), use that;
-                // otherwise fall back to the generic bulleted list of every error.
+                if (data && data.message) {
+                    showToast(data.message, 'error');
+                }
                 if (onValidationError) {
                     onValidationError(data);
                 } else {
@@ -403,7 +396,7 @@ function filterComboSelectOptions(container) {
     let exactMatch = false;
 
     container.querySelectorAll('.combo-select-option').forEach((opt) => {
-        const label = opt.dataset.value.toLowerCase();
+        const label = (opt.dataset.label || opt.dataset.value).toLowerCase();
         const matches = !query || label.includes(query);
         opt.classList.toggle('hidden', !matches);
         if (matches) anyVisible = true;
@@ -411,12 +404,12 @@ function filterComboSelectOptions(container) {
     });
 
     if (allowCustom && query && !exactMatch) {
-        typedValueEl.textContent = search.value.trim();
-        useTypedBtn.classList.remove('hidden');
+        if (typedValueEl) typedValueEl.textContent = search.value.trim();
+        useTypedBtn?.classList.remove('hidden');
     } else {
-        useTypedBtn.classList.add('hidden');
+        useTypedBtn?.classList.add('hidden');
     }
-    emptyMsg.classList.toggle('hidden', anyVisible || (allowCustom && !!query));
+    if (emptyMsg) emptyMsg.classList.toggle('hidden', anyVisible || (allowCustom && !!query));
 }
 
 document.addEventListener('click', (e) => {
@@ -582,6 +575,20 @@ document.addEventListener('keydown', (e) => {
         options[currentIndex].click();
     } else if (e.key === 'Escape') {
         list.classList.add('hidden');
+    }
+});
+
+// Ensure pressing Enter in any search bar immediately applies the filter,
+// matching the behavior of Menu and Staff Management.
+document.addEventListener('keydown', (e) => {
+    if (e.target.matches('input[name="search"]')) {
+        if (e.key === 'Enter') {
+            // The suggestions handler above handles Enter when an option is highlighted.
+            // If that handler didn't prevent default, we submit the form here.
+            e.preventDefault();
+            const form = e.target.closest('form');
+            if (form) form.submit();
+        }
     }
 });
 

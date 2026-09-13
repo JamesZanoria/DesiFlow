@@ -338,7 +338,8 @@
                                 </button>
                                 <div class="combo-select-popover hidden absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg z-30 overflow-hidden">
                                     <div class="combo-select-list max-h-48 overflow-y-auto py-1">
-                                        @foreach (\App\Http\Controllers\Admin\InventoryController::MOVEMENT_TYPES as $key => $label)
+                                        @foreach (\App\Http\Controllers\Admin\InventoryController::RECORDABLE_MOVEMENT_TYPES as $key)
+                                            @php $label = \App\Http\Controllers\Admin\InventoryController::MOVEMENT_TYPES[$key]; @endphp
                                             <button type="button" class="combo-select-option w-full flex items-center justify-between gap-2 px-3 py-2 text-xs text-left hover:bg-gray-50 text-gray-600"
                                                 data-value="{{ $key }}" data-label="{{ $label }}">
                                                 <span class="truncate">{{ $label }}</span>
@@ -360,18 +361,18 @@
                     <div class="grid grid-cols-2 gap-3 mb-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Delivery Date</label>
-                            <input type="date" name="delivery_date" class="w-full border rounded-lg px-3 py-2 text-sm">
+                            <input type="date" name="delivery_date" id="movement-delivery-date" class="w-full border rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Expiration Date</label>
-                            <input type="date" name="expiration_date" class="w-full border rounded-lg px-3 py-2 text-sm">
+                            <input type="date" name="expiration_date" id="movement-expiration-date" class="w-full border rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed">
                         </div>
                     </div>
 
                     <div id="movement-create-only-fields-2">
                         <div class="mb-4">
                             <label class="block text-sm font-medium text-gray-700 mb-1">Reference Number / Invoice (optional)</label>
-                            <input type="text" name="reference_number" placeholder="e.g. DR# or invoice number" class="w-full border rounded-lg px-3 py-2 text-sm">
+                            <input type="text" name="reference_number" id="movement-reference-number" placeholder="e.g. DR# or invoice number" class="w-full border rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed">
                         </div>
 
                         <div class="mb-6">
@@ -424,6 +425,9 @@
             const qtyInput = document.getElementById('movement-qty-input');
             const qtyLabel = document.getElementById('movement-qty-label');
             const qtyHint = document.getElementById('movement-qty-hint');
+            const deliveryDateInput = document.getElementById('movement-delivery-date');
+            const expDateInput = document.getElementById('movement-expiration-date');
+            const refNumberInput = document.getElementById('movement-reference-number');
             const baseMovementUrl = '{{ url('admin/inventory/movement') }}';
             const recordUrlBase = '{{ url('admin/inventory') }}';
             const container = document.getElementById('ledger-scroll-container');
@@ -456,6 +460,68 @@
             window.addEventListener('resize', updateScrollHints);
             updateScrollHints();
 
+            function updateFieldStates(type, qty) {
+                const isDelivery = (type === 'delivery');
+                const isOpening = (type === 'opening_balance');
+                const isManual = (type === 'manual_adjustment');
+                const isPositiveManual = (isManual && parseFloat(qty) > 0);
+
+                // Delivery Date & Reference Number
+                const deliveryFieldsEnabled = isDelivery;
+                deliveryDateInput.disabled = !deliveryFieldsEnabled;
+                refNumberInput.disabled = !deliveryFieldsEnabled;
+                if (!deliveryFieldsEnabled) {
+                    deliveryDateInput.value = '';
+                    refNumberInput.value = '';
+                }
+
+                // Expiration Date
+                const expDateEnabled = isDelivery || isOpening || isPositiveManual;
+                expDateInput.disabled = !expDateEnabled;
+                expDateInput.required = expDateEnabled;
+                if (!expDateEnabled) {
+                    expDateInput.value = '';
+                }
+            }
+
+            async function updateOpeningBalanceAvailability() {
+                const ingredientId = ingredientSelect.value;
+                if (!ingredientId) return;
+
+                try {
+                    const response = await fetch(`${recordUrlBase.replace(/\/$/, '')}/${ingredientId}/has-opening-balance`);
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    const data = await response.json();
+                    const hasOpening = data.hasOpeningBalance;
+
+                    const typeContainer = document.getElementById('movement-type-select').closest('[data-combo-select]');
+                    const openingOption = typeContainer.querySelector('.combo-select-option[data-value="opening_balance"]');
+
+                    if (openingOption) {
+                        openingOption.disabled = hasOpening;
+                        openingOption.classList.toggle('disabled:bg-gray-100', hasOpening);
+                        openingOption.classList.toggle('disabled:text-gray-400', hasOpening);
+                        openingOption.classList.toggle('disabled:cursor-not-allowed', hasOpening);
+
+                        // To actually apply the styling since it's not a native input:
+                        if (hasOpening) {
+                            openingOption.classList.add('bg-gray-100', 'text-gray-400', 'cursor-not-allowed', 'pointer-events-none');
+                        } else {
+                            openingOption.classList.remove('bg-gray-100', 'text-gray-400', 'cursor-not-allowed', 'pointer-events-none');
+                        }
+                    }
+
+                    if (hasOpening && typeSelect.value === 'opening_balance') {
+                        // If Opening Balance was selected but is now disabled, switch to Delivery as a sensible default
+                        setComboSelectValue(typeContainer, 'delivery', 'Supplier Delivery / Purchase');
+                        syncQtyFieldToType('delivery');
+                        updateFieldStates('delivery', qtyInput.value);
+                    }
+                } catch (err) {
+                    console.error('Failed to check opening balance:', err);
+                }
+            }
+
             // Adjusts the quantity field's label, hint, and allowed sign based on the
             // reason code, this is what stops an admin from having to remember
             // "waste needs a minus sign." Every reason except Physical Count
@@ -470,9 +536,21 @@
                 } else {
                     qtyInput.min = '0.01';
                 }
+                updateFieldStates(type, qtyInput.value);
             }
 
-            typeSelect.addEventListener('change', () => syncQtyFieldToType(typeSelect.value));
+            typeSelect.addEventListener('change', () => {
+                syncQtyFieldToType(typeSelect.value);
+                updateFieldStates(typeSelect.value, qtyInput.value);
+            });
+
+            qtyInput.addEventListener('input', () => {
+                updateFieldStates(typeSelect.value, qtyInput.value);
+            });
+
+            ingredientSelect.addEventListener('change', () => {
+                updateOpeningBalanceAvailability();
+            });
 
             function openCreateModal() {
                 form.reset();
@@ -481,6 +559,14 @@
                 title.textContent = 'Record Stock Movement';
                 form.dataset.mode = 'create';
                 form.dataset.movementId = '';
+
+                // Reset Opening Balance option to enabled
+                const typeContainer = document.getElementById('movement-type-select').closest('[data-combo-select]');
+                const openingOption = typeContainer.querySelector('.combo-select-option[data-value="opening_balance"]');
+                if (openingOption) {
+                    openingOption.disabled = false;
+                    openingOption.classList.remove('bg-gray-100', 'text-gray-400', 'cursor-not-allowed', 'pointer-events-none');
+                }
 
                 ingredientSelectField.classList.remove('hidden');
                 ingredientDisplayField.classList.add('hidden');
@@ -491,10 +577,10 @@
                 editOnlyFields.classList.add('hidden');
                 editReasonInput.required = false;
 
-                const typeContainer = document.getElementById('movement-type-select').closest('[data-combo-select]');
                 setComboSelectValue(typeContainer, 'opening_balance', 'Opening Balance');
                 typeSelect.required = true;
                 syncQtyFieldToType('opening_balance');
+                updateFieldStates('opening_balance', qtyInput.value);
 
                 modal.classList.remove('hidden');
                 document.body.classList.add('overflow-hidden');
@@ -530,6 +616,7 @@
 
                 qtyInput.value = data.qty;
                 syncQtyFieldToType(data.type);
+                updateFieldStates(data.type, data.qty);
 
                 modal.classList.remove('hidden');
                 document.body.classList.add('overflow-hidden');

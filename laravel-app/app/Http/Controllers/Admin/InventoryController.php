@@ -27,7 +27,7 @@ class InventoryController extends Controller{
         'void' => 'Voided Entry',
     ];
 
-    public const RECORDABLE_MOVEMENT_TYPES = ['delivery', 'opening_balance', 'manual_adjustment', 'spoilage', 'internal_use'];
+    public const RECORDABLE_MOVEMENT_TYPES = ['opening_balance', 'delivery', 'manual_adjustment', 'spoilage', 'internal_use'];
 
     // Placeholder/test values rejected outright wherever a human-entered label
     // has no other structural way to catch nonsense, ingredient name and
@@ -316,54 +316,98 @@ class InventoryController extends Controller{
     }
 
     public function recordMovement(Request $request, Ingredient $ingredient){
-        $validated = $request->validate([
-            'movement_type' => 'required|in:' . implode(',', self::RECORDABLE_MOVEMENT_TYPES),
-            'qty_changed' => 'required|numeric',
-            'delivery_date' => 'nullable|date',
-            'expiration_date' => 'nullable|date',
-            'notes' => 'nullable|string|max:255',
-            'reference_number' => 'nullable|string|max:100',
-        ]);
-
-
-        // Prevents silently blending expired stock into a fresh delivery,
-        // current_stock is one running total with no per-batch tracking
-        // (see Ingredient/spoilage_risk.py's own notes on this limitation),
-        // so the old quantity must be explicitly written off as waste first.
-        if (in_array($validated['movement_type'], ['delivery', 'opening_balance'], true)) {
-            $current = Ingredient::withCurrentStock()->withLastDeliveryAt()->find($ingredient->ingredient_id);
-            if ($current && $current->stockStatus() === 'expired') {
-                $message = "This ingredient's current stock is marked Expired. Please write off the expired quantity as waste (Mark as Waste) before recording a new delivery, so expired and fresh stock are never combined under the same total.";
-                if ($request->wantsJson()) {
-                    return response()->json(['success' => false, 'message' => $message], 422);
-                }
-                return redirect()->back()->with('error', $message);
-            }
-        }
-
-        $validated['qty_changed'] = $this->normalizeQtySign($validated['movement_type'], (float) $validated['qty_changed']);
-
-        $movement = StockMovement::create([
-            'ingredient_id' => $ingredient->ingredient_id,
-            'user_id' => auth()->id(),
-            'movement_type' => $validated['movement_type'],
-            'qty_changed' => $validated['qty_changed'],
-            'recorded_at' => now(),
-            'delivery_date' => $validated['delivery_date'] ?? null,
-            'expiration_date' => $validated['expiration_date'] ?? null,
-            'notes' => $validated['notes'] ?? null,
-            'reference_number' => $validated['reference_number'] ?? null,
-        ])->load(['recordedBy', 'ingredient']);
-
-        if ($request->wantsJson()) {
-            return response()->json([
-                'success' => true,
-                'movement' => $movement,
-                'newTotal' => $ingredient->stockMovements()->sum('qty_changed'),
-                'message' => 'Stock movement recorded.',
+        \Log::info('DEBUG: recordMovement started for ingredient: ' . $ingredient->ingredient_id);
+        try {
+            \Log::info('DEBUG: validating request');
+            $validated = $request->validate([
+                'movement_type' => 'required|in:' . implode(',', self::RECORDABLE_MOVEMENT_TYPES),
+                'qty_changed' => 'required|numeric',
+                'delivery_date' => 'nullable|date',
+                'expiration_date' => 'nullable|date',
+                'notes' => 'nullable|string|max:255',
+                'reference_number' => 'nullable|string|max:100',
             ]);
+            \Log::info('DEBUG: validation successful');
+
+            $type = $validated['movement_type'];
+            $qty = (float) $validated['qty_changed'];
+
+            \Log::info('DEBUG: checking delivery date/ref number');
+            if ($type !== 'delivery' && (($validated['delivery_date'] ?? null) || ($validated['reference_number'] ?? null))) {
+                \Log::info('DEBUG: delivery date/ref number check failed');
+                return $request->wantsJson()
+                    ? response()->json(['success' => false, 'message' => 'Delivery date and reference number are only permitted for Supplier Deliveries.'], 422)
+                    : redirect()->back()->with('error', 'Delivery date and reference number are only permitted for Supplier Deliveries.')->withInput();
+            }
+
+            \Log::info('DEBUG: checking expiration date');
+            $expRequired = ($type === 'delivery' || $type === 'opening_balance' || ($type === 'manual_adjustment' && $qty > 0));
+            if ($expRequired && empty($validated['expiration_date'])) {
+                \Log::info('DEBUG: expiration date check failed');
+                return $request->wantsJson()
+                    ? response()->json(['success' => false, 'message' => 'Expiration date is required for this movement type.'], 422)
+                    : redirect()->back()->with('error', 'Expiration date is required for this movement type.')->withInput();
+            }
+            if (!$expRequired && !empty($validated['expiration_date'])) {
+                $validated['expiration_date'] = null;
+            }
+
+            \Log::info('DEBUG: checking opening balance');
+            if ($type === 'opening_balance' && \App\Models\StockMovement::where('ingredient_id', $ingredient->ingredient_id)->where('movement_type', 'opening_balance')->exists()) {
+                \Log::info('DEBUG: opening balance check failed');
+                return $request->wantsJson()
+                    ? response()->json(['success' => false, 'message' => 'An opening balance already exists for this ingredient.'], 422)
+                    : redirect()->back()->with('error', 'An opening balance already exists for this ingredient.')->withInput();
+            }
+
+            \Log::info('DEBUG: checking expired stock');
+            if (in_array($validated['movement_type'], ['delivery', 'opening_balance'], true)) {
+                $current = Ingredient::withCurrentStock()->withLastDeliveryAt()->find($ingredient->ingredient_id);
+                if ($current && $current->stockStatus() === 'expired') {
+                    \Log::info('DEBUG: expired stock check failed');
+                    $message = "Expired stock. Mark as Waste before delivery.";
+                    if ($request->wantsJson()) {
+                        return response()->json(['success' => false, 'message' => $message], 422);
+                    }
+                    return redirect()->back()->with('error', $message);
+                }
+            }
+
+            \Log::info('DEBUG: normalizing qty sign');
+            $validated['qty_changed'] = $this->normalizeQtySign($validated['movement_type'], (float) $validated['qty_changed']);
+
+            \Log::info('DEBUG: creating stock movement');
+            $movement = StockMovement::create([
+                'ingredient_id' => $ingredient->ingredient_id,
+                'user_id' => auth()->id(),
+                'movement_type' => $validated['movement_type'],
+                'qty_changed' => $validated['qty_changed'],
+                'recorded_at' => now(),
+                'delivery_date' => $validated['delivery_date'] ?? null,
+                'expiration_date' => $validated['expiration_date'] ?? null,
+                'notes' => $validated['notes'] ?? null,
+                'reference_number' => $validated['reference_number'] ?? null,
+            ])->load(['recordedBy', 'ingredient']);
+            \Log::info('DEBUG: stock movement created');
+
+            if ($request->wantsJson()) {
+                \Log::info('DEBUG: returning JSON response');
+                return response()->json([
+                    'success' => true,
+                    'movement' => $movement,
+                    'newTotal' => $ingredient->stockMovements()->sum('qty_changed'),
+                    'message' => 'Stock movement recorded.',
+                ]);
+            }
+            \Log::info('DEBUG: returning redirect response');
+            return redirect()->route('admin.inventory.index')->with('success', 'Stock movement recorded.');
+        } catch (\Throwable $e) {
+            \Log::error('DEBUG: Record movement failed: ' . $e->getMessage(), ['exception' => $e]);
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            }
+            return redirect()->back()->with('error', 'Internal Server Error: ' . $e->getMessage())->withInput();
         }
-        return redirect()->route('admin.inventory.index')->with('success', 'Stock movement recorded.');
     }
 
     public function updateMovement(Request $request, StockMovement $movement){
@@ -482,6 +526,13 @@ class InventoryController extends Controller{
     // (notification bell, ledger table) keep working.
     public function history(Ingredient $ingredient){
         return redirect()->route('admin.inventory.ledger', ['ingredient_id' => $ingredient->ingredient_id]);
+    }
+
+    public function hasOpeningBalance(Ingredient $ingredient){
+        $exists = \App\Models\StockMovement::where('ingredient_id', $ingredient->ingredient_id)
+            ->where('movement_type', 'opening_balance')
+            ->exists();
+        return response()->json(['hasOpeningBalance' => $exists]);
     }
 
     public function ledgerIndex(Request $request){

@@ -56,6 +56,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::put('/inventory/{ingredient}', [InventoryController::class, 'update'])->name('inventory.update');
     Route::delete('/inventory/{ingredient}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
     Route::post('/inventory/{ingredient}/movement', [InventoryController::class, 'recordMovement'])->name('inventory.movement');
+    Route::get('/inventory/{ingredient}/has-opening-balance', [InventoryController::class, 'hasOpeningBalance'])->name('inventory.hasOpeningBalance');
     Route::put('/inventory/movement/{movement}', [InventoryController::class, 'updateMovement'])->name('inventory.movement.update');
     Route::delete('/inventory/movement/{movement}', [InventoryController::class, 'destroyMovement'])->name('inventory.movement.destroy');
     Route::get('/inventory/{ingredient}/history', [InventoryController::class, 'history'])->name('inventory.history');
