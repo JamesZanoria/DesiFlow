@@ -170,7 +170,7 @@
             @endif
 
             <div class="bg-indigo-50/60 border-l-2 border-indigo-200 rounded-lg px-4 py-3 mt-4 text-sm text-gray-700">
-                {!! $highlightSummary($healthData['summary'] ?? null) !!}
+                {{ $highlightSummary($healthData['summary'] ?? null) }}
             </div>
         @endif
     </div>

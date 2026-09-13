@@ -64,8 +64,8 @@ class InventoryController extends Controller{
             if ($request->input('sort') === 'critical') {
                 $query->orderByRaw('
                     CASE
-                        WHEN COALESCE(current_stock, 0) <= 0 THEN 0
-                        WHEN COALESCE(current_stock, 0) <= restock_threshold THEN 1
+                        WHEN (SELECT SUM(qty_changed) FROM stock_movements WHERE stock_movements.ingredient_id = ingredients.ingredient_id) <= 0 THEN 0
+                        WHEN (SELECT SUM(qty_changed) FROM stock_movements WHERE stock_movements.ingredient_id = ingredients.ingredient_id) <= ingredients.restock_threshold THEN 1
                         ELSE 2
                     END ASC
                 ');
@@ -319,9 +319,12 @@ class InventoryController extends Controller{
         $validated = $request->validate([
             'movement_type' => 'required|in:' . implode(',', self::RECORDABLE_MOVEMENT_TYPES),
             'qty_changed' => 'required|numeric',
+            'delivery_date' => 'nullable|date',
+            'expiration_date' => 'nullable|date',
             'notes' => 'nullable|string|max:255',
             'reference_number' => 'nullable|string|max:100',
         ]);
+
 
         // Prevents silently blending expired stock into a fresh delivery,
         // current_stock is one running total with no per-batch tracking
@@ -346,6 +349,8 @@ class InventoryController extends Controller{
             'movement_type' => $validated['movement_type'],
             'qty_changed' => $validated['qty_changed'],
             'recorded_at' => now(),
+            'delivery_date' => $validated['delivery_date'] ?? null,
+            'expiration_date' => $validated['expiration_date'] ?? null,
             'notes' => $validated['notes'] ?? null,
             'reference_number' => $validated['reference_number'] ?? null,
         ])->load(['recordedBy', 'ingredient']);
@@ -371,6 +376,8 @@ class InventoryController extends Controller{
 
         $validated = $request->validate([
             'qty_changed' => 'required|numeric',
+            'delivery_date' => 'nullable|date',
+            'expiration_date' => 'nullable|date',
             'edit_reason' => 'required|string|max:150',
             'recorded_at' => 'nullable|date',
         ]);
@@ -380,6 +387,8 @@ class InventoryController extends Controller{
         if (! empty($validated['recorded_at'])) {
             $movement->recorded_at = $validated['recorded_at'];
         }
+        $movement->delivery_date = $validated['delivery_date'] ?? $movement->delivery_date;
+        $movement->expiration_date = $validated['expiration_date'] ?? $movement->expiration_date;
         $movement->save();
         $movement->load(['recordedBy', 'ingredient']);
 
@@ -495,11 +504,7 @@ class InventoryController extends Controller{
             // reference number, notes, not who recorded it.
             if ($request->filled('search')) {
                 $search = $request->input('search');
-                $query->where(function ($q) use ($search) {
-                    $q->whereHas('ingredient', fn ($iq) => $iq->where('ingredient_name', 'ILIKE', "%{$search}%"))
-                        ->orWhere('reference_number', 'ILIKE', "%{$search}%")
-                        ->orWhere('notes', 'ILIKE', "%{$search}%");
-                });
+                $query->whereHas('recordedBy', fn ($q) => $q->where('name', 'ILIKE', "%{$search}%"));
             }
 
             return $query->orderByDesc('recorded_at');
@@ -508,7 +513,7 @@ class InventoryController extends Controller{
         $ingredients = Ingredient::orderBy('ingredient_name')
             ->get(['ingredient_id', 'ingredient_name', 'unit_of_measurement']);
 
-        $searchSuggestions = Ingredient::orderBy('ingredient_name')->pluck('ingredient_name');
+        $searchSuggestions = \App\Models\User::orderBy('name')->pluck('name');
 
         $expiredIngredientIds = Ingredient::withCurrentStock()->withLastDeliveryAt()->get()
             ->filter(fn ($i) => $i->stockStatus() === 'expired')

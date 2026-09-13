@@ -426,6 +426,28 @@ document.addEventListener('click', (e) => {
         if (!container.contains(e.target)) closeComboSelectPopover(container);
     });
 
+    const filterOption = e.target.closest('.filter-select-option');
+    if (filterOption) {
+        const container = filterOption.closest('[data-filter-select]');
+        const hiddenInput = container.querySelector('input[type="hidden"]');
+        const value = filterOption.dataset.optionValue;
+        const label = filterOption.dataset.optionLabel;
+
+        hiddenInput.value = value;
+
+        const trigger = container.querySelector('.filter-select-trigger');
+        const triggerValue = trigger?.querySelector('.min-w-0');
+        if (triggerValue) {
+            // Update the "Label: Value" format
+            const labelText = triggerValue.querySelector('.text-gray-500')?.innerText || '';
+            triggerValue.innerHTML = `<span class="text-gray-500">${labelText}</span> <span class="text-gray-800 font-medium">${label}</span>`;
+        }
+
+        const form = container.closest('form');
+        if (form) form.submit();
+        return;
+    }
+
     const trigger = e.target.closest('.combo-select-trigger');
     if (trigger) {
         const container = trigger.closest('[data-combo-select]');

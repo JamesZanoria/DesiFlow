@@ -21,6 +21,8 @@ class StockMovement extends Model{
         'movement_type',
         'qty_changed',
         'recorded_at',
+        'delivery_date',
+        'expiration_date',
         'notes',
         'reference_number',
         'voids_movement_id',
@@ -31,6 +33,8 @@ class StockMovement extends Model{
         return [
             'qty_changed' => 'decimal:2',
             'recorded_at' => 'datetime',
+            'delivery_date' => 'date',
+            'expiration_date' => 'date',
         ];
     }
 

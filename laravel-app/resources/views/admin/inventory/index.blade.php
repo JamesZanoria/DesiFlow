@@ -163,11 +163,6 @@
                     </div>
 
                     <div id="ingredient-create-only-fields">
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Expiration Date</label>
-                            <input type="date" name="expiration_date" required class="w-full border rounded-lg px-3 py-2 text-sm">
-                        </div>
-
                         <div class="mb-6">
                             <label class="block text-sm font-medium text-gray-700 mb-1">Ingredient Photo (optional)</label>
                             <div id="ingredient-image-dropzone" class="relative border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer transition-colors hover:border-amber-400">
@@ -534,8 +529,6 @@
                     createOnlyFields.classList.remove('hidden');
                     currentStockDisplay.classList.add('hidden');
                     resetImageDropzone(null);
-                    form.expiration_date.required = true;
-                    form.expiration_date.min = todayDateStr;
 
                     initialSnapshot = null;
                     saveBtn.disabled = false;

@@ -9,6 +9,7 @@
 --}}
 @php
     $statusMeta = [
+        'negative_stock' => ['label' => 'Negative Stock', 'badge' => 'bg-purple-100 text-purple-700'],
         'active' => ['label' => 'Active', 'badge' => 'bg-green-100 text-green-700'],
         'low_stock' => ['label' => 'Low Stock', 'badge' => 'bg-amber-100 text-amber-700'],
         'out_of_stock' => ['label' => 'Out of Stock', 'badge' => 'bg-red-100 text-red-700'],

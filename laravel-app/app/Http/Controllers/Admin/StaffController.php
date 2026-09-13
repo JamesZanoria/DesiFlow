@@ -5,14 +5,24 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Admin\Concerns\ClampsPaginationPage;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\InputValidationService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
+
 class StaffController extends Controller{
     use ClampsPaginationPage;
+
+    private const BLOCKED_PLACEHOLDER_VALUES = [
+        'test', 'testing', 'tests', 'sample', 'samples', 'sample data',
+        'asdf', 'asdfgh', 'qwerty', 'foo', 'bar', 'foobar', 'xxx', 'xyz',
+        'n/a', 'na', 'none', 'null', 'undefined', 'todo', 'tbd', 'temp',
+        'temporary', 'example', 'demo', 'dummy', 'placeholder', 'lorem ipsum',
+        'asd', 'abc', '123', 'zzz',
+    ];
 
     // Display a paginated, searchable listing of all staff accounts.
     public function index(Request $request){
@@ -71,6 +81,29 @@ class StaffController extends Controller{
     // Add Staff now opens as a popup on the index page instead.
     public function create(){
         return view('admin.staff.create');
+    }
+
+    // Rejects placeholder/test-style values in a free-text field: exact
+    // matches against a known junk list, a single character repeated
+    // ("aaaa"), or a value with no letters at all.
+    private function notPlaceholderRule(): \Closure{
+        return function (string $attribute, mixed $value, \Closure $fail) {
+            $normalized = strtolower(trim((string) $value));
+            if ($normalized === '') return;
+
+            if (in_array($normalized, self::BLOCKED_PLACEHOLDER_VALUES, true)) {
+                $fail('Please enter a real value, not a placeholder or test value.');
+                return;
+            }
+            if (preg_match('/^(.)\1*$/', $normalized)) {
+                $fail('Please enter a valid value.');
+                return;
+            }
+            if (!preg_match('/[a-zA-Z]/', $normalized)) {
+                $fail('Value must contain at least one letter.');
+                return;
+            }
+        };
     }
 
     // A real email, not just "contains an @". `email:rfc,filter` runs both
@@ -178,9 +211,22 @@ class StaffController extends Controller{
     // genuinely needed, that's a deliberate decision to make outside this
     // form, not something reachable by accident here.
     public function store(Request $request){
+        // Guardrail: Validate input strings via Ollama to prevent gibberish/malicious data.
+        $guard = app(InputValidationService::class);
+        $inputToValidate = trim($request->input('name', '') . ' ' . $request->input('email', ''));
+
+        if (!empty($inputToValidate)) {
+            $result = $guard->validateInput($inputToValidate);
+            if (!$result['isValid']) {
+                return $this->validationFailedResponse($request, (object)[
+                    'errors' => ['name' => [$result['cleanReason']]]
+                ]);
+            }
+        }
+
         $validator = Validator::make($request->all(), [
             'role' => 'required|in:cashier,kitchen',
-            'name' => $this->textNoDigitsRule(),
+            'name' => [...$this->textNoDigitsRule(), $this->notPlaceholderRule()],
             'email' => [...$this->emailRules(), $this->duplicateEmailRule()],
             'password' => $this->passwordRules(required: true),
         ], $this->validationMessages());
@@ -236,9 +282,22 @@ class StaffController extends Controller{
     // cashier/kitchen, same as store() — no path in this form can ever
     // promote someone to admin.
     public function update(Request $request, User $user){
+        // Guardrail: Validate input strings via Ollama to prevent gibberish/malicious data.
+        $guard = app(InputValidationService::class);
+        $inputToValidate = trim($request->input('name', '') . ' ' . $request->input('email', ''));
+
+        if (!empty($inputToValidate)) {
+            $result = $guard->validateInput($inputToValidate);
+            if (!$result['isValid']) {
+                return $this->validationFailedResponse($request, (object)[
+                    'errors' => ['name' => [$result['cleanReason']]]
+                ]);
+            }
+        }
+
         $validator = Validator::make($request->all(), [
             'role' => ['required', Rule::in($user->role === 'admin' ? ['admin'] : ['cashier', 'kitchen'])],
-            'name' => $this->textNoDigitsRule(),
+            'name' => [...$this->textNoDigitsRule(), $this->notPlaceholderRule()],
             'email' => [...$this->emailRules(), $this->duplicateEmailRule($user->user_id)],
             'password' => $this->passwordRules(required: false),
         ], $this->validationMessages());

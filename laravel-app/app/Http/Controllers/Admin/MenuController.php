@@ -6,13 +6,23 @@ use App\Http\Controllers\Admin\Concerns\ClampsPaginationPage;
 use App\Http\Controllers\Admin\Concerns\HandlesProtectedImageUploads;
 use App\Http\Controllers\Controller;
 use App\Models\MenuItem;
+use App\Services\InputValidationService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
+
 class MenuController extends Controller{
     use ClampsPaginationPage;
     use HandlesProtectedImageUploads;
+
+    private const BLOCKED_PLACEHOLDER_VALUES = [
+        'test', 'testing', 'tests', 'sample', 'samples', 'sample data',
+        'asdf', 'asdfgh', 'qwerty', 'foo', 'bar', 'foobar', 'xxx', 'xyz',
+        'n/a', 'na', 'none', 'null', 'undefined', 'todo', 'tbd', 'temp',
+        'temporary', 'example', 'demo', 'dummy', 'placeholder', 'lorem ipsum',
+        'asd', 'abc', '123', 'zzz',
+    ];
 
     // Display a paginated, filterable listing of all menu items.
     public function index(Request $request){
@@ -82,9 +92,32 @@ class MenuController extends Controller{
         return view('admin.menu.create');
     }
 
-    // Description is optional (nullable).
+    // Description is no longer used in the current system requirements.
     private function descriptionRule(): array{
-        return ['nullable', 'string', 'max:1000'];
+        return [];
+    }
+
+    // Rejects placeholder/test-style values in a free-text field: exact
+    // matches against a known junk list, a single character repeated
+    // ("aaaa"), or a value with no letters at all.
+    private function notPlaceholderRule(): \Closure{
+        return function (string $attribute, mixed $value, \Closure $fail) {
+            $normalized = strtolower(trim((string) $value));
+            if ($normalized === '') return;
+
+            if (in_array($normalized, self::BLOCKED_PLACEHOLDER_VALUES, true)) {
+                $fail('Please enter a real value, not a placeholder or test value.');
+                return;
+            }
+            if (preg_match('/^(.)\1*$/', $normalized)) {
+                $fail('Please enter a valid value.');
+                return;
+            }
+            if (!preg_match('/[a-zA-Z]/', $normalized)) {
+                $fail('Value must contain at least one letter.');
+                return;
+            }
+        };
     }
 
     // Human-readable messages for validation rules that need a friendlier
@@ -166,11 +199,23 @@ class MenuController extends Controller{
     // Store a newly created menu item. Accepts an optional uploaded image file
     // (stored on the public disk) instead of a raw image URL.
     public function store(Request $request){
+        // Guardrail: Validate input strings via Ollama to prevent gibberish/malicious data.
+        $guard = app(InputValidationService::class);
+        $inputToValidate = trim($request->input('item_name', '') . ' ' . $request->input('category', ''));
+
+        if (!empty($inputToValidate)) {
+            $result = $guard->validateInput($inputToValidate);
+            if (!$result['isValid']) {
+                return $this->validationFailedResponse($request, (object)[
+                    'errors' => ['item_name' => [$result['cleanReason']]]
+                ]);
+            }
+        }
+
         $validator = Validator::make($request->all(), [
-            'category' => 'required|string|max:50',
-            'item_name' => ['required', 'string', 'max:100', $this->duplicateNameRule()],
+            'category' => ['required', 'string', 'max:50', $this->notPlaceholderRule()],
+            'item_name' => ['required', 'string', 'max:100', $this->duplicateNameRule(), $this->notPlaceholderRule()],
             'price' => 'required|numeric|min:0',
-            'description' => $this->descriptionRule(),
             'is_available' => 'required|in:0,1',
             'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ], $this->validationMessages());
@@ -225,11 +270,23 @@ class MenuController extends Controller{
     // which doesn't know about description/image, so those are only overwritten
     // when actually present in the request, never silently wiped to null/blank.
     public function update(Request $request, MenuItem $menuItem){
+        // Guardrail: Validate input strings via Ollama to prevent gibberish/malicious data.
+        $guard = app(InputValidationService::class);
+        $inputToValidate = trim($request->input('item_name', '') . ' ' . $request->input('category', ''));
+
+        if (!empty($inputToValidate)) {
+            $result = $guard->validateInput($inputToValidate);
+            if (!$result['isValid']) {
+                return $this->validationFailedResponse($request, (object)[
+                    'errors' => ['item_name' => [$result['cleanReason']]]
+                ]);
+            }
+        }
+
         $validator = Validator::make($request->all(), [
-            'category' => 'required|string|max:50',
-            'item_name' => ['required', 'string', 'max:100', $this->duplicateNameRule($menuItem->menu_item_id)],
+            'category' => ['required', 'string', 'max:50', $this->notPlaceholderRule()],
+            'item_name' => ['required', 'string', 'max:100', $this->duplicateNameRule($menuItem->menu_item_id), $this->notPlaceholderRule()],
             'price' => 'required|numeric|min:0',
-            'description' => $this->descriptionRule(),
             'is_available' => 'required|in:0,1',
             'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ], $this->validationMessages());
@@ -244,27 +301,12 @@ class MenuController extends Controller{
         $validated['item_name'] = trim($validated['item_name']);
         $validated['category'] = trim($validated['category']);
 
-        // The Status dropdown quick-action doesn't send a description field at all,
-        // without this guard, the "nullable" rule would still land in $validated as
-        // null and wipe out any existing description on every quick status toggle.
-        if (! $request->has('description')) {
-            unset($validated['description']);
-        }
-
         if ($request->hasFile('image')) {
             $validated['image_url'] = $this->storeProtectedImage($request->file('image'), 'menu-items');
         } elseif ($request->boolean('remove_image')) {
-            // The Remove button in the dropzone previously had no way to
-            // actually signal intent to the server, this only ever reacted
-            // to hasFile('image'), so clicking Remove cleared the preview in
-            // the UI but the existing image_url was silently kept on save.
-            // Delete the old file from disk before nulling the column, so a
-            // removed image doesn't linger as an orphaned file in storage.
             $this->deleteProtectedImage($menuItem->image_url, 'menu-items');
             $validated['image_url'] = null;
         }
-        // Neither a new file nor an explicit removal -> image_url is left out
-        // of $validated entirely, so the existing image is preserved.
         unset($validated['image']);
 
         try {

@@ -89,10 +89,6 @@
                          availability as a side effect. --}}
                     <input type="hidden" name="is_available" id="menu-status-select">
 
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                        <textarea name="description" rows="3" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Describe the dish..."></textarea>
-                    </div>
 
                     <div class="mb-6">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Item Image</label>
@@ -168,7 +164,7 @@
             // text field, etc.). Nothing is checked or blocked while typing;
             // this mirrors how the duplicate-name error already works.
             // ---------------------------------------------------------------
-            const errorableFields = ['item_name', 'category', 'description'];
+            const errorableFields = ['item_name', 'category'];
 
             function clearFieldErrors() {
                 errorableFields.forEach((name) => {
@@ -340,7 +336,6 @@
                     form.item_name.value = data.itemName;
                     form.category.value = data.category;
                     form.price.value = data.price;
-                    form.description.value = data.description ?? '';
                     form.is_available.value = data.isAvailable;
                     resetImageDropzone(data.imageUrl || null);
                 }
@@ -372,7 +367,7 @@
             let savedSnapshot = '';
 
             function getFormSnapshot() {
-                const fields = ['item_name', 'category', 'price', 'description', 'is_available', 'remove_image']
+                const fields = ['item_name', 'category', 'price', 'is_available', 'remove_image']
                     .map((name) => form.elements[name]?.value ?? '');
 
                 // A File object can't be meaningfully diffed by value, so a

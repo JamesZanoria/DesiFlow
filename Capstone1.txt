@@ -1,0 +1,2287 @@
+﻿DESIFLOW: A WEB-BASED RESTAURANT MANAGEMENT SYSTEM WITH PREDICTIVE ANALYTICS FOR DESI ZAIKA SNACK HOUSE 
+
+
+
+
+A Capstone Project 1
+Presented to the Faculty of the
+Department of Computer, Information Sciences, and Mathematics
+University of San Carlos
+
+
+
+
+In Partial Fulfillment
+of the Requirements for the Degree
+BACHELOR OF SCIENCE IN INFORMATION SYSTEMS
+
+
+
+
+By
+MIGUEL LORENZO P. ANDAYA
+JAMES NINOBERT Z. GALON
+REMEGIO E. MAGALLANES JR.
+NINO ADAM KRISTIAN S. MESOLA
+
+
+
+
+GLENN B. PEPITO
+Faculty Adviser
+
+
+        
+
+
+July 2026
+  
+ 
+                                                     
+ 
+Date: August 7, 2026
+ 
+APPROVAL   SHEET
+ 
+ 
+This capstone proposal entitled: DESIFLOW: A WEB-BASED RESTAURANT MANAGEMENT SYSTEM WITH PREDICTIVE ANALYTICS FOR DESI ZAIKA SNACK HOUSE 
+ 
+submitted by: MIGUEL LORENZO P. ANDAYA,  JAMES NINOBERT Z. GALON, REMEGIO E. MAGALLANES JR., NINO ADAM KRISTIAN S. MESOLA for the degree of: BACHELOR OF SCIENCE IN INFORMATION SYSTEMS has been approved by the Committee assigned to the students.
+ 
+ 
+
+
+GLENN B. PEPITO, MBA, MSIT
+Adviser
+ 
+ 
+ 
+ARCHIVAL J. SEBIAL, DIT
+Chair
+ 
+                FRANCINE MENCHAVEZ                                                     GRAN G. SABANDAL
+            Member                                                                                 Member
+ 
+  
+CHRISTIAN V. MADERAZO, M.Eng
+Capstone Proposal Coordinator
+ACKNOWLEDGEMENTS
+
+
+This capstone project would not have taken shape without the guidance and support of several individuals, and we would like to take this opportunity to recognize them.
+We are especially thankful to our capstone adviser, whose direction, patience, and thoughtful input steered this study in the right direction and helped us work through the difficulties we encountered along the way. Their willingness to review our progress and point us toward better solutions made a meaningful difference in how this project turned out.
+Our appreciation also goes to the panel members and the faculty of the department, whose critiques and recommendations pushed us to refine both the technical implementation and the underlying concepts of this project. The time they took to evaluate our work is something we do not take for granted.
+We are likewise grateful to our families and friends, who kept us going through the long hours this project demanded and never stopped believing we could see it through. Finally, we give thanks to God for the strength, clarity, and endurance that carried us to the completion of this study.
+
+
+________________
+
+
+ABSTRACT[a]
+Digital tools have become a practical necessity for small food businesses seeking to reduce errors and operate more efficiently, yet many still rely on fully manual processes for taking orders, computing bills, and tracking stock. At Desi Zaika Snack House, a small Indian restaurant in Cebu, orders are taken verbally, billing is computed by hand, and ingredient stock is estimated by sight rather than logged, leaving the owner unable to trace a shortage back to the dishes that caused it or to judge which menu items remain profitable once ingredient cost is considered. Addressing this gap called for a system built specifically to the restaurant's scale rather than a generic, enterprise-oriented platform. This study aims to design and develop an integrated web-based self-ordering, point-of-sale, and intelligent inventory management system for Desi Zaika Snack House, combining a customer-facing QR ordering interface, a cashier POS module, a kitchen display, and an administrative dashboard, deployed as a web application on Vercel with WebSocket broadcasting and analytics computation hosted on a separate cloud service. The system automates order placement, payment recording, recipe-level stock deduction, and real-time synchronization across all four user roles through WebSocket broadcasting, while a separate analytics microservice generates demand forecasts, menu-engineering classifications, spoilage-risk scores, and a composite business health score without slowing day-to-day transactions. Development follows an Iterative Waterfall model and underwent black-box testing during implementation; User Acceptance Testing involving the owner, staff, and customers during a pilot deployment at Desi Zaika Snack House is planned to assess the system against functional suitability, reliability, and usability. The system is expected to close the current gap between what is sold and what is tracked, reduce manual order and billing errors, and give the owner data-driven visibility into ingredient consumption and dish profitability that manual record-keeping cannot provide. This is expected to demonstrate that a right-sized, cloud-hosted POS and inventory solution can meaningfully support the operational modernization of small, independent food service businesses.
+________________
+TABLE OF CONTENTS
+ACKNOWLEDGEMENTS        IV
+ABSTRACT        V
+TABLE OF CONTENTS        VI
+LIST OF FIGURES        VIII
+LIST OF TABLES        IX
+CHAPTER 1        1
+1.1 Rationale of the Study        1
+1.2 Statement of the Problem        3
+1.2.1 General Objective        3
+1.2.2 Specific Objectives        3
+1.3 Significance of the Study        3
+1.4 Scope and Limitations        6
+CHAPTER 2        9
+2.1 Review of Related Literature        9
+2.2 Review of Related Systems        19
+CHAPTER 3        24
+CHAPTER 4        31
+4.1 Conceptual Framework        31
+4.2 Analysis and Design        57
+4.5 Software Development Tools        62
+4.6 Project Management        65
+4.6.1 Schedule and Timeline        65
+4.6.2 Responsibilities        66
+4.6.3 Budget and Cost Management        69
+4.7 Verification, Validation, and Testing        71
+BIBLIOGRAPHY        77
+APPENDICES        88
+APPENDIX A        89
+APPENDIX B        91
+APPENDIX C        98
+LIST OF FIGURES
+
+
+Figure 1. Current Business Process Flowchart        32
+Figure 2. Conceptual Framework        33
+Figure 3. Use Case Diagram (Administrator and Employee)        36
+Figure 4. Use Case Diagram (Customer)        52
+Figure 5. Architectural Framework        58
+Figure 6. Entity Relationship Diagram (ERD)        60
+Figure 7. Iterative Waterfall Model (adapted from Jalote, 2005).        62
+Figure 8. Bottom-Up Development Approach        64
+Figure 9. Gantt Chart of Capstone        68
+Figure 10. Gantt Chart of Capstone        69
+
+
+LIST OF TABLES
+
+
+Table 1a.        22
+Table 1b.        23
+Table 2        37
+Table 3        38
+Table 4        39
+Table 5        40
+Table 6        41
+Table 7        41
+Table 8        42
+Table 9        43
+Table 10        44
+Table 11        45
+Table 12        46
+Table 13        47
+Table 14        47
+Table 15        48
+Table 16        50
+Table 17        50
+Table 18        53
+Table 19        53
+Table 20        54
+Table 21        55
+Table 22        56
+Table 23        56
+Table 24        65
+Table 25        69
+Table 26        70
+Table 27        71
+Table 28        71
+Table 29        72
+Table 30a.        73
+Table 30b.        73
+
+
+
+
+
+
+
+
+CHAPTER 1[b]
+Introduction
+1.1 Rationale of the Study
+        The Philippine food service industry has seen consistent growth in recent years, with the sector projected to expand at a compound annual growth rate of 14.52% through 2030, driven by rising consumer demand and increasing adoption of digital ordering platforms (National Tax Research Center, 2023). Despite this growth, many independent food businesses, especially small restaurants and specialty eateries, still operate manually. Orders are taken orally and documented on paper, billing is done by hand, and inventory is kept up to date by periodic physical counting rather than methodical tracking. These practices are not unique to any one business, but their consequences are consistently documented: manual ordering methods cause customers to wait in line before their orders can be taken, which lowers customer satisfaction and limits a restaurant’s capacity to serve customers during peak hours (Abel & Ekabua, 2015).
+
+
+Desi Zaika Snack House is a small Indian restaurant situated in Cebu, Philippines, offering authentic Indian cuisine to the local community. The company tracks ingredient stock through visual inspection, processes all customer orders manually, computes billing without the use of a point-of-sale system, and bases daily operational decisions, such as how much food to prepare and when to restock ingredients, on experience rather than recorded data, just like many independent businesses of its size. The absence of systematic inventory tracking further compounds these inefficiencies by creating a disconnect between what is sold and what needs to be replenished, resulting in either stock shortages during service or wasteful overstocking, both of which carry direct financial costs. Unlike retail businesses that track products as discrete units, a food service establishment consumes ingredients in variable quantities that depend on what is ordered and in what volume. 
+
+
+Beyond the transactional and inventory problems, the manual operations of Desi Zaika create a deeper informational gap that prevents the owner from making data-driven operational decisions. The owner cannot decide which dishes are most profitable after ingredient costs, which dishes should be promoted or discontinued, how many portions of each dish to prepare on a given day, or whether the company’s financial health is improving or declining over time without sales records. Restaurateurs can now collect customer behavior data and combine it with operational data to make a variety of strategic and operational decisions because of smart technologies and increased data availability (Roy et al., 2022). The growing adoption of digital payment platforms like GCash, which has surpassed 94 million registered users in the Philippines as of 2024, further underscores the need for small food businesses to modernize their transaction infrastructure to meet current customer expectations (Globe Telecom, 2024).
+
+
+It is within this context that this study proposes the design and development of an integrated web-based self-ordering, point-of-sale, and intelligent inventory management system for Desi Zaika Snack House that not only addresses the transactional inefficiencies of its current manual operations but also introduces an intelligence layer that delivers data-driven operational insights previously accessible only to larger, better-resourced food service establishments.
+
+
+
+
+
+
+
+
+1.2 Statement of the Problem
+1.2.1 General Objective
+                To design and develop an integrated web-based self-ordering, point-of-sale, and intelligent inventory management system for Desi Zaika Snack House.
+1.2.2 Specific Objectives
+1. To analyze the current ordering, production, and inventory processes of Desi Zaika Snack House in order to identify existing operational inefficiencies and define the corresponding system requirements.
+2. To design and develop a web-based system that integrates self-ordering, point-of-sale (POS), and kitchen production management into a single platform.
+3. To design and develop an inventory module that tracks usage and stock levels in real time.
+4. To design and develop a data analytics dashboard that provides the owner with insights into daily business operations.
+5. To test and evaluate the usability and effectiveness of the developed system through user acceptance testing and pilot deployment of Desi Zaika Snack House.
+1.3 Significance of the Study
+        The development of an integrated web-based self-ordering, point-of-sale, and intelligent inventory management system carries meaningful implications for several groups directly and indirectly connected to the operations of Desi Zaika Snack House. The following identifies the primary beneficiaries of this study and the specific ways in which each stands to gain from its outcomes.
+
+
+        Desi Zaika Snack House. As the primary beneficiary and client of this study, Desi Zaika Snack House stands to gain the most direct and immediate benefit from the system’s development. The business currently relies entirely on manual processes for order-taking, billing, inventory tracking, and operational decision-making, practices that expose it to order errors, ingredient shortages, unquantified food waste, and an inability to assess its own financial performance in any systematic way. The system addresses each of these pain points through a unified platform that automates transactional workflows, tracks ingredients at the recipe level, and surfaces data-driven insights about menu performance, ingredient consumption, and overall business health. The owner and staff of Desi Zaika Snack House are expected to benefit from reduced operational errors, better-informed restocking decisions, clearer visibility into which dishes are most and least profitable, and a daily summary of business health that requires no technical expertise to read or act on.
+
+
+        Customers of Desi Zaika Snack House. Customers benefit from the introduction of  QR-based self-ordering on their own devices, which allows them to browse the full menu, customize their selections, and place orders at their own pace without waiting for a staff member to become available. The real-time menu availability engine ensures that customers are never presented with dishes that cannot be prepared due to insufficient ingredients, eliminating the frustration of placing an order that must later be cancelled or substituted. The addition of GCash as a payment option alongside cash further accommodates the payment preferences of customers who have already adopted digital wallets in their daily lives, making the transaction experience more convenient and consistent with current consumer habits in the Philippines.
+
+
+        Kitchen and Service Staff. Staff members responsible for food preparation benefit from the Kitchen Display System, which replaces the current reliance on verbal instructions and handwritten tickets with a live, organized queue of confirmed orders visible directly in the kitchen. This reduces the likelihood of missed or miscommunicated orders during busy service periods and gives kitchen staff a clearer, more manageable view of what needs to be prepared and in what sequence. Cashiers benefit from the point-of-sale module, which streamlines the payment process, automatically computes change for cash transactions, records GCash reference numbers, and generates receipts without requiring manual calculation or paperwork.
+
+
+        Future Researchers. This study contributes to the growing body of literature on the application of intelligent systems in small-scale food service operations in the Philippines. The integration of a dynamic recipe-ingredient model with real-time inventory management, the implementation of a Menu Engineering Matrix as a computational feature within a POS system, the design of a Business Health Score as a composite operational indicator, and the development of a bounded conversational interface for business querying represent approaches that have not been extensively documented in the context of small independent Philippine restaurants. Future researchers working on similar problems, particularly those involving the digitalization of micro and small enterprises in the food service sector, may draw on the design decisions, methodology, and evaluation findings of this study as a reference point for their own work.
+
+
+The Philippine Micro and Small Enterprise Sector. At the broadcast level, this study addresses a gap that affects not only Desi Zaika Snack House but a large number of similarly sized food businesses across the country that operate without digital systems and lack access to the kind of operational intelligence that larger restaurant chains take for granted. While the system developed in this study is scoped specifically to a single client, the design principles, architecture, and feature set have been developed with generalizability in mind. The outcomes of this study may inform future efforts to extend similar systems to other micro and small food enterprises in Cebu and across the Philippines, contributing to the broader goal of making data-driven operations accessible to businesses that have historically been excluded from the benefits of digital transformation.
+1.4 Scope and Limitations
+The scope of this study lies exclusively to the design and development of a web-based integrated food service management system for Desi Zaika Snack House, an Indian restaurant operating in Cebu, Philippines. The operational needs of this specific business define and bound the work undertaken here; the findings and outputs of this study are not intended to generalize across the broader food service industry, nor are they meant to represent an advancement in point-of-sale (POS) or inventory management technology beyond what a small restaurant of this nature requires. Every decision made throughout the development was guided by one governing constraint: the system must remain within the capacity of a four-member student team to design, build, and evaluate within the duration of the capstone engagement, given the financial and time limitations under which the researchers worked. 
+
+
+The operational layer covers the functions the business needs to run day by day: a web-based self-ordering interface that customers access by scanning a table QR code, a point-of-sale interface through which cashiers process transactions and collect cash or GCash payment, a Kitchen Display System through which kitchen staff receive and manage confirmed orders, and a recipe-based inventory module that tracks ingredient consumption at the dish level. 
+
+
+The analytics layer covers a data analytics dashboard that turns the records the operational layer produces into insights that support the owner’s daily business decisions. This layer is scoped to what the owner needs on a day-to-day basis; it is not intended to expand beyond the need.
+
+
+Several boundaries apply to what the system covers. It is built and tested for one location only; questions of multi-branch inventory coordination or consolidated reporting across sites are not addressed. While cash and GCash are both accepted at the counter, the system does not process payments online, support order-ahead transactions, or connect to any digital wallet other than GCash. Discounts, promotional pricing, and voucher redemption are not part of the ordering or payment workflow. When a void or refund becomes necessary, the cashier submits a request through the system, and the transaction is only reversed after the admin or manager reviews and approves the request. The system is a web application and is not packaged as a native app for any mobile platform. The Laravel web application was deployed on Vercel, while Laravel Reverb (real-time WebSocket broadcasting) and the FastAPI analytics microservice were deployed on a separate cloud host (Render) capable of running them as persistent processes, a deliberate choice given the single-location scale of the business, the team’s limited budget, and the absence of any need for on-premise infrastructure at this stage.
+
+
+        The system’s limitations included the following. First, it required compatible hardware, such as a desktop or tablet device to run the POS interface, to function optimally; any malfunction or incompatibility with this device could disrupt sales and kitchen operations. Second, because the web application, the WebSocket broadcasting layer, and the analytics microservice are hosted on external cloud platforms rather than an on-site server, the restaurant’s own internet connection became a hard dependency: unlike a purely local-network deployment, none of the four modules can function if the restaurant’s internet access goes down, a trade-off accepted in exchange for the reliability, automatic scaling, and remote accessibility a managed cloud host provides over a single on-site machine. Third, since Desi Zaika Snack House is only beginning to keep digital records, the analytics layer will initially operate on limited or seeded data, and its accuracy is expected to develop gradually as the system accumulates real transactional history. Lastly, employees needed to undergo training to transition from manual operations to the digital system, as the client noted they previously lacked proficiency in technologies beyond their day-to-day tools. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+________________
+
+
+CHAPTER 2
+Related Systems
+
+
+        This chapter presents a review literature and existing systems relevant to the proposed study. It examines prior research on the key concepts, technologies, and system implementations that relate to the design and development of an integrated web-based self-ordering, point-of-sale, and intelligent inventory management system for Desi Zaika Snack House. 
+2.1 Review of Related Literature
+Manual and Automation in Data Entry
+Data entry is the process of transferring information from a source document into a computer system so that it can be stored, retrieved, and processed. This task is typically done manually with a person putting information directly into a spreadsheet. While this method is flexible and only costs minimal special equipment, it has its flaws; this process is prone to human error. According to Wynn (2021), a manual inventory management system has an increased risk of human error; it may result in misplacement and waste, which can be costly. Automating the inventory system especially with a POS system can make this process more efficient and remove any human errors. It can solve problems like data synchronization and can make for faster decision making. Furthermore, studies have shown that by adopting automated data entry these businesses reduce the processing time and costs. Automated systems help and enable companies to optimize efficiency, improve on accuracy, and allocate resources for health and longevity of the business.
+
+
+Inventory Management System
+In today’s business world, effective stock inventory management has become critical (Madamidola et al., 2017). Globally, inventory managers confront the challenges of maintaining continuous production processes, delivering quality services to consumers, managing optimal stock levels, and implementing effective inventory management policies (Madamidola et al., 2017). As a business grows, numerous problems also arise. First, official record-keeping will need to change because managers will find it difficult to keep track of the numerous items that need to be kept in the inventory. In addition, more room is needed to do business as inventory amounts increase (Madamidola et al., 2017).
+
+
+Inventory management is one of the most complex functions of an organization due to the multiple uncertainties that surround its environment (Vidal et al., 2019). According to their state during processing, inventories can be divided into four categories: (1) raw materials, which comprise the fundamental components used in production; (2) work-in-process inventories, which are waiting between operations after direct labor and indirect costs have been applied; (3) finished products, which are completed and ready for customer delivery; and (4) materials and supplies, which include consumer goods like spare parts for equipment maintenance (Vidal et al., 2019).
+
+
+Web-based Ordering and QR Code Systems
+The development of information technology has encouraged companies to adapt to improve operational effectiveness and efficiency, particularly in inventory management (Mandalangi et al., 2025). Web-based ordering is the use of Internet technologies to replace or enhance traditional manual and phone-based ordering methods by allowing customers and businesses to place, process, and track orders via a web platform. Web-based systems for inventory control are very important for the efficiency of the areas they are present in small, medium, and large organizations, where a change is reflected through the use of web technologies (Misahuaman et al., 2021).
+
+
+Following the COVID-19 pandemic, when contactless interactions became a health and safety priority, QR code-based ordering, a particular application of web-based ordering, became more and more common in the food service sector. A unique code is placed on or at each table in a QR code ordering system. When a customer scans the code with their own device, they are taken to a web-based menu where they can browse, customize, and submit their order without having to download any apps or deal with employees. Tharun et al. (2023) discovered that the method increases order efficiency by enabling patrons to place orders straight from their devices, lessening the workload for employees, and doing away with the requirement for specialized hardware at each table.
+
+
+Point of Sale (POS) System
+Data inconsistencies, human error, and operational inefficiencies are common problems for small and medium-sized businesses (SMEs) due to disjointed and unintegrated systems (Landge et al., 2026). The demand for effective and dependable POS and inventory management systems has increased due to the growing digitalization of retail operations (Landge et al., 2026).
+
+
+Kitchen Display Systems
+In most small establishments, communication between the cashier and kitchen still relies on verbal relay or handwritten order tickets, practices that are vulnerable to miscommunication and loss when service volume increases. Panneerselvam et al. (2022) noted that an integrated restaurant management system must include a kitchen management component to handle food production and order routing efficiently, arguing that POS, order management, and kitchen management cannot function optimally as isolated components. Mohd Zaini et al. (2023) described an integrated restaurant ordering system as a combination of distinct subsystems designed to streamline the process of accepting and managing orders, with a kitchen module serving as the back-of-house counterpart to the front-of-house POS.
+
+
+The value of real-time order information sharing in kitchen operations was established by Miyaura et al. (2016), who introduced a real-time process management system for restaurants in which kitchen staff could check all customer orders by dish and elapsed time, confirming that such systems make preparation processes more efficient and reduce service errors and customer complaints. Rahul et al. (2024) proposed the integration of a POS system, Kitchen Display System, and automated inventory management for a small noodle eatery in Indonesia and found that the combination significantly improved service speed, order accuracy, and stock efficiency, and that the KDS component specifically eliminated kitchen workflow bottlenecks that had previously caused order duplication and preparation delays.
+
+
+Customer QR-based Self-Ordering
+Self-service technologies designed to improve service quality and customer experience have gained significant adoption in food service, replacing or supplementing traditional interactions between service providers and customers (Yaacob et al., 2021). QR code-based table ordering represents one of the most practically accessible implementations of this technology, as it requires no dedicated hardware installation and allows customers to use their own familiar devices to place orders.
+
+
+Attributes influencing customers’ continuous usage of automated self-service technology in fast-food restaurants was investigated, finding that system quality, innovativeness, safety, and security significantly influence continuous usage intention (Hashim et al., 2023). Customers are more likely to continuously operate a self-service ordering kiosk if they think it is more advanced than traditional ordering methods (Hashim et al., 2023). Lantican (2025) studied customer satisfaction on the use of self-service technologies in selected fast-food restaurants, finding that self-service kiosks offer fast, convenient ordering and empower customers, but payment issues can disrupt the experience and require better system design.
+
+
+Alfaren and Arijanto (2021) studied a self-ordering concept food ordering system in restaurants and found that such systems can effectively assist restaurant operations in accepting orders, making it easier for customers to place orders for items they want without requiring staff availability at the moment of ordering. Their work demonstrated that the self-ordering concept is applicable across a range of restaurant contexts, including smaller establishments where staffing is limited.
+
+
+Recipe-Based Inventory Management
+Unlike retail businesses that track products as discrete units, food service establishments consume ingredients in variable quantities that depend on what is ordered. Sukorra et al. (2021) applied the Bill of Materials framework specifically to food menu analysis and found that formalizing the ingredient composition of each dish before production increases transparency in planning and reduces uncertainty in both product composition and material usage tracking. Naumov (2023) established that standardization in menu item recipes and portioning adds directly to financial control in restaurant operations, while Siek and Guswanto (2021) demonstrated that an effective food service inventory system must minimize losses from both spoilage due to overstocking and customer dissatisfaction due to understocking, a balance achievable only through ingredient-level tracking rather than product-level sales recording.
+
+
+
+
+Food Waste and Spoilage Management
+Food waste is a significant and well-documented problem in food service operations, with consequences that are both financial and operational for small businesses on thin margins. Dhir et al. (2020) conducted a systematic literature review on food waste in hospitality and food service operations and found that poor inventory management and inadequate tracking of perishable stock are among the most consistently identified drivers of kitchen-level waste. The United Nations Environment Programme (2021) estimated that food service establishments account for approximately 26% of total food waste globally.
+
+
+The management of perishable and non-perishable requires differentiated monitoring because their deterioration rates differ substantially. Siek and Guswanto (2021) found that restaurants managing mixed perishable and non-perishable inventories benefit from systems that apply category-specific monitoring frequencies. Rossi (2021) described predictive analytics applied to inventory management as enabling organizations to move from reactive to proactive stock management by connecting shelf life data to observed consumption patterns.
+
+
+Data Analytics 
+In inventory management, data analytics refers to the application of statistical, machine learning, and business intelligence approaches to estimate demand, optimize stock levels, evaluate inventory data, and facilitate data-driven decision-making. Traditional inventory management approaches suffer from manual errors, lack of real-time updates, and restricted reporting capabilities (S & P, 2026). The integration of data analytics into inventory management has proven to be one of the most critical aspects concerning optimization, streamlining inventory management, order fulfillment, and operational efficiency (Mulla, 2022).
+
+
+Rossi (2021) described inventory analytics as a comprehensive discipline covering the foundations of inventory systems, prescriptive analytics models for deterministic inventory control, predictive analytics techniques for demand forecasting, and prescriptive analytics models for stochastic inventory control. Roy et al. (2022) noted that smart technologies and increased data availability enable restaurateurs to gather information about customer behavior and operational performance and that this data can be combined across sources to support a wide range of strategic and operational decisions. A critical gap in the existing literature, however, is the near-complete absence of analytics implementations designed for small independent food businesses in the Philippine context.
+
+
+Menu Engineering
+The systematic evaluation of restaurant menu performance has been a subject of hospitality management research since the early 1980s, with the Menu Engineering Model developed by Kasavana and Smith (1982) remaining the most widely cited framework in both academic research and practice. Menu engineering evaluates individual menu item performance according to sales volume and contribution margin, with the purpose of identifying which dishes sell well and yield high profits and which do not, so that management can plan targeted actions to address underperforming items (Lee et al., 2004).
+
+
+Mutlu et al. (2022) studied the application of menu engineering among kitchen chefs in restaurants and found that while chefs generally have an intuitive sense of which dishes perform well, they rely on qualitative judgement rather than structured quantitative analysis, a gap that menu engineering closes by replacing intuition with a reproducible, data-grounded classifications. Horváth et al. (2022) examined the Kasavana and Smith model in a restaurant context and found that the matrix methodology effectively identifies the most profitable items and those requiring methodology effectively identifies the most profitable items and those requiring modification. Lee et al. (2004) applied menu engineering specifically to Asian restaurants and found that many items analyzed were classified as unpopular or unprofitable despite being retained on the menu based on cultural or variety considerations, suggesting that the framework is particularly valuable for specialty restaurants like Indian eateries where intuition-based menu decisions may not align with financial reality. No existing study has implemented a computationally automated Menu Engineering Matrix as a built-in feature of a small business POS system in the Philippine context.
+
+
+Digital Payments and GCash
+The adoption of digital payment methods in the Philippines has accelerated significantly in recent years. Acopiado et al. (2022) studied digital payment adoption during the COVID-19 pandemic in the Philippines and found that the crisis catalyzed a shift toward cashless transactions, with mobile wallets becoming significantly more prominent in everyday purchasing behavior. As of 2023, GCash had surpassed 60 million registered users nationwide, establishing itself as the leading digital wallet platform in the country (Globe, as cited in Ong et al., 2024).
+
+
+Cacas et al. (2022) investigated factors influencing mobile wallet adoption in the Philippines and found that perceived ease of use, social influence, and merchant availability are significant determinants of adoption intention. Afable (2024) examined GCash as a digital payment innovation and found that it has emerged as a dependable financial tool for Filipinos, significantly altering daily financial routines across income groups, with its localized ecosystems providing a distinct competitive advantage over international platforms.
+
+
+
+
+Smart Assistant
+A smart assistant in the context of a restaurant inventory management system is an artificial intelligence (AI)-driven software agent that combines conversational capabilities with data analytics to perform operational tasks, such as taking orders and managing ingredients, while simultaneously analyzing business data to generate daily, automated insights and actionable recommendations for the owner. Rafailidis and Manolopoulos (2019) observed that virtual assistants, also known as intelligent conversational systems, interact with human-like responses to users’ queries and finish specific tasks, and that the gap between virtual assistants and recommendation systems is narrowing as both converge toward personalized, conversational decision support.
+
+
+Automated Daily Business Insights and Decision Support
+The distinguished feature of a smart assistant for small restaurant owners is its capacity to analyze daily operational data and proactively deliver actionable insights without being explicitly queried. This capability through a scenario in which a small coffee shop owner receives a daily notification from her AI-powered Small Business Insights dashboard reminding her to order supplies; the system analyzes her past buying behavior, scans for the best deals online, updates real-time cash flow projections, alerts her to scheduling conflicts and potential loan needs, and even provides weekly industry updates, all without the owner having to run a single report (Mills & Dang, 2021). This vision of an always-on, proactive business partner aligns directly with the concept of the smart assistant feature in the present study. The practical impact of AI and intelligent personal assistants (IPAs) was analyzed on business processes in small and medium-sized service enterprises, identifying concrete use cases and evaluating them with experts; their results showed that IPA features in particular are perceived useful, with AI and IPA features having a cost savings potential of over 31% on average (Husson et al., 2021).
+
+
+Real-Time Systems and WebSocket Communication
+The operational demands of a multi-role food service require that order status, ingredient availability, and transaction information be shared across all connected parties simultaneously and without delay. Miyaura et al. (2016) established that sharing order information in real time across kitchen and front-of-house staff is a fundamental requirement for making restaurant preparation processes more efficient. Alt (2021) established that digital transformation in restaurant operations now encompasses both ordering and kitchen management functions, with POS systems designed to capture orders and forward them to the kitchen for task scheduling while simultaneously updating inventory records.
+
+
+WebSocket technology enables this real-time communication by establishing a persistent, bidirectional connection between a server and its connected clients. Fonseka and Fonseka (2012) found that the WebSocket protocol significantly reduces latency compared to HTTP polling approaches and enables a more responsive user experience in applications where multiple parties need to see the same data update simultaneously. Gill (2022) identified WebSocket-based real-time processing as a critical architecture component for restaurant online ordering systems, noting that event-driven communication is necessary to keep inventory records, kitchen displays, and customer status screens synchronized under concurrent order flows from multiple channels. Sharma et al. (2025) confirmed that WebSocket-based real-time order tracking offers customers transparency and assurance, contributing to increased satisfaction.
+
+
+2.2 Review of Related Systems
+This section examines existing commercial systems whose features relate directly to the system proposed for Desi Zaika Snack House. Each system is described individually, identifying what it accomplishes, which of its features this study intends to adopt or adapt, and where it falls short of what a small, single-location Philippine restaurant requires.
+
+
+MarketMan. MarketMan is a cloud-based restaurant back-of-house platform that centralizes inventory tracking, purchasing, recipe costing, and AI-assisted demand-based ordering, allowing operations to breaSk recipes down to ingredient-level cost and generate suggested reorder quantities from historical usage and vendor data (MarketMan, 2026). This study replicates MarketMan’s core idea that ingredient-level recipe costing should update automatically as purchasing and sales data change. MarketMan is explicitly positioned as a back-of-house tool rather than an all-in-one restaurant platform, and its own documentation describes it as designed to integrate with a restaurant's existing POS system rather than replace one; it therefore does not include customer-facing ordering, kitchen display, or menu profitability classification, consistent with its stated scope as a purchasing and inventory add-on. The proposed system differs by combining an equivalent recipe-costing layer with ordering, payment, and kitchen coordination inside a single platform, which suits the single-location scale of Desi Zaika Snack House.
+
+
+Craftable. Craftable connects purchase orders, invoice data, physical counts, and live vendor pricing to recipe costs, allowing operators to see theoretical versus actual food cost variance in real time and providing a menu engineering feature that classifies dishes by profitability (Craftable, 2026). This study adopts Craftable's approach of tying purchasing and recipe data together so that ingredient price changes flow automatically into dish-level cost and profitability classification. Craftable markets itself toward multi-location hospitality groups and bar programs and explicitly integrates with external POS platforms such as Square rather than providing its own; ordering, kitchen display, and forecasting are outside its stated scope. The proposed system is scoped differently, toward a single small restaurant needing these functions built-in rather than integrated from separate vendors, which better fits the budget and operational simplicity.
+
+
+Klikit. Klikit provides self-service ordering kiosks and QR-based digital ordering for restaurants, with AI-driven upselling and a unified dashboard that consolidates orders from multiple channels (Klikit, 2026). This study adopts Klikit's underlying self-ordering interaction model, letting customers browse and submit orders without staff involvement, adapting it here to a QR-to-personal-device flow rather than dedicated kiosk hardware. Klikit's documentation focuses on order consolidation and upselling and does not describe a recipe-based inventory component, which is consistent with its positioning as an ordering and delivery-aggregation tool rather than an inventory system. The proposed system extends this ordering model by connecting it directly to a real-time menu availability engine, a function outside what Klikit sets out to provide.
+
+
+Square (Square for Restaurants). Square for Restaurants combines point-of-sale payment processing with restaurant-specific tools including table management, a Kitchen Display System, and a real-time inventory sync across sales channels (NerdWallet, 2026; Square, 2026). This study adopts Square's approach of pairing POS transactions directly with kitchen order routing and stock-level tracking in one platform. Independent reviews note that Square's inventory tracking operates at the product level and that deeper recipe costing is only available through a third-party add-on rather than natively (NerdWallet, 2026), and its reporting is described as covering standard sales and shift performance rather than menu profitability classification or demand forecasting. Since Square markets itself as covering restaurant operations broadly, this is a closer functional gap rather than simply a difference in scope; the proposed system addresses it by building recipe-level tracking and menu engineering directly into the same platform that handles POS and kitchen display.
+
+
+Restroworks. Restroworks offers a Kitchen Display System, recipe-based inventory management, and demand forecasting, aimed primarily at multi-location restaurant chains coordinating a central kitchen with several outlets (Restroworks, 2026). This study adopts Restroworks' integration of recipe costing with POS-synced inventory deduction and its use of forecasting to support purchasing, both reflected in this study's Bill of Materials model and reorder recommendation feature. Restroworks' own materials describe it as built for multi-brand, multi-location operations, which is a difference in target scale rather than a shortcoming; a platform built for that scale is reasonably expected to carry complexity and pricing disproportionate to a single independent restaurant. The proposed system is scoped instead for one location, matching Desi Zaika Snack House's actual operational size.
+
+
+Meez. Meez is a recipe management and food-costing platform that connects live purchasing data to recipe costs and classifies menu items by food cost percentage, profit margin, and sales volume (Meez, 2026). This is the closest existing parallel to this study's Menu Engineering Matrix, and this study adopts meez's approach of recalculating dish profitability automatically as costs and sales data change. Meez is explicitly positioned as a recipe and costing tool that imports sales data from an external POS rather than generating it directly, so the absence of ordering, POS, or kitchen display functionality reflects its stated scope rather than an omission. The proposed system generates its own sales data internally by combining ordering, POS, and kitchen coordination with the same underlying profitability logic.
+
+
+Synthesis. These six systems show a consistent market pattern rather than a set of individual shortcomings: back-of-house tools (MarketMan, Craftable, Meez) are generally built to integrate with a separate POS rather than replace one, while front-of-house tools (Klikit, Square) generally treat recipe-level costing and menu analytics as outside their core focus. Restroworks is the one system spanning both categories, but is scoped for multi-location chains rather than single, independent restaurants. This is a structural feature of how the restaurant software market is currently segmented, rather than a flaw specific to any one product. Two features were not found in the documentation of any of the six systems reviewed: a real-time menu availability engine that automatically removes a dish from the customer-facing ordering interface the moment its ingredients fall below preparation threshold, and a composite daily business health indicator that consolidates revenue, inventory, menu profitability, and waste into a single interpretable figure. Their absence across all six systems may reflect that these features address a need specific to small, single-location, resource-constrained restaurants rather than the broader commercial market these products are built for. This is the segment the proposed system is designed to serve, combining ordering, POS, kitchen display, recipe-based inventory, and analytics into one platform built specifically for that scale, rather than assembled from several specialized products.
+
+
+Table 1a. 
+Comparison of Related Systems (Core Operational Module)
+System
+	Self-Ordering
+	POS
+	Kitchen Display
+	Recipe-Based Inventory
+	MarketMan
+	✗
+	✗
+	✗
+	✓
+	Craftable
+	✗
+	✗
+	✗
+	✓
+	Klikit
+	✓
+	✗
+	✗
+	✗
+	Square
+	✗
+	✓
+	✓
+	Partial
+	Restroworks
+	✗
+	✗
+	✓
+	✓
+	MEEZ
+	✗
+	✗
+	✗
+	Partial
+	Proposed System
+	✓
+	✓
+	✓
+	✓
+	
+
+
+
+Table 1b. 
+Comparison of Related Systems (Intelligence and Analytics Features)
+System
+	Menu Engineering
+	Demand Forecasting
+	Spoilage Risk Scoring
+	Reorder Recommendation
+	Business Health Score
+	MarketMan
+	Partial
+	✓
+	✗
+	✓
+	✗
+	Craftable
+	✓
+	✗
+	✗
+	✗
+	✗
+	Klikit
+	✗
+	✗
+	✗
+	✗
+	✗
+	Square
+	✗
+	Partial
+	✗
+	✗
+	✗
+	Restroworks
+	✗
+	✓
+	Partial
+	✓
+	✗
+	MEEZ
+	✓
+	✗
+	✗
+	✗
+	✗
+	Proposed System
+	✓
+	✓
+	✓
+	✓
+	✓
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+CHAPTER 3[c]
+Technical Background
+
+
+        This chapter discusses the foundational technologies and tools utilized in the development of an integrated web-based self-ordering, point-of-sale, and intelligent inventory management system for Desi Zaika Snack House.
+
+
+Database Management System
+        The system used PostgreSQL as its relational database management system (DBMS) to allow authorized users and system processes to perform create, read, update, and delete (CRUD) operations on all business data, including menu items, recipes, ingredient stock, orders, and transactions. PostgreSQL is a powerful, open-source object-relational database system with over 35 years of active development, known for its robustness, extensibility, and strict adherence to SQL standards (PostgreSQL Global Development Group, 2024). It enforces data integrity through primary keys, foreign keys, and referential constraints, properties essential for a multi-module system where orders, ingredients, recipes, and transactions must remain consistently linked. A comparative study found that PostgreSQL demonstrates superior handling of concurrent read and write operations compared to other open-source relational databases, making it suitable for a multi-role system where cashiers, kitchen staff, administrators, and the analytics microservice may simultaneously access the database (Klimek & Skublewska-Paszkowska, 2024). Its relational structure ensures that the RECIPE_INGREDIENTS mapping and stock movement ledger remain accurate and auditable at all times.
+
+
+Application Deployment
+        The system was deployed as a split cloud architecture rather than a single on-site server. The Laravel web application, covering the Admin Dashboard, POS, Kitchen Display System, and self-ordering interface, was deployed on Vercel, while Laravel Reverb (the WebSocket broadcasting layer) and the FastAPI analytics microservice were deployed on a separate host (Render) capable of keeping those two components running continuously, something Vercel’s serverless execution model does not support. This split was necessary because Vercel executes code in short-lived, stateless functions rather than a persistent process, whereas Reverb must hold WebSocket connections open indefinitely and the analytics microservice’s scheduler must remain in memory to run on a recurring schedule. This approach requires a stable restaurant internet connection for the system to function at all, unlike a purely on-site deployment, but in exchange gives the system the reliability, automatic scaling, and off-site accessibility of managed cloud hosting. Both Vercel and Render offer free or low-cost tiers suitable for a single-location deployment of this scale, keeping recurring hosting costs modest relative to the team’s ₱8,000 budget.
+
+
+Model-View-Controller Architecture
+        The system followed the Model-View-Controller (MVC) architectural pattern, which separates an application into three components: The Model managing data and business logic, the View handling what the user sees, and the Controller mediating between the two. This separation improves maintainability, testability, and scalability by ensuring changes to one layer do not unnecessarily affect the others (Huynh et al., 2022). For the system, MVC is critical because the system serves four distinct user roles such as the admin, cashier, kitchen staff, and customer, each requiring different view layers and access-controlled controller logic built on the same underlying data models.
+
+
+Backend Framework
+        The transactional backend was built using Laravel, a modern open-source PHP framework that implements the MVC pattern and provides built-in features including database migration management, Eloquent ORM, role-based authentication middleware, task scheduling, and event broadcasting (Subecz, 2021). Huynh et al. (2022) demonstrated that Laravel’s architecture produces standardized, scalable development workflows that significantly reduce unexpected errors common in traditional PHP development. Laravel manages all transactional functions in the system such as the authentication, role-based access, ordering flow, POS processing, inventory management, and analytics job scheduling.
+
+
+Analytics Microservice
+        Python and FastAPI were used to create a specialized analytics microservice that manages all statistical calculations needed by the intelligence layer. According to performance evaluations, FastAPI, a high-performance Python web framework for asynchronous API development, has an average response time of 95 milliseconds under moderate load (Mabotha et al., 2024). Python was chosen because it provides a mature ecosystem of statistical libraries such as pandas, statsmodels, and scikit-learn which are not available in PHP. The microservice reads from the shared PostgreSQL database using read-only credentials, runs its computations, and writes results to an analytics snapshots table that the Laravel application reads to populate the analyst dashboard. This two-service architecture ensures heavy batch processing does not affect the responsiveness of other modules.
+
+
+Frontend Styling
+        The system’s user interfaces were styled using Tailwind CSS, a utility-first CSS framework that enables developers to build responsive layouts by composing pre-defined utility classes directly in the markup. Al Salmi (2023) described Tailwind CSS as promoting a mobile-first design philosophy that ensures interface consistency across varying screen sizes, a property directly relevant to the proposed system where the ordering interface must work on customer smartphones, the POS on a counter tablet, and the kitchen display on a wall-mounted screen. Tailwind was chosen over component-based frameworks because it integrates cleanly with Laravel Blade templates and imposes no Javascript component overhead.
+
+
+
+
+
+
+Real-Time Communication
+        Real-time synchronization across all modules was implemented using WebSocket-based event broadcasting through Laravel Echo paired with Laravel Reverb as the self-hosted broadcast transport layer, deployed on Render alongside the analytics microservice rather than on Vercel, since maintaining an open WebSocket connection requires a persistent process that Vercel’s serverless functions cannot provide. WebSockets establish a persistent, bidirectional connection between the server and connected clients, allowing the server to push updates the moment a relevant event occurs without any page refresh. Fonseka and Fonseka (2012) confirmed that WebSocket communication significantly reduces latency compared to HTTP polling approaches in multi-user applications. Laravel Reverb was chosen over third-party services such as Pusher because it is self-hosted and incurs no per-message cost.
+
+
+Internet Dependency and Remote Access Considerations
+The system is hosted on Vercel and Render rather than a single on-site device, an individual machine failing no longer takes the POS, Kitchen Display System, self-ordering interface, or Admin Dashboard offline, both platforms manage the underlying server infrastructure and restart failed processes automatically. This is a deliberate trade-off in the opposite direction from a purely local deployment: cloud hosting introduces a dependency on the restaurant’s internet connection that a local-network-only design would not have, since none of the four modules can be reached if that connection drops, but it removes the single-device failure risk and lets the owner access the Admin Dashboard remotely from outside the restaurant, a capability a purely on-site deployment would not normally provide without a VPN.
+
+
+
+
+Data Visualization
+        Scales and analytics data were visualized using Chart.js , an open-source JavaScript library that renders interactive charts on HTML5 canvas elements client-side, keeping chart generation fast and independent of backend load (Chart.js, 2023). In the proposed system, Chart.js renders revenue trend charts on the Sales Report page, profit margin visualizations on the Analytics Report page, and the Business Health Score trend line. It was selected for its straightforward integration with Laravel Blade, broad chart type support, and zero licensing cost.
+
+
+Version Control
+        The development of the system was managed using Git for version control and Github as the remote repository hosting platform. Git is a distributed version control system that allows multiple developers to work on different features simultaneously through branching and merging without overwriting each other’s contributions (Loeliger & McCullough, 2012). Github provides the team with a centralized remote repository, pull request management for code review, and an issue tracker for logging bugs and tasks identified during testing.
+
+
+UI/UX Design
+        All user interface wireframes and interaction prototypes were designed using Figma, a cloud-based collaborative design tool that allows multiple designers to work on the same file simultaneously and share interactive prototypes with stakeholders without requiring software installation (Figma, 2024). Figma was used to produce high-fidelity wireframes for all four modules before implementation began, ensuring the team agreed on layout and navigation flow before writing any code and allowing the client to preview and approve the interface design early in development.
+
+
+
+
+
+
+Integrated Development Environment (IDE)
+        The system was developed using Visual Studio Code (VS Code), a free, open-source code editor by Microsoft that supports PHP, Python, Javascript, and SQL, making it suitable for a multi-language project like our proposed system (Microsoft, 2024). Key extensions used include PHP Intelephense, the Laravel Artisan extension, the Python extension, Tailwind CSS IntelliSense, and SQLTools for querying PostgreSQL directly from the editor. Ardito (2021) noted that VS Code’s combination of lightweight performance and extensible language support makes it one of the most widely adopted editors for modern web development, a finding consistent with Stack Overflow’s developer surveys which have ranked it as the most used development environment globally for multiple consecutive years (Stack Overflow, 2023).
+
+
+Local Development Environment
+        Local development and testing of the Laravel application was conducted using XAMPP, a free cross-platform web server stack providing Apache and PHP in a single installation. XAMPP allows the team to run the full application locally without requiring an active internet connection during development, enabling faster iteration before pushing changes to the production server (Apache Friends, 2024). A local PostgreSQL instance is used alongside XAMPP for database management during development.
+
+
+QR Code-Based Access
+        Customer access to the self-ordering interface was provided through printed QR codes placed at each table. Scanning the code directs the customer’s personal device to the web-based ordering interface without requiring any application download. Research confirmed that QR code-based ordering improves order efficiency by allowing customers to place orders directly from their own devices, reducing the interaction burden on staff and eliminating the need for dedicated hardware (Tharun et al., 2023). Each QR code initiates a table session that persists until the customer closes the interface or rescans the code.
+
+
+Authentication and Security
+        User authentication and access control were managed through Laravel’s built-in authentication system using role-based middleware that restricts each user to functions appropriate for their assigned role. All passwords are stored using bcrypt hashing, all communication occurs over HTTPS, and all form submissions are protected by CSRF token verification. Al-Aqrabi et al. (2019) established that combining role-based access control with encrypted transmission and secure credential storage represents the appropriate security baseline for web-based applications handling sensitive business and financial data.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+CHAPTER 4
+DESIGN AND METHODOLOGY
+
+
+This chapter presents the research design adopted for the development of the Integrated Self-Ordering and POS System with Real-Time Inventory Management for Desi Zaika Snack House, the requirement specifications that guided its construction, the hardware and software requirements necessary for its operation, and the architecture of the resulting system.
+
+
+4.1 Conceptual Framework
+        As shown in Figure 1, the current business process at Desi Zaika Snack House begins when a customer arrives and places an order directly with the cashier. The cashier writes the order down and computes the total by hand, since no point-of-sale terminal is in use. Payment is accepted in cash or through GCash, with the cashier visually confirming the GCash payment screen shown by the customer rather than verifying it though any payment gateway. Once payment is settled, the cashier relays the order to the kitchen staff verbally, and the kitchen staff prepare the dish from memory of what was said. When the order is ready, it is served directly to the customer, and the transaction ends there with no digital record created at any step.
+
+
+        Ingredient stock is handled the same way: on no fixed schedule, the owner or a staff member walks through the kitchen and estimates what is left by sight, without weighing, counting, or logging the result anywhere. Because this check happens independently of the ordering and cooking sequence, there is no way to trace a short  age back to which dishes consumed the ingredient, or to know how close to running out an item actually is until it visibly runs out. This gap between what is sold and what is tracked is the central inefficiency the proposed system is built to close.
+
+
+
+
+Figure 1. Current Business Process Flowchart 
+  
+
+
+
+
+
+
+
+
+
+Figure 2. Conceptual Framework
+  
+
+
+
+        The conceptual framework of this study, illustrated in Figure 2, presents a narrative walkthrough of how a single customer transaction moves through the proposed system, from the moment an order is placed to the moment that same transaction feeds into the business intelligence the owner reviews. Each icon in the diagram represents a discrete stage of this process, and the arrows connecting them represent the sequence in which the four user roles, Customer, Cashier, Kitchen Staff, and Admin, interact with the system to complete it.
+
+
+The process begins with the Customer, who scans the QR code printed at their table to access the self-ordering interface on their own device. From there, the Customer browses the menu, adds the desired items to a cart, and proceeds to checkout, at which point the order is transmitted to the Cashier for confirmation.
+
+
+Once the Cashier confirms the order, payment is collected in cash or through GCash, with the GCash reference number entered manually rather than verified through any payment gateway, consistent with the client's current payment collection process. A digital receipt is then generated and made available to the customer through the system rather than printed physically. At the same time the order is confirmed, it is relayed instantly to the Kitchen Display Queue, removing the verbal hand-off that the manual process in Figure 1 currently depends on.
+
+
+        Simultaneously, this confirmation triggers the Menu Availability Engine. To determine the maximum number of dishes a customer can order, the engine divides the available raw stock by the ingredient quantities defined in the system’s recipe mapping. To ensure this capacity formula remains strictly accurate while active orders are being prepared, the system applies a “soft allocation” check. Ingredients required for pending orders in the Kitchen Display Queue are temporarily subtracted from the available stock pool. The self-ordering interface updates in real time based on this net availability, dynamically capping input limits or dimming dishes as “Sold Out” to prevent customers from ordering stock that is already committed to the kitchen. 
+
+
+Kitchen Staff view the confirmed order on the Kitchen Display, prepare the dish, and mark the order served once it is ready. This single action is the point at which the system's intelligence layer begins: marking an order served automatically triggers a recipe-based deduction, which records the exact ingredient quantities consumed in the Stock Movement Ledger.
+
+
+The Analytics Microservice continuously reads from this ledger to produce four outputs: a Demand Forecast projecting future ingredient needs, a Menu Engineering classification of dish profitability, a Spoilage Risk score for perishable stock, and a composite Business Health Score summarizing the day's overall performance. These outputs are consolidated on the Admin Dashboard, which the Admin reviews directly, and can also be queried in plain language through the Smart Assistant.
+
+
+Underlying every stage of this process is real-time synchronization through WebSocket communication: the moment the Cashier confirms an order, the Kitchen Display Queue, the Admin Dashboard, and the Customer's own order tracking screen all update instantly, without any of the four roles needing to refresh their screen or ask another person for a status.
+
+
+This proposed process directly replaces the manual sequence described in Section 4.1 and shown in Figure 1, where orders are taken verbally, billing is computed by hand, kitchen instructions are relayed by word of mouth, and ingredient stock is estimated by sight on no fixed schedule. Where the manual process leaves no record connecting what was sold to what was consumed, the proposed process generates that record automatically at the exact moment of service, and immediately puts it to use in the forecasting, profitability, and business health insights the owner receives each day.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Figure 3. Use Case Diagram (Administrator and Employee)
+  
+
+
+
+        Figure 3 outlines the interactions of the Admin, Cashier, and Kitchen Staff actors with the system. The Admin manages the business-facing side of the platform: the menu, ingredient inventory, staff accounts, sales and analytics reports, detailed transaction records, the Smart Assistant, and real-time order monitoring across all active tables. The Cashier is the actor who converts a placed order into a completed, paid transaction, whether that order originated from the self-ordering interface or was entered manually for a walk-in customer. Kitchen Staff interact with the system exclusively through the Kitchen Display, viewing the live order queue and marking each order served once preparation is complete, an action that also triggers the recipe-based stock deduction described in Section 4.2. The use case tables that follow describe each interaction in detail
+
+
+Administrator
+
+
+Table 2
+Log In / Log Out
+Use Case Name
+	Log In / Log Out
+	Actor
+	Admin
+	Description
+	Allows the Admin to authenticate with an email address and password before accessing the dashboard, and to end the session from the sidebar when finished.
+	Includes
+	N/A
+	Precondition
+	Admin has registered account
+	Postcondition
+	Admin is granted or denied access to the system
+	Successful Flow
+	1. Admin navigates to the login page
+2. Admin enters email and password
+3. System verifies the credentials
+4. Admin is directed to the Admin Dashboard, or logs out via the sidebar when the session ends
+	Alternative Flow
+	1. If the email or password does not match a registered account, the system displays an invalid-credentials error and returns the Admin to the login page without granting access
+	
+
+
+
+Table 3
+Manage Menu
+Use Case Name
+	Manage Menu
+	Actor
+	Admin
+	Description
+	Allows the Admin to view, add, edit, or mark menu items as unavailable
+	Includes
+	Add Item, Edit Item, Mark as Unavailable, Delete Item
+	Precondition
+	Admin is logged in
+	Postcondition
+	The menu catalog reflects the changes made
+	Successful Flow
+	1. Admin opens the Menu Management Page
+2. Admin searches or filters by category
+3. Admin adds a new item, edits an existing one, or marks an item unavailable
+4. System saves the change and updates the customer-facing menu accordingly
+	Alternative Flow
+	1. If the Admin leaves a required field (name, price, or category) blank, the system displays a validation error and does not save the change
+2. If the Admin attempts to delete a menu item that appears in existing order records, the system blocks the deletion prompts the Admin to mark it unavailable instead, preserving the order history’s referential integrity
+	
+
+Table 4
+Manage Inventory
+Use Case Name
+	Manage Inventory
+	Actor
+	Admin
+	Description
+	Allows the Admin to view current ingredient stock levels and review the full stock movement ledger
+	Includes
+	View Current Stock, View Stock Movement Ledger, Add Ingredient
+	Precondition
+	Admin is logged in
+	Postcondition
+	Inventory records are updated and the movement ledger reflects the change
+	Successful Flow
+	1. Admin opens the Inventory Management page
+2. Admin views the Current Stock tab or switches to the Stock Movement Ledger tab
+3. Admin adds a new ingredient or reviews stock-in, stock-out, waste, and adjustment entries
+4. System saves and reflects any changes made
+	Alternative Flow
+	1. If the Admin attempts to add an ingredient that already exists in INGREDIENTS, the system blocks the duplicate entry and directs the Admin to record a stock-in movement against the existing ingredient instead
+	
+
+Table 5
+Manage Staff Accounts
+Use Case Name
+	Manage Staff Accounts
+	Actor
+	Admin
+	Description
+	Allows the Admin to view, add, edit, or remove staff accounts and their assigned roles.
+	Includes
+	Add Staff, Edit Staff, Delete Staff
+	Precondition
+	Admin is logged in
+	Postcondition
+	The staff list reflects the change made
+	Successful Flow
+	1. Admin opens the Staff Accounts page
+2. Admin selects Add New Staff, or edits/deletes an existing entry
+3. Admin enters or updates the staff member’s name and role
+4. System saves the updated staff list
+	Alternative Flow
+	1. If the Admin deletes a staff account that is currently logged in, the system immediately ends that account’s active session and revokes its access on save
+	
+
+
+
+
+
+
+
+Table 6
+View Sales Reports
+Use Case Name
+	View Sales Reports
+	Actor
+	Admin
+	Description
+	Allows the Admin to view daily, weekly, or monthly sales figures and revenue trend charts
+	Includes
+	N/A
+	Precondition
+	Admin is logged in
+	Postcondition
+	Sales data is displayed for the selected period
+	Successful Flow
+	1. Admin opens the Sales Report page
+2. System defaults to today’s sales metrics
+3. Admin selects a daily, weekly, or monthly filter
+4. System displays corresponding sales figures and profit chart
+	Alternative Flow
+	1. If no transaction were recorded for the selected period, the system displays an explicit “No sales recorded for this period” state rather than an empty chart
+	
+
+Table 7
+View Analytics Reports
+Use Case Name
+	View Analytics Reports
+	Actor
+	Admin
+	Description
+	Allows the Admin to review the Menu Engineering Matrix, demand forecast, spoilage risk monitor, and Automated Business Health Score
+	Includes
+	Menu Engineering Matrix, Demand Forecast, Spoilage Risk Monitor, Business Health Score
+	Precondition
+	Admin is logged in
+	Postcondition
+	Analytics data is displayed
+	Successful Flow
+	1. Admin opens the Analytics Report page
+2. System retrieves the latest computed metrics from the analytics microservice
+3. Admin reviews dish profitability rankings, ingredient forecasts, spoilage urgency, and the day’s Business Health Score with its explanatory sentence
+	Alternative Flow
+	1. If a menu item has too little order history for the Analytics Microservice to compute a reliable forecast (e.g. a newly added dish), the system labels that item’s forecast “Insufficient Data” rather than displaying a misleading figure
+	
+
+Table 8
+View Detailed Transactions
+Use Case Name
+	View Detailed Transactions
+	Actor
+	Admin
+	Description
+	Allows the Admin to view and filter all recorded transactions by date, service method, or payment method
+	Includes
+	N/A
+	Precondition
+	Admin is logged in
+	Postcondition
+	Filtered transaction records are displayed
+	Successful Flow
+	1. Admin opens the Detailed Transactions page
+2. Admin applies a date, service method, or payment method filter
+3. System displays the matching, paginated list of transactions
+	Alternative Flow
+	1. If no transactions match the applied filters, the system displays a “No matching transactions found” message instead of an empty list
+	
+
+Table 9
+Query Smart Assistant
+Use Case Name
+	Query Smart Assistant
+	Actor
+	Admin
+	Description
+	Allows the Admin to ask plain-language questions about business performance and receive data-driven answers sourced from the system’s own records
+	Includes
+	N/A
+	Precondition
+	Admin is logged in
+	Postcondition
+	A response bound to the system’s recorded data is returned
+	Successful Flow
+	1. Admin opens the Smart Assistance page
+2. Admin types a question or selects a suggested question chip
+3. The rule-based intent recognition engine matches the query to a recognized intent
+4. System displays the corresponding answer drawn from the database
+	Alternative Flow
+	1. If the rule-based intent recognition engine cannot match the Admin’s question to a recognized intent, the system responds that it could not understand the question and displays the closest matching suggested question chip(s)
+	
+
+Table 10
+Monitor Real-Time Orders
+Use Case Name
+	Monitor Real-Time Orders
+	Actor
+	Admin
+	Description
+	Allows the Admin to view all active orders across the confirmed, in-preparation, and ready stages
+	Includes
+	N/A
+	Precondition
+	Admin is logged in
+	Postcondition
+	Active order statuses are displayed and update automatically
+	Successful Flow
+	1. Admin opens the Real-Time Order Monitoring page
+2. System displays all currently active orders grouped by status
+3. Statuses update automatically as the Cashier and Kitchen Staff act on each order
+	Alternative Flow
+	1. If the WebSocket connection drops, the Admin Dashboard displays a “Reconnecting…” indicator and continues showing the last known order statuses until the connection is restored, then refreshes automatically
+	
+
+Table 11
+Approve Void/Refund Request
+Use Case Name
+	Approve Void/Refund Request
+	Actor
+	Admin
+	Description
+	Allows the Admin to review, approve, or deny void/refund requests submitted by Cashiers, and to record any resulting stock adjustment
+	Includes
+	Stock Movement Reversal
+	Precondition
+	A void/refund request has been submitted by a Cashier
+	Postcondition
+	The transaction is marked voided/refunded and, if the order had already been served, the consumed ingredients are restored to stock; or the request is denied and the original transaction stands
+	Successful Flow
+	1. Admin opens the Pending Approvals queue on the Admin Dashboard
+2. Admin reviews the flagged transaction, the order’s status at the time of the request, and the Cashier’s status reason
+3. Admin approves or denies the request
+4. If approved and the order had already been marked served, the system creates a reversing entry in the Stock Movement Ledger restoring the ingredient quantities the recipe had deducted; if the order had not yet reached the kitchen, no stock adjustment is needed
+5. System updates the transaction status and notifies the Cashier
+	
+
+Employee (Cashier)
+
+
+Table 12
+Confirm Self-Orders
+Use Case Name
+	Confirm Self-Orders
+	Actor
+	Cashier
+	Description
+	Allows the Cashier to review and accept orders submitted by customers through the self-ordering interface before they move to the kitchen
+	Includes
+	N/A
+	Precondition
+	A self-order has been submitted
+	Postcondition
+	The order is accepted and forwarded to the Kitchen Display queue
+	Successful Flow
+	1. Cashier opens the Pending Self-Orders Queue
+2. Cashier reviews an incoming order and clicks Accept
+3. System displays a confirmation modal
+4. Cashier confirms; the order moves into processing and appears on the Kitchen Display
+	Alternative Flow
+	1. If the Cashier rejects the order instead, for example, because an item is no longer available, the system prompts for a brief reason, marks the order “Unable to Fulfill” on the Customer’s tracking screen, and does not forward it to the Kitchen Display
+	
+
+
+
+
+
+Table 13
+Enter Walk-In Orders
+Use Case Name
+	Enter Walk-In Orders
+	Actor
+	Cashier
+	Description
+	Allows the Cashier to manually create an order for a customer paying directly at the counter
+	Includes
+	Add to Order, Adjust Quantity, Remove Item
+	Precondition
+	N/A
+	Postcondition
+	A new order is created and ready for payment
+	Successful Flow
+	1. Cashier opens the New Order Entry page
+2. Cashier selects items by category and adds them to the cart
+3. Cashier reviews the Order Summary / Cart Page
+4. Cashier proceeds to the Payment Processing page
+	Alternative Flow
+	1. If an item’s available stock reaches zero while the Cashier is still building the order, the system marks it unavailable in real time and removes it from the selectable list, requiring the Cashier to adjust the order
+	
+
+Table 14
+Process Payment
+Use Case Name
+	Process Payment
+	Actor
+	Cashier
+	Description
+	Allows the Cashier to accept payment via cash or GCash and generate a receipt
+	Includes
+	Cash Payment, GCash Reference Entry
+	Precondition
+	An order has been entered or accepted
+	Postcondition
+	The transaction is completed and a receipt is generated, or the transaction is held pending correction if the GCash reference number fails validation
+	Successful Flow
+	1. Cashier selects the payment method
+2. For cash, Cashier enters the amount tendered and the system computes change
+3. For GCash, Cashier enters the 13-digit reference number
+4. System confirms the transaction and generates the receipt
+	Alternative Flow
+	1. If the reference number entered does not match the required 13-digit numeric format, the system rejects the entry, displays validation error, and prompts the Cashier to re-enter it before the transaction can proceed
+2. The Cashier remains responsible for visually confirming the payment confirmation screen shown by the customer’s phone, consistent with the client’s current practice, since the system does not integrate with GCash payment gateway
+	
+
+Table 15
+View Transactional History
+Use Case Name
+	View Transaction History
+	Actor
+	Cashier
+	Description
+	Allows the Cashier to view and search transactions they have personally processed, and to submit a void or refund request
+	Includes
+	Void/Refund Request
+	Precondition
+	A void/refund request may only be submitted for a transaction the Cashier personally processed; requests for orders already marked “Served” by Kitchen Staff are still allowed, but are flagged for a stock reversal in the Admin review step below
+	Postcondition
+	Transaction history is displayed, or a void/refund request is routed to the Admin Dashboard’s Pending Approvals queue for Admin review
+	Successful Flow
+	1. Cashier opens the Transaction History page
+2. Cahier filters by date range or searches for a specific transaction
+3. Cashier selects a record to view its full breakdown, or submits a void/refund request if the transaction was entered incorrectly
+4. System routes the request to the Admin Dashboard’s Pending Approvals queue, not the Kitchen Display, and marks the transaction “Pending Approval” in the Cashier’s own history until the Admin resolves it
+	
+
+
+
+
+
+
+
+
+
+
+
+Employee (Kitchen Staff)
+
+
+Table 16
+View Kitchen Display Queue
+Use Case Name
+	View Kitchen Display Queue
+	Actor
+	Kitchen Staff
+	Description
+	Allows the Kitchen Staff to view all confirmed orders awaiting preparation, sorted with the oldest order shown first
+	Includes
+	N/A
+	Precondition
+	An order has been confirmed by the Cashier
+	Postcondition
+	The order appears on the Kitchen Display queue
+	Successful Flow
+	1. Kitchen Staff view the KDS Dashboard
+2. System displays each confirmed order as a card showing the order number and itemized dish list
+3. Cards remain sorted with the oldest order first as new orders arrive
+	
+
+Table 17
+Mark Order as Served
+Use Case Name
+	Mark Order as Served
+	Actor
+	Kitchen Staff
+	Description
+	Allows the Kitchen Staff to mark a completed order as served, removing it from the queue and triggering ingredient deduction
+	Includes
+	Recipe-Based (BOM) Stock Deduction
+	Precondition
+	An order is marked complete, removed from the queue, and its ingredients are deducted from stock
+	Postcondition
+	The order is marked complete, removed from the queue, and its ingredients are deducted from stock
+	Successful Flow
+	1. Kitchen Staff tap the Serve button on the order’s card
+2. System marks the order complete and removes it from the pending queue
+3. System deducts the ingredient quantities defined by the dish’s recipe from the stock ledger
+4. The Cashier’s screen, Admin Dashboard, and order history reflect the change immediately
+	Alternative Flow
+	1. If the recipe’s required ingredient quantity exceeds what is currently recorded in stock at the moment of deduction, the system still records the deduction, allowing the Kitchen Staff to complete service without interruption, but flags the resulting negative stock on the Admin Dashboard for manual review, rather than blocking the Serve action
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Figure 4. Use Case Diagram (Customer)
+  
+
+
+
+        Figure 4 illustrates available to the Customer actor. Unlike the Admin and Cashier, the Customer accesses the system without needing an account, entering directly through a printed QR code placed at their table. From there, the Customer can browse the menu, customize and add dishes to a cart, complete checkout, and track the order’s preparation status in real time, all from their own device.
+
+
+
+
+
+
+
+
+
+
+Customer
+
+
+Table 18
+Scan QR Code / Land on Menu
+Use Case Name
+	Scan QR Code / Land on Menu
+	Actor
+	Customer
+	Description
+	Allows the customer to access the self-ordering interface by scanning the printed QR code at their table
+	Includes
+	N/A
+	Precondition
+	A printed table QR code is available
+	Postcondition
+	The customer is directed to the ordering dashboard
+	Successful Flow
+	1. Customer scans the table’s QR code with their own device
+2. System opens the Landing page
+3. Customer taps “Order Now!” and is directed to the main ordering Dashboard
+	Alternative Flow
+	1. If the QR code is invalid, expires, or its table session has already been closed by the Cashier, the system displays a message directing the customer to ask staff for a new code, rather than opening the ordering dashboard
+	
+
+Table 19
+Browse Menu
+Use Case Name
+	Browse Menu
+	Actor
+	Customer
+	Description
+	Allows the customer to view the full menu or filter by category, with unavailable dishes shown as dimmed and marked sold out
+	Includes
+	Full Menu Listing, Category-Specific Listing
+	Precondition
+	Customer is on the ordering Dashboard
+	Postcondition
+	The requested menu items are displayed
+	Successful Flow
+	1. Customer taps “See Full Menu” or selects a specific category
+2. System displays the corresponding item catalog
+3. Dishes with insufficient ingredient stock appear dimmed with a “Sold Out” badge and a disabled choose button
+	
+
+Table 20
+Customize and Add to Cart
+Use Case Name
+	Customer and Add to Cart
+	Actor
+	Customer
+	Description
+	Allows the customer to select add-ons and quantity for a chosen dish before adding it to the cart
+	Includes
+	N/A
+	Precondition
+	Customer has selected a dish from the menu
+	Postcondition
+	The item is added to the customer’s cart
+	Successful Flow
+	1. Customer taps “Choose” on a dish
+2. System displays the Item Detail Overlay with add-ons and a quantity adjuster
+3. Customer taps “Add to Cart”
+4. System adds the configured item to the cart
+	Alternative Flow
+	1. If the dish sells out while the customer is still configuring add-ons or quantity, the system disables “Add to Cart” and displays a sold-out notice before the item can be added
+	
+
+Table 21
+Checkout Order
+Use Case Name
+	Checkout Order
+	Actor
+	Customer
+	Description
+	Allows the customer to review the cart, confirm the financial breakdown, and finalize the order for payment at the counter
+	Includes
+	View Cart, Track Order Status
+	Precondition
+	At least one item is in the cart
+	Postcondition
+	The order is confirmed and a unique order number is issued
+	Successful Flow
+	1. Customer reviews the Order Summary / Cart page
+2. Customer taps “Proceed to Checkout”
+3. System displays the Order Confirmed & Tracking page with a unique order number for the customer to present to the Cashier 
+	Alternative Flow
+	1. If the cart is empty, “Proceed to Checkout” remains disabled
+2. If an item’s stock changes to unavailable between being added to the cart and checkout, the system flags the affected item and requires the customer to remove or adjust it before the order can be confirmed
+	
+
+Table 22
+Track Order Status
+Use Case Name
+	Track Order Status
+	Actor
+	Customer
+	Description
+	Allows the customer to monitor the live preparation status and estimated waiting time of a placed order
+	Includes
+	N/A
+	Precondition
+	An order has been confirmed
+	Postcondition
+	The current order status is displayed and updates automatically
+	Successful Flow
+	1. Customer remains on or returns to the Order Confirmed & Tracking page
+2. System updates the live tracking visualizer as the Cahier confirms and Kitchen Staff prepare the order
+	Alternative Flow
+	1. If the Cashier rejects the order or the estimated wait time changes significantly, the tracking screen updates to reflect the new status rather than continuing to show a stale estimate
+	
+
+Table 23
+View Order History (Running Bill)
+Use Case Name
+	View Order History (Running Bill)
+	Actor
+	Customer
+	Description
+	Allows the customer to view all orders placed during the current table session
+	Includes
+	N/A
+	Precondition
+	The table session is active
+	Postcondition
+	All orders placed during the session are displayed with their status
+	Successful Flow
+	1. Customer taps the order history icon
+2. System displays all orders placed since the QR code was scanned, grouped by the time each was placed
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Figure 5. Architectural Framework
+  
+
+
+
+The architectural framework of the system, illustrated in Figure 5, was designed around a clear separation between transactional processing and analytical computation, so that everyday order handling is never slowed down by forecasting or reporting workloads running alongside it. The entire system is deployed on Desi Zaika Snack House's own on-site infrastructure rather than a cloud platform, consistent with the restaurant's single-location scale of operation. The framework is organized into four user-facing modules built around a central backend, a local database, and an independent analytics service.
+
+
+The Customer module begins when a customer scans the QR code printed at their table, which opens a self-ordering interface built with JavaScript and Tailwind CSS directly in their own device's browser. From there, the customer browses the menu, places an order, and is shown a live order-tracking screen that updates automatically once the order moves through the kitchen.
+
+
+The Restaurant Floor (Cashier) module handles order confirmation and payment. The cashier confirms the incoming order on the POS screen and records payment in cash or via GCash, with the GCash reference number entered manually. A digital receipt is generated in place of a printed copy, and the confirmed order is relayed instantly to the kitchen queue.
+
+
+The Kitchen module receives confirmed orders on the Kitchen Display, where kitchen staff prepare each dish and mark it served once ready. Marking an order served is the trigger point for the system's inventory intelligence: it initiates a recipe-based deduction that records exactly which ingredients, and how much of each, were consumed.
+
+
+The Back Office (Admin) module gives the owner a device-based Admin Dashboard summarizing daily operations, along with a Smart Assistant that allows reports to be queried in plain language. This module surfaces four outputs generated by the analytics layer: demand forecasts, menu-engineering classifications, spoilage-risk scores, and a composite business health score.
+
+
+All four modules communicate with the Laravel Backend, which serves as the central hub for authentication, role-based access control, and core business logic, backed by a single on-site PostgreSQL database that stores menu, recipe, order, payment, and stock-movement records. Because stock movements are recorded as an append-only ledger, an ingredient's current quantity is always derived from its movement history rather than stored as a single editable value, preserving a complete, auditable trail from a served dish back to the ingredients it consumed.
+
+
+Real-time synchronization across all four modules is maintained by Laravel Reverb over WebSocket, which broadcasts every order confirmation, status change, and stock movement the instant it occurs. This is what keeps the customer's tracking screen, the kitchen queue, and the admin dashboard updated simultaneously without any role needing to refresh their screen or ask another person for a status.
+
+
+Running independently of the Laravel backend is the Analytics Microservice, built with FastAPI (Python). It reads directly from the PostgreSQL database to compute demand forecasting, menu-engineering classification, spoilage-risk scoring, and the business health score, and consolidates these outputs on the Admin Dashboard. Keeping this service separate from the transactional backend ensures that a heavier analytical computation, such as recalculating a forecast, cannot introduce latency into an order or payment already in progress.
+
+
+4.2 Analysis and Design
+Figure 6. Entity Relationship Diagram (ERD)
+  
+
+
+
+        Figure 6 presents the Entity-Relationship Diagram for the proposed system. A single USERS entity holds authentication records for the Admin and Cashier roles, referenced by ORDERS through a foreign key that identifies who created or handled a given transaction. Each order in ORDERS is linked to one or more rows in ORDER_ITEMS, and each order item references a specific row in MENU_ITEMS, representing a dish sold and its quantity. To preserve historical financial integrity, the ORDER_ITEMS table includes historical_price and historical_cost columns, creating a static snapshot of the transaction to ensure that future recipe or price changes do not retroactively alter past profit analytics.  
+Every order also produces exactly one row in PAYMENTS, capturing the payment method, GCash reference number where applicable, amount tendered, and change due.
+
+
+        The recipe-level structure of the system is captured through the RECIPE_INGREDIENTS table, which links each MENU_ITEMS row to the specific INGREDIENTS it consumes and the quantity per serving. This is the table the system reads whenever an order is marked served: it determines exactly which rows in STOCK_MOVEMENTS to create, one per ingredient consumed, recording the quantity changed, the movement type, and a timestamp. Because STOCK_MOVEMENTS is append-only, the current quantity of any ingredient in INGREDIENTS is always derived by summing its movement history rather than being stored as a single mutable value, giving the system a complete and auditable trail from a served dish back to the exact ingredients it consumed. To also properly handle menu versioning, the RECIPE_INGREDIENTS table utilizes an is_active flag to archive older recipe iterations rather than overwriting them, guaranteeing that past ingredient consumption data remains mathematically accurate when a dish’s composition is updated.
+
+
+
+
+
+
+4.3 Development Model
+Figure 7. Iterative Waterfall Model (adapted from Jalote, 2005).
+  
+
+
+
+The study adopts an Iterative Waterfall Model, as described by Jalote (2005), as its software development model. As shown in Figure 7, the model proceeds through eight phases such as the System Feasibility, Requirements Analysis and Project Planning, System Design, Detailed Design, Coding, Testing and Integration, Installation, and Operations and Maintenance, with each phase's output document validated or verified before it is passed to the next phase. Unlike the classical waterfall model, where a phase is signed off and never revisited, this validation/verification step allows the team to rework a phase's output internally if it does not yet meet requirements, before that document moves forward. This suited the constraints under which the four-member team operated: a fixed capstone timeline, a small group with no dedicated project manager, and a client whose operational details, specific ingredient units of measurement, edge cases in how add-ons affect inventory, or adjustments to the Business Health Score's weighting, could only be fully understood through iterative consultation rather than a single upfront requirements-gathering session.
+
+
+Development began with a feasibility assessment of the proposed system against the client's operations and the team's resources, producing the basis for the Requirements Analysis and Project Planning phase, where client interviews established the menu, recipe compositions, and functional needs, culminating in the requirements document and project plan. System Design followed, producing the conceptual framework and system architecture, while Detailed Design produced the ER diagram and use case diagram. Coding then proceeded module by module following the bottom-up approach, with the resulting programs verified during Testing and Integration to confirm that the interdependencies between the POS, inventory, and kitchen display components behaved as intended. Installation covered deployment and pilot use at Desi Zaika Snack House, after which the system entered Operations and Maintenance.
+
+
+
+
+
+
+
+
+
+
+
+
+4.4 Development Approach 
+Figure 8. Bottom-Up Development Approach
+
+
+  
+
+
+
+        The project utilizes a bottom-up development approach to construct the system's two-service architecture. Development initiates at the foundational data level by establishing the core database schemas in PostgreSQL, specifically focusing on the RECIPE_INGREDIENTS database relationships and the append-only stock movement ledger.
+
+
+        While Figure 8 illustrates the system’s structural hierarchy from a top down perspective, breaking the integrated system down into its distinct modules and sub-module components, the actual implementation follows a strict bottom-up sequence. Once this data layer is stable, development progresses upward to build the independent backend services: the Laravel transactional operations and the Python FastAPI analytical computations. After these core microservices and WebSocket communication protocols are successfully integrated and tested, the highest-level components- the frontend user interfaces for the Admin Dashboards, POS, Kitchen Display System, and Customer Self-Ordering interface are developed and connected to the underlying APIs. This approach ensures that the complex data integrity rules and automated inventory deduction algorithms are fully functional before the user-facing elements are implemented. 
+
+
+4.5 Software Development Tools
+The system’s development relies on a combination of frameworks, languages, and supporting tools selected for their reliability, active community support, and suitability for a two-service architecture separating transactional and analytical operations. 
+
+
+Table 24 
+List of Tools
+Category 
+	Software/Tool
+	Version
+	Source
+	Use
+	Backend Framework (Transactional) 
+	Laravel (PHP) 
+	Laravel 11.x/PHP 8.2
+	http://laravel.com
+
+
+	Handles authentication, role-based access, and core business logic for transactional modules
+	Backend Framework (Analytics) 
+	FastAPI (Python) 
+	FastAPI 0.115.x/Python 3.11
+	http://fastapi.tiangolo.com
+	Runs forecasting, clustering, and analytics computations without bottleneck the main system
+	Programming Languages 
+	PHP, Python, JavaScript 
+	PHP 8.2, Python 3.11, ES2023 
+	https://php.net, https://python.org, https://developer.mozilla.org 
+	Core languages for backend logic, analytics, and client-side interactivity
+	Database Management System 
+	PostgreSQL
+	PostgreSQL 16
+	https://postgresql.org
+
+
+	Stores menu, recipe, inventory, order, and transaction data
+	Real-Time Communication 
+	Laravel Echo with Laravel Reverb / Pusher 
+	Laravel Reverb 1.x / Pusher Channels 
+	https://laravel.com/docs/reverb
+
+
+	Broadcasts order and inventory updates instantly across all modules
+	Data Visualization 
+	Chart.js
+	Chart.js 4.x 
+	https://chartjs.org
+
+
+	Renders sales and profit charts on the reports dashboard
+	Version Control 
+	Git, GitHub
+	Git 2.45.x, GitHub (web) 
+	https://git-scm.com, https://github.com 
+	Manages source code, branching, and team collaboration
+	Code Editor/IDE
+	Visual Studio Code
+	VS Code 1.9x.x 
+	https://code.visualstudio.com
+
+
+	Primary IDE for backend and frontend development
+	UI/UX Design and Wireframing
+	Figma
+	Figma (latest web release) 
+	https://figma.com
+	Used for interface wireframes prior to development
+	Frontend Styling 
+	Tailwind CSS
+	Tailwind CSS 3.4.x 
+	https://tailwindcss.com
+
+
+	Styles the responsive, high-contrast interface
+	Local  Development Environment 
+	XAMPP/Laravel
+	XAMPP 8.2.x
+
+
+	https://apachefriends.org
+
+
+	Lock server stack for development and testing
+	Cloud Hosting Frontend 
+	Vercel
+	Vercel 58.4.4
+	https://vercel.com/
+	
+
+	Cloud Hosting Backend
+	Render
+	
+
+	https://render.com/
+https://railway.com/
+	
+
+	
+
+
+
+
+
+
+
+
+
+
+
+4.6 Project Management
+4.6.1        Schedule and Timeline
+Figure 9. Gantt Chart of Capstone 
+Implementation Activities, S.Y. 2026-2027, Summer Term
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Figure 10. Gantt Chart of Capstone 
+Implementation Activities, S.Y. 2026 -  2027, 3rd  Year, First Semester  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+4.6.2 Responsibilities
+This section lists the roles and specific contributions of each team member throughout the development of the system.
+
+
+Table 25 
+Overall Responsibilities
+Name
+	Role
+	Module
+	Miguel Lorenzo P. Andaya
+	Full Stack Developer
+	Customer/Self-Ordering and Admin/Manager
+	James Ninobert Z. Galon
+	Full Stack Developer
+	Admin/Manager
+	Remegio E. Magallanes Jr.
+	Full Stack Developer
+	POS and Kitchen Display
+	Nino Adam Kristian S. Mesola
+	Full Stack Developer
+	Customer/Self-Ordering and POS
+	
+
+Table 26
+Designation of Responsibilities (Admin/Manager Module)
+Module
+	Description
+	Priority
+	Member
+	Menu Management
+	Core to adding, editing, and disabling dishes
+	🔴 High
+	James
+	Inventory Management
+	Core to ingredient and stock tracking
+	🔴 High
+	James
+	Staff Accounts
+	Add, edit, or remove staff records
+	🟡 Medium
+	James
+	Sales Report
+	Revenue figures and profit cards
+	🟡 Medium
+	Miguel
+	Analytics Report
+	Menu Engineering, forecasting, spoilage, business health score
+	🔴 High
+	James
+	Detailed Transactions
+	Filterable record of all transactions
+	🟡 Medium
+	Miguel
+	Smart Assistance
+	Rule-based query interface for the owner
+	🟡 Medium
+	James
+	Real-Time Order Monitoring
+	Live view of all active orders
+	🔴 High
+	James
+	
+
+
+
+
+
+Table 27
+Designation of Responsibilities (Cashier/POS Module)
+Module
+	Description
+	Priority
+	Member
+	POS Dashboard
+	Landing screen with daily order summary
+	🟡 Medium
+	Mesola
+	Pending Self-Orders Queue
+	Confirmation step for Self-order-submitted orders
+	🔴 High
+	Remegio
+	New Order Entry
+	Manual walk-in order creation
+	🔴 High
+	Remegio
+	Payment Processing
+	Cash or GCash payment handling
+	🔴 High
+	Remegio
+	Transaction History
+	Cashier-specific transaction log and void/refund requests
+	🟡 Medium
+	Mesola
+	
+
+Table 28
+Designation of Responsibilities (Chef/Kitchen Display Module)
+Module
+	Description
+	Priority
+	Member
+	KDS Dashboard
+	Main live queue of confirmed orders
+	🔴 High
+	Remegio
+	Pending Queue Tab
+	Ordered display of awaiting preparation
+	🔴 High
+	Remegio
+	Serve Action
+	Single-tap completion and stock deduction trigger
+	🔴 High
+	Remegio
+	
+
+
+
+
+
+
+
+Table 29
+Designation of Responsibilities (Customer/Self-Ordering Module)
+Module
+	Description
+	Priority
+	Member
+	Landing Page
+	QR entry point and store branding
+	🟢 Low
+	Mesola
+	Dashboard and Menu Listing
+	Browsing and category navigation
+	🔴 High
+	Mesola
+	Item Detail Overlay
+	Add-ons, quantity, add to cart
+	🔴 High
+	Andaya
+	Order Summary / Cart
+	Financial breakdown before checkout
+	🔴 High
+	Andaya
+	Order Confirmed & Tracking
+	Live status and waiting time indicator
+	🔴 High
+	Mesola
+	Order History Page
+	Running bill for the active table session
+	🟡 Medium
+	Mesola
+	
+
+4.6.3 Budget and Cost Management
+The gap between the two tables is expected and should be explained in the text rather than left implicit: the team's actual cost stayed low because development labor was contributed by the four researchers themselves, hosting ran entirely on the client's existing on-site infrastructure and wifi network, and open-source tools were used throughout. A future institution or client without access to volunteer student developers and the client's existing on-site infrastructure would need to budget closer to Table 30b to replicate or commission an equivalent system.
+
+
+Table 30a.
+Researcher’s Actual Out-of-Pocket Cost
+Description
+	Estimated Cost (₱)
+	Manuscript printing, ink, and binding across proposal defense, final defense, and post-defense revisions
+	3,690.00 
+	Transportation for site visits, requirements gathering, and pilot testing
+	1,300.00 
+	QR code printing
+	150.00
+	Documentation and office supplies
+	1,000.00 
+	Refreshments for panelists during defense
+	360.00
+	Contingency fund
+	1,500.00
+	Total
+	₱8,000.00 
+	
+
+Table 30b.
+Estimated Market-Rate Development Budget
+Description
+	Estimated Cost (₱)
+	Basis
+	Backend & frontend development (Laravel + FastAPI, ~10weeks)
+	3,000 - 5,000
+	one-time
+	UI/UX design and wireframing
+	1,500 - 2,000
+	one-time
+	Cloud hosting (Vercel + Render)
+	1,200
+	monthly
+	POS hardware: tablet/terminal, receipt printer
+	10,000 - 20,000
+	one-time
+	QR code signage & printing
+	500.00
+	one-time
+	Staff and owner training
+	500.00
+	one-time
+	System testing & quality assurance
+	3,000.00
+	one-time
+	Post-deployment maintenance & support
+	20,000 - 25,000
+	annual
+	Estimated Total (Year 1)
+	38,500 - 63,200
+	
+
+	
+
+The gap between the two tables is expected and should be explained in the text rather left implicit: the team’s actual cost stayed low because development labor was contributed by the four researchers themselves, hosting ran on the client’s existing infrastructure and a university server, and open-source tools were used throughout. A future institution or client without access to volunteer student developers and free university hosting would need to budget closer to Table 30b to replicate or commission an equivalent system.
+
+
+4.7 Verification, Validation, and Testing 
+
+
+Verification. To verify that the system is being developed correctly and aligns with the defined architectural specifications, evaluation is conducted systematically following the implementation phase of the Waterfall model. The system undergoes a formal structural review to ensure the two-service architecture effectively separates the transactional Laravel operations from the Python FastAPI analytics microservice without bottlenecking, strictly adhering to the initial Software Requirements Specification (SRS) defined during the planning phase.
+
+
+Testing. To test that the system functions correctly without bugs or errors, formal testing protocols are executed during the dedicated testing phase of the Waterfall cycle. The development team employs Black Box Testing to evaluate the frontend functionality of the user interfaces, specifically the POS, Customer QR Ordering, and Admin Dashboard, ensuring all inputs produce the expected outputs without requiring knowledge of the internal code structures. Furthermore, integration testing is conducted to rigorously test the complex interdependencies between modules, specifically ensuring that a completed Point of Sale (POS) transaction accurately triggers recipe-based inventory deductions (backflushing) and that WebSocket events update the Kitchen Display System (KDS) and Admin Dashboard instantly. 
+
+
+Validation.  To validate that the right system was built to solve the manual operation gaps of the client, the project utilizes User Acceptance Testing (UAT) during the deployment phase. The fully developed system will be deployed and demonstrated to the owner, staff, and customers of Desi Zaika Snack House for direct feedback.
+
+
+Validation involves four respondent groups so that every module of the system is evaluated by the people who will actually use it: the owner/admin, who evaluates the Admin Dashboard and analytics layer as the system’s primary decision-maker; the cashier(s), who evaluate the POS and order-confirmation workflow; the kitchen staff, who evaluate the Kitchen Display System; and a sample of walk-in customers, who evaluate the self-ordering interface, since they are its direct end-users and the module cannot be meaningfully validated without their input.
+
+
+The owner, cashier(s), and kitchen staff are included in full given the small size of Desi Zaika Snack House’s current staff complement: 1 owner, 1 cashier, and 2 kitchen staff.
+
+
+For customers, the respondent sample size is computed using Yamane’s formula:
+
+
+
+where N is the average number of customers Desi Zaika Snack House serves per month, as reported by the client, and e is the acceptable margin of error, set at 5%. According to the client, the restaurant serves an average of approximately 120 customers per month. With N = 120 and e = 0.05, the formula yields:
+
+
+
+
+
+
+
+
+
+        Total respondents for the validation phase therefore consist of 1 owner/admin, 1 cashier, 2 kitchen staff, and 92 customers, for a combined total of 96 UAT participants.
+
+
+        During the pilot period, quantitative and qualitative measures will be administered to formally evaluate the system’s usability and its effectiveness in supporting data-driven business decisions.
+
+
+        Qualitative Measures.  To complement the numerical data, qualitative measures will be employed through semi-structured interviews and direct observation during the User Acceptance Testing (UAT) phase at Desi Zaika Snack House. The interviews will involve open-ended questions directed at the business owner, cashiers, kitchen staff, and a subset of participating customers to capture their actual experiences, subjective feedback, and specific pain points regarding the transition from manual operations to the automated system. Furthermore, direct observation will be utilized to assess how naturally the staff interact with the Point of Sale (POS) and Kitchen Display System (KDS) modules during active service, and how naturally customers interact with the self-ordering interface, providing necessary real-world context to the quantitative survey results. 
+
+
+        Quantitative Measures. Quantitative data will be gathered using a structured survey questionnaire adapted directly from the ISO/IEC 25010 framework. Following the pilot deployment, the survey will be administered to all four respondent groups such as the owner/admin, cashier, kitchen staff, and the customer sample at Desi Zaika Snack House. The instrument will utilize a 5-point Likert scale to evaluate the system across four primary ISO/IEC 25010 characteristics relevant to the operational scope: Functional Suitability (e.g., accuracy of recipe-based stock deductions), Usability (e.g., ease of navigating the POS and Smart Assistant), Performance Efficiency (e.g., responsiveness of WebSocket real-time updates), and Reliability (e.g., system stability during transactions). The collected survey data will be analyzed using weighted means to determine the statistical acceptability and overall effectiveness of the system. 
+
+
+        Compliance with Bureau of Internal Revenue (BIR) Regulations.
+Any point-of-sale system deployed for a business operating in the Philippines needs to account for Bureau of Internal Revenue (BIR) requirements, since software that has not been registered or built with these requirements in mind can leave a business exposed during a tax audit. Securing formal BIR accreditation was not attempted within this study's timeline, but four aspects of the system's design were shaped with that eventual requirement in view:
+
+
+1. Itemized Digital Receipts
+Each completed transaction produces a digital receipt covering the information a compliant invoice would need to show:
+* Business name and address
+* Order ID and the date and time of the transaction
+* An itemized list of what was ordered and its price
+* The payment method used
+
+
+2. Audit Trail and Transaction Logs
+Every sale is recorded the moment it happens, tagged with a timestamp and the ID of the cashier who processed it. Once logged, a transaction record cannot afterward be altered or removed, which keeps the sales history reliable for anyone reviewing it later.
+
+
+3. Centralized, Access-Controlled Storage
+Rather than sitting in spreadsheets or local files a staff member could quietly edit, transaction records live in the system's PostgreSQL database, where changes are governed by the same role-based access control as the rest of the platform.
+
+
+4. A Foundation for Later Accreditation
+The system has not gone through the BIR's Computerized Accounting System (CAS) certification process, a step that reflects the capstone team's timeframe and Desi Zaika Snack House's current scale as a single-location business rather than a limitation in the design itself. Because the receipt format, logging behavior, and storage approach were already built around these principles, pursuing accreditation later would mean seeking certification for what exists, not restructuring the system to qualify for it.
+Taken together, these choices stop short of making the system BIR-certified, but they give Desi Zaika Snack House financial records that hold up to scrutiny,  which matters for compliance and for running the business well, independent of whether certification is ever pursued.
+
+
+
+
+
+
+BIBLIOGRAPHY
+
+
+Books
+Jalote, P. (2005). An integrated approach to software engineering (3rd ed.). Springer.
+
+
+Kasavana, M. L., & Smith, D. I. (1982). Menu engineering: A practical guide to menu analysis. Hospitality Publications.
+
+
+Loeliger, J., & McCullough, M. (2012). Version control with Git: Powerful tools and techniques for collaborative software development (2nd ed.). O'Reilly Media.
+
+
+Mills, K. G., & Dang, A. V. (2021). Building small business utopia: How artificial intelligence and Big Data can increase small business success. In C. Lund Pedersen, A. Lindgreen, T. Ritter, & T. Ringberg (Eds.), Big data in small business: Data-driven growth in small and medium-sized enterprises (pp. 11–26). Edward Elgar Publishing. https://doi.org/10.4337/9781839100161.00009
+
+
+Rossi, R. (2021). Inventory analytics. Open Book Publishers. https://doi.org/10.11647/OBP.0252
+
+
+Hyndman, R. J., & Athanasopoulos, G. (2018). Forecasting: Principles and practice (2nd ed.). OTexts. https://otexts.com/fpp2/
+
+
+Journal Articles
+Abel, E. E., & Ekabua, O. (2015). A framework for electronic restaurant management system. International Journal of Computer Science and Mobile Computing, 4(6), 691–700.
+
+
+Acopiado, I. M. A., Sarmiento, J. M. P., Romo, G. D. A., Acuña, T. R., Trahe, A. A., & Washing, G. D. (2022). Digital payment adoption during the COVID-19 pandemic in the Philippines. Philippine Journal of Science, 151(3), 1185–1196.
+
+
+Afable, F. P. (2024). GCash: Revolutionizing digital payments in the Philippines and beyond. SSRN Electronic Journal. https://doi.org/10.2139/ssrn.4871527
+
+
+Al-Aqrabi, H., Liu, L., Hill, R., & Antonopoulos, N. (2019). Cloud BI: Future of business intelligence in the cloud. Journal of Computer and System Sciences, 81(1), 85–96. https://doi.org/10.1016/j.jcss.2014.06.013
+
+
+Al Salmi, H. (2023). Comparative CSS frameworks. Multi-Knowledge Electronic Comprehensive Journal for Education and Science Publications (MECSJ), 66.
+
+
+Al-Subhi, S. H., Babar, M. A., & Grundy, J. (2023). A review of non-functional requirements analysis throughout the SDLC. Computers, 13(12), 308. https://doi.org/10.3390/computers13120308
+
+
+Alfaren, C., & Arijanto, R. (2021). Self-ordering concept food ordering system in restaurants. bit-Tech, 4(1), 1–6.
+
+
+Alt, R. (2021). Electronic markets on digital transformation in the restaurant industry. Electronic Markets, 31, 521–525. https://doi.org/10.1007/s12525-021-00487-2
+
+
+Babaveisi, V., Teimoury, E., Gholamian, M. R., & Rostami-Tabar, B. (2023). Integrated demand forecasting and planning model for repairable spare parts: An empirical investigation. International Journal of Production Research, 61(20), 6791–6807. https://doi.org/10.1080/00207543.2022.2122775
+
+
+Cacas, A., Diongson, M. B. A., & Olita, G. M. (2022). Influencing factors on mobile wallet adoption in the Philippines: Generation X's behavioral intention to use GCash services. Journal of Business and Management Studies, 4(1), 149–156.
+
+
+Dhir, A., Talwar, S., Kaur, P., & Malibari, A. (2020). Food waste in hospitality and food services: A systematic literature review and framework development approach. Journal of Cleaner Production, 270, 122861. https://doi.org/10.1016/j.jclepro.2020.122861
+
+
+Fonseka, T., & Fonseka, N. (2012). Communicating and displaying real-time data with WebSocket. IT Professional, 14(3), 22–27. https://doi.org/10.1109/MITP.2012.3
+
+
+Gao, F., & Su, X. (2018). Omnichannel service operations with online and offline self-order technologies. Management Science, 64(8), 3595–3608. https://doi.org/10.1287/mnsc.2017.2787
+
+
+Gill, A. (2022). Building a scalable API for restaurant online ordering systems. Journal of Artificial Intelligence and Cloud Computing. SRC/JAICC-E225.
+
+
+Hashim, M. H., Ngelambong, A., Abdullah, D., & Campiranon, K. (2023). Examining attributes affecting fast-food restaurants' self-service ordering kiosk continuous usage intention. ESTEEM Journal of Social Sciences and Humanities, 7(Special Issue), 186–202.
+
+
+Horváth, P., Andic, S., & Tóth, R. (2022). Examining a menu on the basis of the Kasavana–Smith model in a Hungarian restaurant. Journal of Tourism and Gastronomic Studies, 10(3), 22–36.
+
+
+Huynh, T. S., Tran, D. T., & Vu, Q. H. (2022). Design and implementation of web application based on MVC Laravel architecture. European Journal of Electrical Engineering and Computer Science, 6(4), 23–29. https://doi.org/10.24018/ejece.2022.6.4.448
+
+
+Ikotun, A. M., Ezugwu, A. E., Abualigah, L., Abuhaija, B., & Heming, J. (2023). K-means clustering algorithms: A comprehensive review, variants analysis, and advances in the era of big data. Information Sciences, 622, 178–210. https://doi.org/10.1016/j.ins.2022.11.139
+
+
+ISO/IEC. (2011). ISO/IEC 25010:2011 — Systems and software engineering: Systems and software quality requirements and evaluation (SQuaRE) — System and software quality models. International Organization for Standardization.
+
+
+Klimek, B. M., & Skublewska-Paszkowska, M. (2024). MySQL vs PostgreSQL: A comparative analysis of relational database management systems technologies response time in web-based e-commerce. ResearchGate. https://www.researchgate.net/publication/382641887
+
+
+Landge, V., Bhatt, P., & Patil, S. (2026). Integrated inventory and POS management for SMEs. International Journal of Computer Science and Research, 15(1).
+
+
+Lantican, M. L. (2025). Customer satisfaction on the use of self-service technologies in selected fast-food restaurants using the Technology Acceptance Model. GRADIVA, 64(7), 143–159. https://doi.org/10.5281/zenodo.16751696
+
+
+Lee, W., Kwok, L., & Ottenbacher, M. (2004). The application of menu engineering and design in Asian restaurants. International Journal of Contemporary Hospitality Management, 17(3), 246–256.
+
+
+Madamidola, O. A., Daramola, O. A., & Akintola, K. G. (2017). Web based intelligent inventory management system. International Journal of Trend in Scientific Research and Development, 1(4). https://doi.org/10.31142/ijtsrd107
+
+
+Mandalangi, R. J., Sara, K., & Mando, L. B. F. (2025). Web-based inventory information system using First-In First-Out (FIFO) algorithm at CV Dewangga. Jurnal Ilmiah Sistem Informasi, 4(3), 523–543. https://doi.org/10.51903/qmw5sk61
+
+
+Misahuaman, G., Daza, A., & Zavaleta, E. (2021). Web-based systems for inventory control in organizations: A systematic review. Proceedings of the 22nd IEEE/ACIS International Conference on Software Engineering, Artificial Intelligence, Networking and Parallel/Distributed Computing, 15–20. https://doi.org/10.1109/SNPD51163.2021.9704993
+
+
+Mohd Zaini, H., Ahmad, N., & Kadir, R. A. (2023). An integrated restaurant ordering system. Journal of Information Technology and Computer Science, 8(2).
+
+
+Mulla, F. M. (2022). Leveraging data analytics for advanced optimization in warehouse management systems. International Journal of Scientific Research in Engineering and Management, 6(2). https://doi.org/10.55041/IJSREM11747
+
+
+Mutlu, H., Demirçakmak, İ. L., & Doğan, M. (2022). Menu engineering in the restaurant business: A study on kitchen chefs. Journal of Tourism and Gastronomic Studies, 10(4).
+
+
+National Tax Research Center. (2023). Profile of the Philippine food service industry. NTRC Tax Research Journal, 35(6). https://www.ntrc.gov.ph/images/journal/2023/j20231112b.pdf
+
+
+Ong, J., Reyes, M., & Santos, L. (2024). Factors influencing the intention to use e-wallet among generation Z and millennials in the Philippines: An extended technology acceptance model (TAM) approach. Acta Psychologica. https://doi.org/10.1016/j.actpsy.2024.104049
+
+
+Rafailidis, D., & Manolopoulos, Y. (2019). Can virtual assistants produce recommendations? Proceedings of the 9th International Conference on Web Intelligence, Mining and Semantics (WIMS2019). ACM. https://doi.org/10.1145/3326467.3326468
+
+
+Rifandi, F., Adriansyah, T. V., & Kurniawati, R. (2022). Website gallery development using Tailwind CSS framework. ResearchGate. https://www.researchgate.net/publication/366834042
+
+
+Roy, R., Hafsa, N. N., & Singh, R. (2022). Opportunities for smart restaurant management using technology and data analytics. International Journal of Hospitality Management, 101, 103124. https://doi.org/10.1016/j.ijhm.2021.103124
+
+
+S & P. (2026). Traditional versus modern inventory management approaches in food service. Supply and Procurement Research Journal, 4(1).
+
+
+Siek, M., & Guswanto, B. J. (2021). Automated restaurant inventory management. International Journal of Advanced Computer Science and Applications, 12(5). https://doi.org/10.14569/IJACSA.2021.0120549
+
+
+Sohaib, M., Mushtaq, M., & Ali, A. (2025). AI-powered inventory and analytics integration for restaurant SMEs: A study of Bizora. Journal of Artificial Intelligence in Business, 3(1).
+
+
+Subecz, Z. (2021). Web-development with Laravel framework. Gradus, 8(1), 211–218. https://doi.org/10.47833/2021.1.CSC.006
+
+
+Sukorra, I., Sikora, M., & Mrugalska, B. (2021). Bill of material analysis framework of food menu to increase raw material inventory efficiency. IOP Conference Series: Earth and Environmental Science, 733, 012043. https://doi.org/10.1088/1755-1315/733/1/012043
+
+
+Vidal, C., Sarria, G., & Saldaña, P. (2019). Inventory management in food industry: The role of technology and uncertainty. Journal of Business Research, 101, 484–492.
+
+
+Wynn, M. (2021). Manual versus automated inventory management: Risks and benefits. Journal of Operations Management Research, 14(1), 45–57.
+
+
+Yaacob, S. A., Abdul Aziz, A., Saiful Bakhtiar, M. F., Othman, Z., & Ahmad, N. A. (2021). A concept of consumer acceptance on the usage of self-ordering kiosks at McDonald's. International Journal of Academic Research in Business and Social Sciences, 11(13), 12–20. http://dx.doi.org/10.6007/IJARBSS/v11-i13/8498
+
+
+Zeng, S. (2021). Composite indicators of company performance: A literature survey. Performance Improvement Quarterly, 33(4), 369–395. https://doi.org/10.1002/piq.21328
+
+
+Conference Proceedings Articles
+Adzic, V., Subotic, M., & Filipovic, V. (2021). Principles of securing RESTful API web services developed with Python frameworks. ResearchGate. https://www.researchgate.net/publication/356630607
+
+
+Ardito, L. (2021). User interface development of a modern web application. Politecnico di Torino. https://webthesis.biblio.polito.it/30076/1/tesi.pdf
+
+
+Bender, E. M., Gebru, T., McMillan-Major, A., & Shmitchell, S. (2021). On the dangers of stochastic parrots: Can language models be too big? Proceedings of the 2021 ACM Conference on Fairness, Accountability, and Transparency, 610–623. https://doi.org/10.1145/3442188.3445922
+
+
+Chung, L., & Nixon, B. A. (1995). Dealing with non-functional requirements: Three experimental studies of a process-oriented approach. Proceedings of the 17th International Conference on Software Engineering (ICSE), 25–37.
+
+
+Hüsson, D., Holland, A., Fathi, M., & Artega Sánchez, R. (2021). Analysis and illustration of the practical impact of artificial intelligence and intelligent personal assistants on business processes in small-sized and medium-sized service enterprises. 2021 IEEE International Conference on Systems, Man, and Cybernetics (SMC). IEEE. https://doi.org/10.1109/SMC52423.2021.9659298
+
+
+Mabotha, T., Shongwe, M., & Mapongwana, S. (2024). Performance evaluation of a dynamic RESTful API using FastAPI, Docker and Nginx. IEEE Conference Publication. https://ieeexplore.ieee.org/document/10881712
+
+
+Miyaura, R., Oka, T., Nakajima, T., & Ando, Y. (2016). Real-time process management system in a restaurant by sharing food order information. IEEE International Conference on Industrial Engineering and Engineering Management.
+
+
+Oghenekaro, L. U., & Okafor, C. (2023). Web-based integrated restaurant management system. ResearchGate. https://doi.org/10.13140/RG.2.2.36021.70886
+
+
+Panneerselvam, K., Pradhan, A., Bhattrai, N., Ranabhat, D. H., & Gautam, A. (2022). Food Board: A restaurant management system. ResearchGate. https://www.researchgate.net/publication/360975073
+
+
+Rahul, T., Sanjay, P., Amarnath, M., & Vishnu, N. (2024). Restaurant inventory management system. ResearchGate. https://www.researchgate.net/publication/382016659
+
+
+Sharma, R., Patel, A., & Kim, J. (2025). Design and development of a mobile application for ordering food from a digital menu, with real-time data synchronisation and storage on the cloud. ResearchGate.
+
+
+Tharun, S., Jaiswal, A. S., Kulkarni, C. R., Patil, Y., & Ponde, S. (2023). Smart food ordering system using QR code. International Journal of Engineering Research and Technology, 11(4).
+
+
+Web Articles
+Apache Friends. (2024). XAMPP: The easiest way to install Apache, MySQL and PHP. https://www.apachefriends.org
+
+
+Chart.js. (2023). Chart.js: Simple yet flexible JavaScript charting library. https://www.chartjs.org
+
+
+Craftable. (2026). Restaurant & bar software: Control your entire back office. https://craftable.com/
+
+
+Figma. (2024). Figma: The collaborative interface design tool. https://www.figma.com
+
+
+Globe Telecom. (2024). GCash reaches 94 million users. https://www.globe.com.ph/about-us/newsroom/corporate/gcash-94-million-users.html
+
+
+Klikit. (2026). Self-service kiosk - digital ordering kiosk. https://klikit.io/en/products/kiosk
+
+
+MarketMan. (2026). Restaurant inventory management software. https://www.marketman.com/
+
+
+Meez. (2026). Recipe software for chefs & culinary leaders. https://www.getmeez.com/
+
+
+Microsoft. (2024). Visual Studio Code — Code editing, redefined. https://code.visualstudio.com
+
+
+NerdWallet. (2026). Square for Restaurants review 2026: Features & pricing. https://www.nerdwallet.com/business/software/reviews/square-for-restaurants
+
+
+PostgreSQL Global Development Group. (2024). PostgreSQL: The world's most advanced open source relational database. https://www.postgresql.org
+
+
+Restroworks. (2026). Restaurant kitchen display system. https://www.restroworks.com/kitchen-display-system/
+
+
+Square. (2026). Square for Restaurants. https://squareup.com/
+
+
+Stack Overflow. (2023). Stack Overflow developer survey 2023. https://survey.stackoverflow.co/2023/
+
+
+United Nations Environment Programme. (2021). Food waste index report 2021. UNEP. https://www.unep.org/resources/report/unep-food-waste-index-report-2021
+________________
+
+
+APPENDICES
+________________
+APPENDIX A
+TRANSMITTAL LETTER
+________________
+  
+________________
+
+APPENDIX B
+INTERVIEW GUIDE
+________________
+Respondent: Owner/Manager, Desi Zaika Snack House
+
+
+Purpose: This interview guide is intended to gather information on the current manual operations of Desi Zaika Snack House, identify the operational pain points that motivate this study, and validate the functional and non-functional requirements of the proposed system.
+
+
+Part I. Introduction
+1. Good day. We are researchers from the University of San Carlos conducting a capstone study on developing an integrated ordering, point-of-sale, and inventory management system for Desi Zaika Snack House. This interview will take approximately 30-45 minutes. All information you share will be used strictly for academic research purposes and will be treated with confidentiality. Do we have your permission to proceed?
+
+
+        Owner: “Yes, you may proceed.”
+
+
+Part II. Current Business Operations
+2. How long has Desi Zaika Snack House been in operation, and how would you describe its typical daily volume of customers?
+
+
+Owner: “The daily volume of customers depends on the date, but mostly it is more than 50 customers per day.”
+
+
+3. Can you walk us through how a customer order is currently taken, from the moment they arrive until their order is served?
+
+
+Owner: “A customer arrives and orders directly with the cashier. The cashier writes the order down and computes the total by hand, we don’t use a point of sale terminal. Once payment is settled, I relay the order to the kitchen staff verbally, and they prepare it from what I told them. When it’s ready, it’s served straight to the customer.”
+
+
+4. How is billing currently computed, and how are payments (cash, GCash, etc.) currently handled?
+
+
+Owner: “Billing is computed by hand. We accept cash or Gcash, for GCash, the customer shows me the payment confirmation on their phone and I check it visually. We don’t run it through any payment gateway or verification system.”
+
+
+5. How do you currently track your ingredient stock? How often do you check stock levels, and how do you decide what to restock and when?
+
+
+Owner: “There’s no fixed schedule. I or a staff member walks through the kitchen and estimates what’s left just by looking, we don’t weigh, count, or write anything down.”
+
+
+6. How do you currently decide which dishes to prepare more of on a given day?
+
+
+Owner: “It’s based on experience, I don’t have recorded data to base it on, just a feel for what usually sells.”
+
+
+7. Are there any records currently kept of daily sales, and if so, how are they recorded and used?
+
+
+Owner: “No formal records are kept. I don’t have a systematic way of tracking daily sales or comparing performance over time.”
+
+
+
+
+Part III. Operational Pain Points
+8. What are the most common problems or frustrations you encounter with the current manual process for taking orders?
+
+
+Owner: “During busy periods, customers end up waiting longer before we can even take their orders, which I know affects how they feel about coming back. Relaying orders by just telling it to the kitchen also leaves room for mistakes.”
+
+
+9. Have there been instances where a customer ordered a dish that could no longer be prepared due to insufficient ingredients? How was this typically handled?
+
+
+Owner: “Before any dish is prepared or cooked, the cashier will ask the kitchen staff if the dish is still available.”
+
+
+10. Do you feel you have enough information to know which dishes are most profitable for the business? What would help you make that determination?
+
+
+Owner: “No, I don’t have enough information for that. Without sales records, I can’t tell which dishes are actually most profitable after ingredient costs, that’s something I’d want help figuring out.”
+
+
+11. How do you currently assess whether the business is doing better or worse compared to previous weeks or months?
+
+
+Owner: “Honestly, I don’t have a systematic way to assess that right now. I don’t have sales records to compare against.”
+
+
+
+
+Part IV. Menu and Recipe Information
+12. Could you walk us through the recipe composition (ingredients and quantities) for your most frequently ordered dishes?
+                
+        Owner: “Let me show the recipes.”    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+13. Are there any dishes you are considering removing from the menu, or new dishes you are considering adding?
+
+
+Owner: “None at this time.”
+
+
+
+
+Part V. Requirements Validation
+14. If customers could place their own orders by scanning a QR code at the table, would this fit well with how your restaurant currently operates?
+
+
+Owner: “Yes, I think that would work well for us.”
+
+
+15. Aside from cash, do you currently accept GCash payments? How do you currently record or verify GCash transactions?
+
+
+Owner: “Yes, we accept GCash, I verify it by looking at the confirmation screen the customer shows me on their phone, we don’t have any other way of recording or verifying it right now.”
+
+
+16. Would a screen in the kitchen showing incoming orders (instead of verbal or handwritten tickets) be useful for your kitchen staff?
+
+
+Owner: “Yes, that would be useful, it would help avoid the miscommunication we sometimes get from relaying orders verbally.”
+
+
+17. Would you find it helpful to receive a daily summary or “score” that tells you how the business performed and why?
+
+
+Owner: “Yes, that would be very helpful. Right now I have no way of knowing whether the business is doing better or worse without going through everything myself.”
+
+
+18. Are there any features you would like the system to have that we have not already discussed?
+
+
+Owner: “None raised beyond what was already discussed.”
+
+
+
+
+Part VI. Closing
+19. Thank you for your time and for sharing this information with us. Would you be open to a follow-up conversation or a demonstration once a working version of the system is available?
+
+
+Owner: “Yes, I’d be open to that.”
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+APPENDIX C
+SOFTWARE REQUIREMENTS SPECIFICATIONS (SRS)
+
+
+[a]Okay
+[b]Okay
+[c]Okay

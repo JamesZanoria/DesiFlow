@@ -14,7 +14,7 @@ class Ingredient extends Model{
     // Every value stockStatus() can return, in priority order (a row can only
     // ever be in one at a time). Used to whitelist the ?status= filter and to
     // build the filter dropdown, so the two can never drift out of sync.
-    public const STATUSES = ['out_of_stock', 'expired', 'expiring_soon', 'low_stock', 'active'];
+    public const STATUSES = ['negative_stock', 'out_of_stock', 'expired', 'expiring_soon', 'low_stock', 'active'];
 
     // Curated starting suggestions for the Add/Edit Ingredient form's Category
     // and Unit of Measurement fields — offered as <datalist> autocomplete
@@ -135,6 +135,9 @@ class Ingredient extends Model{
     public function stockStatus(): string{
         $stock = $this->current_stock ?? 0;
 
+        if ($stock < 0) {
+            return 'negative_stock';
+        }
         if ($stock <= 0) {
             return 'out_of_stock';
         }

@@ -2,10 +2,13 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from os import getenv
 
 from app.scheduler import run_all_analytics, start_scheduler
 
 logging.basicConfig(level=logging.INFO)
+
 
 
 @asynccontextmanager
@@ -24,6 +27,17 @@ app = FastAPI(
     ),
     lifespan=lifespan,
 )
+
+# CORS configuration to restrict access to the Vercel production domain.
+allowed_origins = getenv("CORS_ALLOWED_ORIGINS", "*").split(",")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
+
 
 
 @app.get("/health")
