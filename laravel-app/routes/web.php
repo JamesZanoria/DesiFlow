@@ -48,6 +48,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::delete('/menu/{menuItem}', [MenuController::class, 'destroy'])->name('menu.destroy');
 
     // Inventory Management
+    Route::get('/inventory/export', [InventoryController::class, 'export'])->name('inventory.export');
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
     Route::get('/inventory/create', [InventoryController::class, 'create'])->name('inventory.create');
     Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');

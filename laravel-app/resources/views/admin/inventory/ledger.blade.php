@@ -698,7 +698,12 @@
                 submitAjaxAction({
                     url: `${baseMovementUrl}/${btn.dataset.id}`,
                     method: 'DELETE',
-                    confirmMessage: "Void this stock movement? This records a reversing entry rather than erasing it, and cannot be undone.",
+                    confirmMessage: {
+                        title: 'Void Stock Movement?',
+                        message: 'Are you sure you want to void this stock movement? The original record will be retained as voided.',
+                        actionLabel: 'Void',
+                        type: 'warning'
+                    },
                     toastKind: 'delete',
                     onSuccess: () => {
                         window.location.reload();

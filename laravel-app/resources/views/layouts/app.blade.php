@@ -132,6 +132,30 @@
 </div>
 </div>
 
+{{-- Global confirmation modal --}}
+<div id="confirmation-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4 transition-all duration-200">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-95 opacity-0" id="confirmation-modal-panel">
+        <div class="p-8 text-center">
+            {{-- Icon Container --}}
+            <div id="confirmation-modal-icon-wrap" class="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-6 transition-colors duration-200">
+                <svg id="confirmation-modal-icon" class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"></svg>
+            </div>
+
+            <h3 id="confirmation-modal-title" class="text-xl font-bold text-gray-900 mb-2">Confirm Action</h3>
+            <p id="confirmation-modal-message" class="text-sm text-gray-500 leading-relaxed px-4"></p>
+        </div>
+
+        <div class="px-6 py-6 bg-gray-50 flex flex-col sm:flex-row-reverse gap-3">
+            <button type="button" id="confirmation-modal-confirm" class="w-full sm:w-auto px-6 py-2.5 rounded-xl text-sm font-bold text-white transition-all duration-200 shadow-sm hover:shadow-md active:scale-95">
+                Confirm
+            </button>
+            <button type="button" id="confirmation-modal-cancel" class="w-full sm:w-auto px-6 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-200 transition-all duration-200">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+
 {{-- Global toast container. The actual showToast()/submitAjaxForm()/submitAjaxAction()
      implementations live in resources/js/admin.js (bundled via Vite below), so every
      page shares one copy instead of each page defining its own. --}}

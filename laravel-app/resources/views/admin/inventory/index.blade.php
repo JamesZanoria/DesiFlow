@@ -613,7 +613,12 @@
                         qty_changed: qty,
                         notes: 'Marked as waste, past shelf life',
                     },
-                    confirmMessage: `Mark all ${numberFormat(qty)} ${btn.dataset.unit} of "${btn.dataset.name}" as waste? This will zero out its current stock and cannot be undone.`,
+                    confirmMessage: {
+                        title: 'Mark Expired Stock as Waste?',
+                        message: `Are you sure you want to mark ${numberFormat(qty)} ${btn.dataset.unit} of "${btn.dataset.name}" as waste? This will remove the expired quantity from current available stock.`,
+                        actionLabel: 'Mark as Waste',
+                        type: 'warning'
+                    },
                     toastKind: 'delete',
                     onSuccess: () => {
                         refreshTable(window.location.href);
@@ -625,7 +630,12 @@
                 submitAjaxAction({
                     url: `${baseUrl}/${btn.dataset.id}`,
                     method: 'DELETE',
-                    confirmMessage: `Delete "${btn.dataset.name}"? This only works if it has no recipe or stock movement history, and cannot be undone.`,
+                    confirmMessage: {
+                        title: 'Delete Ingredient?',
+                        message: `Are you sure you want to delete "${btn.dataset.name}"? This action cannot be undone.`,
+                        actionLabel: 'Delete',
+                        type: 'danger'
+                    },
                     toastKind: 'delete',
                     onSuccess: () => refreshTable(window.location.href),
                 });
@@ -648,19 +658,8 @@
             }
 
             document.getElementById('inventory-export-btn').addEventListener('click', () => {
-                const table = tableContainer().querySelector('table');
-                const rows = [...table.querySelectorAll('tr')].map((tr) =>
-                    [...tr.querySelectorAll('th, td')]
-                        .slice(0, -1)
-                        .map((cell) => `"${sanitizeCsvCell(cell.innerText.trim().replace(/\s+/g, ' ')).replace(/"/g, '""')}"`)
-                        .join(',')
-                );
-                const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = `desiflow-inventory-${new Date().toISOString().slice(0, 10)}.csv`;
-                link.click();
-                URL.revokeObjectURL(link.href);
+                const currentParams = window.location.search;
+                window.location.href = `{{ route('admin.inventory.export') }}${currentParams}`;
             });
 
             document.getElementById('add-ingredient-btn').addEventListener('click', () => openModal('create'));

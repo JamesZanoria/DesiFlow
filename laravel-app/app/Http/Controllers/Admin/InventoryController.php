@@ -44,34 +44,7 @@ class InventoryController extends Controller{
 
     public function index(Request $request){
         $ingredients = $this->paginateClamped(function () use ($request) {
-            $query = Ingredient::withCurrentStock()->withLastDeliveryAt();
-
-            if ($request->filled('search')) {
-                $query->where('ingredient_name', 'ILIKE', '%' . $request->input('search') . '%');
-            }
-
-            if ($request->filled('category')) {
-                $query->where('category', $request->input('category'));
-            }
-
-            // Reuses Ingredient::stockStatus(), the same method driving the
-            // table badge and stat cards, rather than re-deriving
-            // expiry/threshold logic as raw SQL a third time.
-            if ($request->filled('status') && in_array($request->input('status'), Ingredient::STATUSES, true)) {
-                $query->whereIn('ingredient_id', $this->ingredientIdsMatchingStatus($request->input('status')));
-            }
-
-            if ($request->input('sort') === 'critical') {
-                $query->orderByRaw('
-                    CASE
-                        WHEN (SELECT SUM(qty_changed) FROM stock_movements WHERE stock_movements.ingredient_id = ingredients.ingredient_id) <= 0 THEN 0
-                        WHEN (SELECT SUM(qty_changed) FROM stock_movements WHERE stock_movements.ingredient_id = ingredients.ingredient_id) <= ingredients.restock_threshold THEN 1
-                        ELSE 2
-                    END ASC
-                ');
-            }
-
-            return $query->orderByDesc('ingredient_id');
+            return $this->getFilteredIngredientsQuery($request);
         }, $request, 5);
 
         $units = collect(Ingredient::UNITS)
@@ -106,6 +79,69 @@ class InventoryController extends Controller{
             'allIngredientNames' => $allIngredientNames,
         ]);
     }
+
+    private function getFilteredIngredientsQuery(Request $request) {
+        $query = Ingredient::withCurrentStock()->withLastDeliveryAt();
+
+        if ($request->filled('search')) {
+            $query->where('ingredient_name', 'ILIKE', '%' . $request->input('search') . '%');
+        }
+
+        if ($request->filled('category')) {
+            $query->where('category', $request->input('category'));
+        }
+
+        if ($request->filled('status') && in_array($request->input('status'), Ingredient::STATUSES, true)) {
+            $query->whereIn('ingredient_id', $this->ingredientIdsMatchingStatus($request->input('status')));
+        }
+
+        if ($request->input('sort') === 'critical') {
+            $query->orderByRaw('
+                CASE
+                    WHEN (SELECT SUM(qty_changed) FROM stock_movements WHERE stock_movements.ingredient_id = ingredients.ingredient_id) <= 0 THEN 0
+                    WHEN (SELECT SUM(qty_changed) FROM stock_movements WHERE stock_movements.ingredient_id = ingredients.ingredient_id) <= ingredients.restock_threshold THEN 1
+                    ELSE 2
+                END ASC
+            ');
+        }
+
+        return $query->orderByDesc('ingredient_id');
+    }
+
+    public function export(Request $request) {
+        $ingredients = $this->getFilteredIngredientsQuery($request)->get();
+
+        $filename = "desiflow-inventory-" . now()->toDateString() . ".csv";
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$filename",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $callback = function() use ($ingredients) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['ID', 'Ingredient', 'Category', 'Unit', 'Current Stock', 'Unit Cost', 'Threshold', 'Status']);
+
+            foreach ($ingredients as $ingredient) {
+                fputcsv($file, [
+                    '#ITM-' . str_pad($ingredient->ingredient_id, 3, '0', STR_PAD_LEFT),
+                    $ingredient->ingredient_name,
+                    $ingredient->category ?? 'Uncategorized',
+                    $ingredient->unit_of_measurement,
+                    number_format($ingredient->current_stock ?? 0, 2),
+                    '₱' . number_format($ingredient->unit_cost, 2),
+                    number_format($ingredient->restock_threshold, 2),
+                    $ingredient->stockStatus(),
+                ]);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
 
     // Every ingredient_id currently classified under the given status,
     // computed via Ingredient::stockStatus() so this can never drift from

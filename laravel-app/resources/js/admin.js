@@ -214,9 +214,126 @@ function submitAjaxForm({ form, url, method = 'POST', errorBox, toastKind, onUpl
  * Pass `confirmMessage` to show a native confirm() first; omit it for flows
  * (like a custom two-choice popup) that already confirmed with the user.
  */
+function confirmAction({ title = 'Confirm Action', message = '', actionLabel = 'Confirm', type = 'danger' }) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('confirmation-modal');
+        if (!modal) {
+            console.error('Confirmation modal not found in DOM');
+            resolve(false);
+            return;
+        }
+
+        document.getElementById('confirmation-modal-title').textContent = title;
+        document.getElementById('confirmation-modal-message').textContent = message;
+        const confirmBtn = document.getElementById('confirmation-modal-confirm');
+        confirmBtn.textContent = actionLabel;
+
+        const iconWrap = document.getElementById('confirmation-modal-icon-wrap');
+        const iconSvg = document.getElementById('confirmation-modal-icon');
+
+        // Apply styling based on action type (danger vs warning)
+        const typeConfigs = {
+            danger: {
+                bg: 'bg-red-600',
+                hover: 'hover:bg-red-700',
+                iconPath: TOAST_ICON_PATHS.trash
+            },
+            warning: {
+                bg: 'bg-amber-600',
+                hover: 'hover:bg-amber-700',
+                iconPath: TOAST_ICON_PATHS.exclamation
+            },
+            info: {
+                bg: 'bg-blue-600',
+                hover: 'hover:bg-blue-700',
+                iconPath: TOAST_ICON_PATHS.check
+            },
+        };
+        const config = typeConfigs[type] || typeConfigs.info;
+
+        confirmBtn.classList.remove('bg-red-600', 'hover:bg-red-700', 'bg-amber-600', 'hover:bg-amber-700', 'bg-blue-600', 'hover:bg-blue-700');
+        confirmBtn.classList.add(config.bg, config.hover);
+
+        if (iconWrap) {
+            iconWrap.classList.remove('bg-red-600', 'bg-amber-600', 'bg-blue-600');
+            iconWrap.classList.add(config.bg);
+        }
+
+        if (iconSvg) {
+            iconSvg.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="${config.iconPath}" />`;
+        }
+
+        modal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+
+        const panel = document.getElementById('confirmation-modal-panel');
+        if (panel) {
+            setTimeout(() => {
+                panel.classList.remove('scale-95', 'opacity-0');
+                panel.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        const handleCancel = () => {
+            cleanup();
+            resolve(false);
+        };
+
+        const handleConfirm = () => {
+            cleanup();
+            resolve(true);
+        };
+
+        const cleanup = () => {
+            const panel = document.getElementById('confirmation-modal-panel');
+            if (panel) {
+                panel.classList.remove('scale-100', 'opacity-100');
+                panel.classList.add('scale-95', 'opacity-0');
+            }
+            modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+            cancelBtn.removeEventListener('click', handleCancel);
+            confirmBtn.removeEventListener('click', handleConfirm);
+            modal.removeEventListener('click', handleOutsideClick);
+            document.removeEventListener('keydown', handleEscape);
+        };
+
+        const cancelBtn = document.getElementById('confirmation-modal-cancel');
+        cancelBtn.addEventListener('click', handleCancel);
+        confirmBtn.addEventListener('click', handleConfirm);
+
+        const handleOutsideClick = (e) => {
+            if (e.target === modal) handleCancel();
+        };
+        modal.addEventListener('click', handleOutsideClick);
+
+        const handleEscape = (e) => {
+            if (e.key === 'Escape') handleCancel();
+        };
+        document.addEventListener('keydown', handleEscape);
+    });
+}
+window.confirmAction = confirmAction;
+
 async function submitAjaxAction({ url, method = 'DELETE', confirmMessage = null, extraFields = {}, toastKind, toastMessage, onSuccess, onError }) {
-    if (confirmMessage && !confirm(confirmMessage)) {
-        return;
+    if (confirmMessage) {
+        let confirmed = false;
+        if (typeof confirmMessage === 'string') {
+            confirmed = await confirmAction({
+                title: 'Confirm Action',
+                message: confirmMessage,
+                actionLabel: 'Confirm',
+                type: 'danger'
+            });
+        } else if (typeof confirmMessage === 'object') {
+            confirmed = await confirmAction({
+                title: confirmMessage.title || 'Confirm Action',
+                message: confirmMessage.message || '',
+                actionLabel: confirmMessage.actionLabel || 'Confirm',
+                type: confirmMessage.type || 'danger'
+            });
+        }
+        if (!confirmed) return;
     }
 
     const formData = new FormData();

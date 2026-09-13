@@ -630,7 +630,12 @@
                 submitAjaxAction({
                     url: `${baseUrl}/${btn.dataset.id}`,
                     method: 'DELETE',
-                    confirmMessage: `Delete "${btn.dataset.itemName}"? This cannot be undone.`,
+                    confirmMessage: {
+                        title: 'Delete Menu Item?',
+                        message: `Are you sure you want to delete "${btn.dataset.itemName}"? This action cannot be undone.`,
+                        actionLabel: 'Delete',
+                        type: 'danger'
+                    },
                     toastKind: 'delete',
                     onSuccess: () => {
                         // Deleting can also shift pagination (e.g. removing the last item

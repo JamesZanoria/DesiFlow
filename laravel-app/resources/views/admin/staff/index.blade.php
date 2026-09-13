@@ -680,7 +680,12 @@
                 submitAjaxAction({
                     url: `${baseUrl}/${btn.dataset.id}`,
                     method: 'DELETE',
-                    confirmMessage: `Remove "${btn.dataset.name}"'s staff account? This cannot be undone.`,
+                    confirmMessage: {
+                        title: 'Delete Staff?',
+                        message: `Are you sure you want to delete this staff account? This action cannot be undone.`,
+                        actionLabel: 'Delete',
+                        type: 'danger'
+                    },
                     toastKind: 'delete',
                     onSuccess: () => {
                         // Deletion can shift pagination too, so resync from the server.
