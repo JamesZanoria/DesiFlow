@@ -92,7 +92,7 @@ class StaffController extends Controller{
             if ($normalized === '') return;
 
             if (in_array($normalized, self::BLOCKED_PLACEHOLDER_VALUES, true)) {
-                $fail('Please enter a real value, not a placeholder or test value.');
+                $fail('Invalid input');
                 return;
             }
             if (preg_match('/^(.)\1*$/', $normalized)) {

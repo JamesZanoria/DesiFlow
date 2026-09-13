@@ -52,8 +52,6 @@
             </div>
 
             <div class="p-6">
-                <div id="menu-modal-errors" class="hidden mb-4 text-sm"></div>
-
                 <form id="menu-form">
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
@@ -153,7 +151,6 @@
             const modal = document.getElementById('menu-modal');
             const form = document.getElementById('menu-form');
             const title = document.getElementById('menu-modal-title');
-            const errorBox = document.getElementById('menu-modal-errors');
             const storeUrl = '{{ route('admin.menu.store') }}';
             const baseUrl = '{{ url('admin/menu') }}';
             const indexUrl = '{{ route('admin.menu.index') }}';
@@ -185,28 +182,8 @@
                 `;
             }
 
-            // Renders the same plain icon + red text treatment for any field/message
-            // pair, no boxed background, matching the reference design, plus a
-            // border around whichever input caused it. The modal is never closed.
-            function showFieldError(fieldName, message) {
-                errorBox.classList.remove('hidden');
-                errorBox.innerHTML = `
-                    <div class="flex items-start gap-2 text-red-700">
-                        ${errorIconSvg()}
-                        <p>${message}</p>
-                    </div>
-                `;
-
-                const field = form.elements[fieldName];
-                if (field) {
-                    field.classList.add('border-red-400', 'ring-1', 'ring-red-300');
-                    field.focus();
-                    if (field.select) field.select();
-                }
-            }
-
             // Duplicate-name errors get their own handler rather than reusing
-            // showFieldError() above, because the desired behavior differs by mode:
+            // a generic field error function, because the desired behavior differs by mode:
             //   - Add New Item: clear the whole form (the error message stays
             //     visible) so the admin can immediately type a completely
             //     different item, but the Item Name field keeps its red outline
@@ -216,13 +193,7 @@
             //     wiping the form would lose legitimate edits, just highlight
             //     the conflicting field instead, same as any other field error.
             function showDuplicateError(mode) {
-                errorBox.classList.remove('hidden');
-                errorBox.innerHTML = `
-                    <div class="flex items-start gap-2 text-red-700">
-                        ${errorIconSvg()}
-                        <p>This item already exists in the menu. Please check the name or edit the existing item.</p>
-                    </div>
-                `;
+                showToast('Item already exists', 'error');
 
                 if (mode === 'create') {
                     form.reset();
@@ -318,8 +289,6 @@
 
             function openModal(mode, data) {
                 form.reset();
-                errorBox.classList.add('hidden');
-                errorBox.innerHTML = '';
                 uploadStartedAt = null;
                 clearFieldErrors();
 
@@ -564,7 +533,6 @@
                     form,
                     url: mode === 'create' ? storeUrl : `${baseUrl}/${itemId}`,
                     method: mode === 'create' ? 'POST' : 'PUT',
-                    errorBox,
                     toastKind: mode === 'create' ? 'success' : 'edit',
                     onUploadProgress: hasNewFile ? showUploadProgress : undefined,
                     onSuccess: async () => {
@@ -588,6 +556,20 @@
                             return;
                         }
 
+                        const invalidInputMsg = Object.values(errors).flat().find((m) => m === 'Invalid input');
+                        if (invalidInputMsg) {
+                            showToast('Invalid input', 'error');
+                            Object.entries(errors).forEach(([field, messages]) => {
+                                if (Array.isArray(messages) && messages.includes('Invalid input')) {
+                                    const input = form.elements[field];
+                                    if (input) {
+                                        input.classList.add('border-red-400', 'ring-1', 'ring-red-300');
+                                    }
+                                }
+                            });
+                            return;
+                        }
+
                         // Server-side image errors (e.g. a file over 2MB, which
                         // the client-side check above never catches) get the
                         // same under-dropzone treatment as a client-rejected
@@ -597,15 +579,7 @@
                             return;
                         }
 
-                        // Anything else still falls back to the standard bulleted list of
-                        // every message, so no validation error is ever silently dropped.
-                        errorBox.classList.remove('hidden');
-                        if (data && data.errors && typeof data.errors === 'object') {
-                            errorBox.innerHTML = '<ul class="list-disc list-inside">' +
-                                Object.values(data.errors).flat().map((m) => `<li>${escapeHtml(m)}</li>`).join('') + '</ul>';
-                        } else {
-                            errorBox.textContent = (data && data.message) || 'Please check the form and try again.';
-                        }
+                        showToast({title: 'Submission Error', message: (data && data.message) || 'Please check the form for missing or invalid fields.'}, 'error');
                     },
                 });
 

@@ -80,9 +80,7 @@
             </div>
 
             <div class="p-6">
-                <div id="ingredient-modal-errors" class="hidden mb-4 text-sm"></div>
-
-                <div id="ingredient-current-stock-display" class="hidden mb-4 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                    <div id="ingredient-current-stock-display" class="hidden mb-4 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
                     <p class="text-xs text-gray-500">Current Stock</p>
                     <p class="text-sm font-semibold text-gray-800"><span id="ingredient-current-stock-value">0</span> <span id="ingredient-current-stock-unit"></span></p>
                     <p class="text-xs text-gray-400 mt-1">To adjust stock, use Record Movement on the ledger page.</p>
@@ -211,7 +209,6 @@
             const modal = document.getElementById('ingredient-modal');
             const form = document.getElementById('ingredient-form');
             const title = document.getElementById('ingredient-modal-title');
-            const errorBox = document.getElementById('ingredient-modal-errors');
             const saveBtn = document.getElementById('ingredient-form-save-btn');
             const storeUrl = '{{ route('admin.inventory.store') }}';
             const baseUrl = '{{ url('admin/inventory') }}';
@@ -285,13 +282,7 @@
             }
 
             function showFieldError(fieldName, message) {
-                errorBox.classList.remove('hidden');
-                errorBox.innerHTML = `
-                    <div class="flex items-start gap-2 text-red-700">
-                        ${errorIconSvg()}
-                        <p>${message}</p>
-                    </div>
-                `;
+                showToast({title: 'Validation Error', message: message}, 'error');
 
                 const field = form.elements[fieldName];
                 if (field) {
@@ -302,13 +293,7 @@
             }
 
             function showDuplicateError(mode) {
-                errorBox.classList.remove('hidden');
-                errorBox.innerHTML = `
-                    <div class="flex items-start gap-2 text-red-700">
-                        ${errorIconSvg()}
-                        <p>This ingredient already exists in your inventory. Please check the name or edit the existing ingredient.</p>
-                    </div>
-                `;
+                showToast('Ingredient already exists', 'error');
 
                 if (mode === 'create') {
                     form.reset();
@@ -517,8 +502,6 @@
 
             function openModal(mode, data) {
                 form.reset();
-                errorBox.classList.add('hidden');
-                errorBox.innerHTML = '';
                 clearFieldErrors();
                 document.querySelectorAll('[data-combo-select]').forEach((c) => setComboSelectValue(c, '', ''));
 
@@ -543,7 +526,6 @@
                     form.unit_cost.value = data.cost;
 
                     createOnlyFields.classList.add('hidden');
-                    form.expiration_date.required = false;
 
                     currentStockDisplay.classList.remove('hidden');
                     currentStockValue.textContent = numberFormat(data.currentStock ?? 0);
@@ -569,9 +551,13 @@
                 const mode = form.dataset.mode;
                 const ingredientId = form.dataset.ingredientId;
 
+                if (!ingredientId && mode === 'edit') {
+                    showToast('Error: Ingredient ID is missing.', 'error');
+                    return;
+                }
+
                 if (!form.unit_of_measurement.value) {
-                    errorBox.classList.remove('hidden');
-                    errorBox.innerHTML = `<div class="flex items-start gap-2 text-red-700">${errorIconSvg()}<p>Please select a unit of measurement.</p></div>`;
+                    showToast({title: 'Validation Error', message: 'Please select a unit of measurement.'}, 'error');
                     return;
                 }
 
@@ -579,7 +565,6 @@
                     form,
                     url: mode === 'create' ? storeUrl : `${baseUrl}/${ingredientId}`,
                     method: mode === 'create' ? 'POST' : 'PUT',
-                    errorBox,
                     toastKind: mode === 'create' ? 'success' : 'edit',
                     onSuccess: async () => {
                         await refreshTable(mode === 'create' ? indexUrl : window.location.href);
@@ -594,18 +579,26 @@
                             return;
                         }
 
+                        const invalidInputMsg = Object.values(errors).flat().find((m) => m === 'Invalid input');
+                        if (invalidInputMsg) {
+                            showToast('Invalid input', 'error');
+                            Object.entries(errors).forEach(([field, messages]) => {
+                                if (Array.isArray(messages) && messages.includes('Invalid input')) {
+                                    const input = form.elements[field];
+                                    if (input) {
+                                        input.classList.add('border-red-400', 'ring-1', 'ring-red-300');
+                                    }
+                                }
+                            });
+                            return;
+                        }
+
                         if (errors.image?.length) {
                             showImageError(errors.image[0]);
                             return;
                         }
 
-                        errorBox.classList.remove('hidden');
-                        if (data && data.errors && typeof data.errors === 'object') {
-                            errorBox.innerHTML = '<ul class="list-disc list-inside">' +
-                                Object.values(data.errors).flat().map((m) => `<li>${escapeHtml(m)}</li>`).join('') + '</ul>';
-                        } else {
-                            errorBox.textContent = (data && data.message) || 'Please check the form and try again.';
-                        }
+                        showToast({title: 'Submission Error', message: (data && data.message) || 'Please check the form for missing or invalid fields.'}, 'error');
                     },
                 });
             }

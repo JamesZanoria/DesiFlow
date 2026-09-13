@@ -53,9 +53,7 @@
             </div>
 
             <div class="p-6">
-                <div id="staff-modal-errors" class="hidden mb-4 text-sm"></div>
-
-                <form id="staff-form">
+                    <form id="staff-form">
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                         <input type="text" name="name" required class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="e.g. Maria Santos">
@@ -140,7 +138,6 @@
             const modal = document.getElementById('staff-modal');
             const form = document.getElementById('staff-form');
             const title = document.getElementById('staff-modal-title');
-            const errorBox = document.getElementById('staff-modal-errors');
             const saveBtn = document.getElementById('staff-modal-save');
             const storeUrl = '{{ route('admin.staff.store') }}';
             const baseUrl = '{{ url('admin/staff') }}';
@@ -225,13 +222,7 @@
             }
 
             function showFieldError(fieldName, message) {
-                errorBox.classList.remove('hidden');
-                errorBox.innerHTML = `
-                    <div class="flex items-start gap-2 text-red-700">
-                        ${errorIconSvg()}
-                        <p>${message}</p>
-                    </div>
-                `;
+                showToast({title: 'Validation Error', message: message}, 'error');
 
                 const field = form.elements[fieldName];
                 if (field) {
@@ -247,13 +238,7 @@
             // the field instead, to avoid losing other changes. Mirrors Inventory's
             // showDuplicateError().
             function showDuplicateEmailError(mode) {
-                errorBox.classList.remove('hidden');
-                errorBox.innerHTML = `
-                    <div class="flex items-start gap-2 text-red-700">
-                        ${errorIconSvg()}
-                        <p>This email is already registered to another staff account.</p>
-                    </div>
-                `;
+                showToast('Email already taken', 'error');
 
                 if (mode === 'create') {
                     form.reset();
@@ -518,8 +503,6 @@
 
             function openModal(mode, data) {
                 form.reset();
-                errorBox.classList.add('hidden');
-                errorBox.innerHTML = '';
                 clearFieldErrors();
                 resetStrengthChecklist();
 
@@ -613,7 +596,6 @@
                     form,
                     url: mode === 'create' ? storeUrl : `${baseUrl}/${userId}`,
                     method: mode === 'create' ? 'POST' : 'PUT',
-                    errorBox,
                     toastKind: mode === 'create' ? 'success' : 'edit',
                     onSuccess: async () => {
                         // Re-fetch the current page from the server instead of
@@ -630,6 +612,20 @@
                         const duplicateMsg = errors.email?.find((m) => m.toLowerCase().includes('already registered'));
                         if (duplicateMsg) {
                             showDuplicateEmailError(mode);
+                            return;
+                        }
+
+                        const invalidInputMsg = Object.values(errors).flat().find((m) => m === 'Invalid input');
+                        if (invalidInputMsg) {
+                            showToast('Invalid input', 'error');
+                            Object.entries(errors).forEach(([field, messages]) => {
+                                if (Array.isArray(messages) && messages.includes('Invalid input')) {
+                                    const input = form.elements[field];
+                                    if (input) {
+                                        input.classList.add('border-red-400', 'ring-1', 'ring-red-300');
+                                    }
+                                }
+                            });
                             return;
                         }
 
@@ -654,13 +650,7 @@
                             return;
                         }
 
-                        errorBox.classList.remove('hidden');
-                        if (data && data.errors && typeof data.errors === 'object') {
-                            errorBox.innerHTML = '<ul class="list-disc list-inside">' +
-                                Object.values(data.errors).flat().map((m) => `<li>${escapeHtml(m)}</li>`).join('') + '</ul>';
-                        } else {
-                            errorBox.textContent = (data && data.message) || 'Please check the form and try again.';
-                        }
+                        showToast({title: 'Submission Error', message: (data && data.message) || 'Please check the form for missing or invalid fields.'}, 'error');
                     },
                 });
             }

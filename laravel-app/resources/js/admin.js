@@ -49,12 +49,15 @@ const TOAST_ICON_PATHS = {
     exclamation: 'M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z',
 };
 
-function showToast(message, kind = 'success') {
+function showToast(content, kind = 'success') {
     const container = document.getElementById('toast-container');
     if (!container) return;
 
     const preset = TOAST_PRESETS[kind] || TOAST_PRESETS.success;
     const iconPath = TOAST_ICON_PATHS[preset.icon];
+
+    const title = typeof content === 'object' ? content.title : '';
+    const message = typeof content === 'object' ? content.message : content;
 
     const toast = document.createElement('div');
     toast.className = `bg-white border border-gray-200 rounded-lg shadow-lg px-4 py-3 flex items-center gap-3
@@ -66,7 +69,10 @@ function showToast(message, kind = 'success') {
                 <path stroke-linecap="round" stroke-linejoin="round" d="${iconPath}" />
             </svg>
         </span>
-        <span class="text-sm text-gray-800 font-medium flex-1">${escapeHtml(message)}</span>
+        <div class="flex-1 min-w-0">
+            ${title ? `<p class="text-sm font-bold text-gray-900 leading-tight">${escapeHtml(title)}</p>` : ''}
+            <p class="text-sm text-gray-600 leading-relaxed">${escapeHtml(message)}</p>
+        </div>
         <button type="button" class="toast-close text-gray-400 hover:text-gray-600 flex-shrink-0">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -85,7 +91,7 @@ function showToast(message, kind = 'success') {
         toast.classList.remove('translate-x-full', 'opacity-0');
     }));
 
-    const autoDismiss = setTimeout(dismiss, 3500);
+    const autoDismiss = setTimeout(dismiss, 5000);
 
     toast.querySelector('.toast-close').addEventListener('click', () => {
         clearTimeout(autoDismiss);
@@ -332,14 +338,6 @@ document.addEventListener('click', (e) => {
         }
         return;
     }
-
-    const option = e.target.closest('.combo-select-option');
-        if (option) {
-            const container = option.closest('[data-combo-select]');
-            setComboSelectValue(container, option.dataset.value, option.dataset.label || option.dataset.value);
-            closeComboSelectPopover(container);
-            return;
-        }
 });
 
 // Live search-as-you-type filtering within an open popover's option list.
@@ -465,7 +463,7 @@ document.addEventListener('click', (e) => {
     const option = e.target.closest('.combo-select-option');
     if (option) {
         const container = option.closest('[data-combo-select]');
-        setComboSelectValue(container, option.dataset.value);
+        setComboSelectValue(container, option.dataset.value, option.dataset.label || option.dataset.value);
         closeComboSelectPopover(container);
         return;
     }
