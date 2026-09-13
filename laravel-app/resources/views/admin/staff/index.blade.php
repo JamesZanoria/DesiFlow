@@ -68,12 +68,26 @@
 
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                        <select name="role" required class="w-full border rounded-lg px-3 py-2 text-sm bg-white">
-                            <option value="">Select a role...</option>
-                            <option value="admin" id="staff-role-admin-option" hidden>Admin / Manager</option>
-                            <option value="cashier">Cashier</option>
-                            <option value="kitchen">Kitchen Staff</option>
-                        </select>
+                        <div class="relative" data-combo-select="staff_role_select" data-allow-custom="false" data-placeholder="Select a role">
+                            <input type="hidden" name="role" id="staff-role-select" required>
+                            <button type="button" id="staff-role-trigger" class="combo-select-trigger w-full flex items-center justify-between gap-2 border rounded-lg px-3 py-2 text-sm text-left hover:border-gray-400 focus:outline-none">
+                                <span class="combo-select-value min-w-0 truncate text-gray-400">Select a role</span>
+                                <svg class="combo-select-chevron w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                            </button>
+                            <div class="combo-select-popover hidden absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg z-30 overflow-hidden">
+                                <div class="combo-select-list max-h-48 overflow-y-auto py-1">
+                                    <button type="button" class="combo-select-option w-full flex items-center justify-between gap-2 px-3 py-2 text-xs text-left hover:bg-gray-50 text-gray-600" data-value="cashier" data-label="Cashier">
+                                        <span class="truncate">Cashier</span>
+                                        <svg class="combo-select-check hidden w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                    </button>
+                                    <button type="button" class="combo-select-option w-full flex items-center justify-between gap-2 px-3 py-2 text-xs text-left hover:bg-gray-50 text-gray-600" data-value="kitchen" data-label="Kitchen Staff">
+                                        <span class="truncate">Kitchen Staff</span>
+                                        <svg class="combo-select-check hidden w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                    </button>
+                                </div>
+                                <p class="combo-select-empty hidden px-3 py-4 text-center text-xs text-gray-400">No matching roles.</p>
+                            </div>
+                        </div>
                         <p id="staff-role-admin-note" class="hidden text-xs text-gray-400 mt-1">The owner/admin role can't be reassigned here — only Cashier and Kitchen Staff accounts can be created or changed.</p>
                     </div>
 
@@ -191,11 +205,26 @@
             function blockIfRoleLocked(e) {
                 if (roleLocked) e.preventDefault();
             }
-            form.role.addEventListener('mousedown', blockIfRoleLocked);
-            form.role.addEventListener('keydown', blockIfRoleLocked);
+            const roleTrigger = document.getElementById('staff-role-trigger');
+            roleTrigger.addEventListener('mousedown', blockIfRoleLocked);
+            roleTrigger.addEventListener('keydown', blockIfRoleLocked);
+            roleTrigger.addEventListener('click', blockIfRoleLocked);
+
+            // Update visual state of the trigger when locked
+            function updateRoleTriggerVisuals() {
+                if (roleLocked) {
+                    roleTrigger.classList.add('bg-gray-100', 'text-gray-400', 'cursor-not-allowed');
+                    roleTrigger.classList.remove('hover:border-gray-400');
+                } else {
+                    roleTrigger.classList.remove('bg-gray-100', 'text-gray-400', 'cursor-not-allowed');
+                    roleTrigger.classList.add('hover:border-gray-400');
+                }
+            }
+
             form.role.addEventListener('change', () => {
                 if (roleLocked && form.role.value !== 'admin') {
                     form.role.value = 'admin';
+                    setComboSelectValue(document.querySelector('[data-combo-select="staff_role_select"]'), 'admin', 'Admin / Manager');
                 }
             });
 
@@ -517,8 +546,8 @@
                     saveBtn.disabled = false;
 
                     roleLocked = false;
-                    roleAdminOption.hidden = true;
                     roleAdminNote.classList.add('hidden');
+                    setComboSelectValue(document.querySelector('[data-combo-select="staff_role_select"]'), '', 'Select a role');
                 } else {
                     title.textContent = 'Edit Staff';
                     form.dataset.mode = 'edit';
@@ -526,24 +555,14 @@
                     form.name.value = data.name;
                     form.email.value = data.email;
 
-                    // The admin option is only ever shown, and only ever
-                    // locked, when the account being edited is already
-                    // admin, an editing session for a cashier/kitchen
-                    // account never even has "Admin / Manager" as a
-                    // selectable option, so it can't be promoted into by
-                    // accident or otherwise.
                     roleLocked = data.role === 'admin';
-                    roleAdminOption.hidden = ! roleLocked;
                     roleAdminNote.classList.toggle('hidden', ! roleLocked);
-                    form.role.value = data.role;
+                    setComboSelectValue(document.querySelector('[data-combo-select="staff_role_select"]'), data.role, data.role === 'admin' ? 'Admin / Manager' : data.role === 'cashier' ? 'Cashier' : 'Kitchen Staff');
 
                     form.password.required = false;
                     form.password.placeholder = 'Leave blank to keep current password';
                     passwordEditHint.classList.remove('hidden');
 
-                    // Captured after the fields above are populated, so it reflects
-                    // exactly what the admin is looking at when the modal opens,
-                    // Save stays disabled until something differs from this.
                     editSnapshot = {
                         name: data.name.trim(),
                         email: data.email.trim(),
@@ -551,6 +570,8 @@
                     };
                     saveBtn.disabled = true;
                 }
+                updateRoleTriggerVisuals();
+
 
                 modal.classList.remove('hidden');
                 document.body.classList.add('overflow-hidden');
