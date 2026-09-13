@@ -13,3 +13,4 @@ fastapi_analytics/**/*.egg-info/
 *.sql.bak
 
 CLAUDE.md
+Capstone1.txt
