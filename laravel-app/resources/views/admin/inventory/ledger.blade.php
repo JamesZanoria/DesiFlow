@@ -15,10 +15,7 @@
             'void' => ['label' => 'Voided Entry', 'badge' => 'bg-gray-100 text-gray-600 border border-gray-300'],
         ];
 
-        // Deterministic color per recorded-by name (not tied to role, this
-        // system only has admin/cashier/kitchen roles, none of which map to
-        // the mockup's implied "Manager" distinction) so the same person
-        // always gets the same avatar color across the table.
+        // Deterministic color per recorded-by name
         $avatarPalette = ['bg-amber-500', 'bg-blue-500', 'bg-purple-500', 'bg-emerald-500', 'bg-rose-500', 'bg-indigo-500'];
     @endphp
 
@@ -35,10 +32,6 @@
         </button>
     </div>
 
-    {{-- Stat cards. Net Stock is defined concretely as the % change in total
-         inventory value (current_stock × unit_cost, summed across every
-         ingredient) vs. 7 days ago, reconstructed from this same ledger,
-         see InventoryController::ledgerStats() for the full rationale. --}}
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div class="bg-white border rounded-xl shadow-sm p-4">
             <div class="flex items-center justify-between mb-1">
@@ -100,8 +93,6 @@
                 'value' => $selectedType,
                 'options' => \App\Http\Controllers\Admin\InventoryController::MOVEMENT_TYPES,
             ])
-
-            
         </div>
 
         @include('admin.partials._filter_search', [
@@ -114,23 +105,23 @@
 
     <div class="bg-white border rounded-xl shadow-sm overflow-hidden">
         <div class="relative">
-            <div id="ledger-scroll-hint-left" class="hidden md:block pointer-events-none absolute left-[360px] top-0 bottom-0 w-6 z-30 bg-gradient-to-r from-black/10 to-transparent transition-opacity"></div>
+            <div id="ledger-scroll-hint-left" class="hidden md:block pointer-events-none absolute left-[400px] top-0 bottom-0 w-6 z-30 bg-gradient-to-r from-black/10 to-transparent transition-opacity"></div>
             <div id="ledger-scroll-hint-right" class="hidden pointer-events-none absolute right-0 top-0 bottom-0 w-8 z-30 bg-gradient-to-l from-black/10 to-transparent transition-opacity"></div>
 
-            <div id="ledger-scroll-container" class="overflow-x-auto [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumn]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full">
-                <table class="text-sm text-left" style="min-width: 1000px;">
+            <div id="ledger-scroll-container" class="overflow-x-auto [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full">
+                <table class="text-sm text-left" style="width: 1570px; table-layout: fixed;">
                     <thead class="text-gray-500 text-xs border-b bg-gray-50">
-                        <tr>
+                        <tr class="h-10">
                             <th class="px-4 py-3 font-medium sticky left-0 z-10 bg-gray-50" style="width:200px;">Date &amp; Time</th>
                             <th class="px-4 py-3 font-medium sticky z-10 bg-gray-50 shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]" style="left:200px; width:220px;">Ingredient</th>
-                            <th class="px-4 py-3 font-medium" style="min-width:200px;">Type</th>
-                            <th class="px-4 py-3 font-medium" style="min-width:120px;">Qty Changed</th>
-                            <th class="px-4 py-3 font-medium" style="min-width:120px;">Delivery Date</th>
-                            <th class="px-4 py-3 font-medium" style="min-width:140px;">Expiration Date</th>
-                            <th class="px-4 py-3 font-medium" style="min-width:150px;">Recorded By</th>
-                            <th class="px-4 py-3 font-medium" style="min-width:200px;">Notes</th>
-                            <th class="px-4 py-3 font-medium" style="min-width:110px;">Reference #</th>
-                            <th class="px-4 py-3 font-medium text-right" style="min-width:110px;">Actions</th>
+                            <th class="px-4 py-3 font-medium" style="width:200px;">Type</th>
+                            <th class="px-4 py-3 font-medium" style="width:120px;">Qty Changed</th>
+                            <th class="px-4 py-3 font-medium" style="width:120px;">Delivery Date</th>
+                            <th class="px-4 py-3 font-medium" style="width:140px;">Expiration Date</th>
+                            <th class="px-4 py-3 font-medium" style="width:150px;">Recorded By</th>
+                            <th class="px-4 py-3 font-medium" style="width:200px;">Notes</th>
+                            <th class="px-4 py-3 font-medium" style="width:110px;">Reference #</th>
+                            <th class="px-4 py-3 font-medium text-right" style="width:110px;">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="ledger-table-body" class="divide-y">
@@ -141,8 +132,8 @@
                                 $avatarColor = $avatarPalette[crc32($recordedByName) % count($avatarPalette)];
                             @endphp
                             <tr id="movement-row-{{ $movement->movement_id }}">
-                                <td class="px-4 py-3 text-gray-600 cell-date sticky left-0 z-10 bg-white" style="min-width:200px;">{{ $movement->recorded_at->timezone('Asia/Manila')->format('M d, Y g:i A') }}</td>
-                                <td class="px-4 py-3 font-medium text-gray-800 cell-ingredient sticky z-10 bg-white shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]" style="left:200px; width:220px;">
+                                <td class="px-4 py-3 text-gray-600 cell-date sticky left-0 z-10 bg-white truncate" style="width:200px;">{{ $movement->recorded_at->timezone('Asia/Manila')->format('M d, Y g:i A') }}</td>
+                                <td class="px-4 py-3 font-medium text-gray-800 cell-ingredient sticky z-10 bg-white shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)] truncate" style="left:200px; width:220px;">
                                     <div class="flex items-center gap-2.5 min-w-0">
                                         <div class="w-8 h-8 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
                                             @if ($movement->ingredient?->image_url)
@@ -156,7 +147,7 @@
                                         </span>
                                     </div>
                                 </td>
-                                <td class="px-4 py-3">
+                                <td class="px-4 py-3 truncate" style="width:200px;">
                                     <span class="cell-type-badge px-2.5 py-1 rounded-full text-xs font-medium {{ $typeMeta['badge'] }}">
                                         {{ $typeMeta['label'] }}
                                     </span>
@@ -164,16 +155,16 @@
                                         <span class="ml-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-500 border border-gray-300">Voided</span>
                                     @endif
                                 </td>
-                                <td class="px-4 py-3 cell-qty {{ $movement->qty_changed < 0 ? 'text-red-600' : 'text-green-700' }}">
+                                <td class="px-4 py-3 cell-qty {{ $movement->qty_changed < 0 ? 'text-red-600' : 'text-green-700' }} truncate" style="width:120px;">
                                     {{ $movement->qty_changed > 0 ? '+' : '' }}{{ number_format($movement->qty_changed, 2) }}
                                 </td>
-                                <td class="px-4 py-3 text-gray-600">
+                                <td class="px-4 py-3 text-gray-600 truncate" style="width:120px;">
                                     {{ $movement->delivery_date ? $movement->delivery_date->format('M d, Y') : '—' }}
                                 </td>
-                                <td class="px-4 py-3 text-gray-600">
+                                <td class="px-4 py-3 text-gray-600 truncate" style="width:140px;">
                                     {{ $movement->expiration_date ? $movement->expiration_date->format('M d, Y') : '—' }}
                                 </td>
-                                <td class="px-4 py-3 cell-recorded-by">
+                                <td class="px-4 py-3 cell-recorded-by truncate" style="width:150px;">
                                     <div class="flex items-center gap-2">
                                         <div class="w-6 h-6 rounded-full {{ $avatarColor }} text-white flex items-center justify-center text-[10px] font-semibold flex-shrink-0">
                                             {{ strtoupper(substr($recordedByName, 0, 1)) }}
@@ -181,9 +172,9 @@
                                         <span class="text-gray-600 truncate">{{ $recordedByName }}</span>
                                     </div>
                                 </td>
-                                <td class="px-4 py-3 text-gray-500 cell-notes">
+                                <td class="px-4 py-3 text-gray-500 cell-notes truncate" style="width:200px;">
                                     @if ($movement->notes || $movement->edit_reason)
-                                        <button type="button" class="view-notes-btn text-left hover:underline hover:text-gray-700 block truncate max-w-[12rem]"
+                                        <button type="button" class="view-notes-btn text-left hover:underline hover:text-gray-700 block truncate max-w-[18rem]"
                                             data-notes="{{ $movement->notes }}"
                                             data-edit-reason="{{ $movement->edit_reason }}">
                                             {{ \Illuminate\Support\Str::limit($movement->notes ?? 'View edit reason', 30) }}
@@ -192,8 +183,8 @@
                                         <span class="text-gray-300">—</span>
                                     @endif
                                 </td>
-                                <td class="px-4 py-3 text-gray-600 cell-reference">{{ $movement->reference_number ?? '—' }}</td>
-                                <td class="px-4 py-3 text-right">
+                                <td class="px-4 py-3 text-gray-600 cell-reference truncate" style="width:110px;">{{ $movement->reference_number ?? '—' }}</td>
+                                <td class="px-4 py-3 text-right truncate" style="width:110px;">
                                     @if ($movement->movement_type !== 'void' && ! $movement->voided_at)
                                         <button type="button"
                                             class="edit-movement-btn inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50"
@@ -205,7 +196,11 @@
                                             data-type="{{ $movement->movement_type }}"
                                             data-type-label="{{ $typeMeta['label'] }}"
                                             data-qty="{{ $movement->movement_type === 'manual_adjustment' ? $movement->qty_changed : abs($movement->qty_changed) }}"
-                                            data-recorded-at="{{ $movement->recorded_at->timezone('Asia/Manila')->toDateString() }}">
+                                            data-recorded-at="{{ $movement->recorded_at->timezone('Asia/Manila')->toDateString() }}"
+                                            data-delivery-date="{{ $movement->delivery_date ? $movement->delivery_date->format('Y-m-d') : '' }}"
+                                            data-expiration-date="{{ $movement->expiration_date ? $movement->expiration_date->format('Y-m-d') : '' }}"
+                                            data-reference-number="{{ $movement->reference_number ?? '' }}"
+                                            data-notes="{{ $movement->notes ?? '' }}">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
                                         </button>
                                         <button type="button"
@@ -221,7 +216,7 @@
                             </tr>
                         @empty
                             <tr id="ledger-empty-row">
-                                <td colspan="7" class="px-4 py-6 text-center text-gray-400">
+                                <td colspan="10" class="px-4 py-6 text-center text-gray-400">
                                     @if (request('search') || $selectedIngredientId || $selectedType)
                                         No stock movements match your search or filters.
                                     @else
@@ -270,29 +265,17 @@
         </div>
     </div>
 
-
-    {{-- Record / Edit Movement popup. Record and Edit now diverge enough
-         (Edit locks the ingredient and type, and adds its own audit fields)
-         that most of the form is wrapped into #movement-create-only-fields /
-         #movement-edit-only-fields, toggled as a group in the script below
-         rather than field-by-field. Ingredient selection still uses a plain
-         native <select> here deliberately (not the _filter_select popover
-         used for the page's own filter row), this one drives which
-         ingredient a NEW movement gets recorded against inside a modal, a
-         different job from filtering the table, and swapping it would be
-         change for its own sake rather than fixing anything. --}}
     <div id="movement-modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-y-auto">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-md my-8 max-h-[90vh] overflow-y-auto">
-            <div class="bg-indigo-50 rounded-t-xl px-6 py-4 flex items-center justify-between sticky top-0">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md my-8 max-h-[90vh] flex flex-col">
+            <div class="bg-indigo-50 rounded-t-xl px-6 py-4 flex items-center justify-between flex-none border-b border-indigo-100">
                 <h2 id="movement-modal-title" class="text-lg font-semibold text-gray-800">Record Stock Movement</h2>
-                <button type="button" id="movement-modal-close" class="text-gray-400 hover:text-gray-600">&times;</button>
+                <button type="button" id="movement-modal-close" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
             </div>
 
-            <div class="p-6">
+            <div class="flex-1 min-h-0 overflow-y-auto p-6">
                 <div id="movement-modal-errors" class="hidden mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm"></div>
 
                 <form id="movement-modal-form">
-                    {{-- Record mode: pick which ingredient this movement is against. --}}
                     <div class="mb-4" id="movement-ingredient-select-field">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Ingredient</label>
                         <div class="relative" data-combo-select="ingredient_select" data-allow-custom="false" data-placeholder="Select an ingredient">
@@ -319,77 +302,66 @@
                         </div>
                     </div>
 
-                    {{-- Edit mode: the ingredient and reason code are locked in from
-                         the original entry (see InventoryController::updateMovement())
-                         and just shown for context, not re-selectable. --}}
                     <div class="mb-4 hidden" id="movement-ingredient-display-field">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Ingredient</label>
-                        <p id="movement-ingredient-display-text" class="text-sm text-gray-800 bg-gray-50 border rounded-lg px-3 py-2"></p>
+                        <p id="movement-ingredient-display-text" class="text-sm text-gray-800 bg-gray-50 border rounded-lg px-3 py-2 font-medium"></p>
                     </div>
 
-                    <div id="movement-create-only-fields">
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Reason</label>
-                            <div class="relative" data-combo-select="movement_type_select" data-allow-custom="false" data-placeholder="Select a reason">
-                                <input type="hidden" name="movement_type" id="movement-type-select" value="opening_balance" required>
-                                <button type="button" class="combo-select-trigger w-full flex items-center justify-between gap-2 border rounded-lg px-3 py-2 text-sm text-left hover:border-gray-400 focus:outline-none">
-                                    <span class="combo-select-value min-w-0 truncate text-gray-400">Select a reason</span>
-                                    <svg class="combo-select-chevron w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
-                                </button>
-                                <div class="combo-select-popover hidden absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg z-30 overflow-hidden">
-                                    <div class="combo-select-list max-h-48 overflow-y-auto py-1">
-                                        @foreach (\App\Http\Controllers\Admin\InventoryController::RECORDABLE_MOVEMENT_TYPES as $key)
-                                            @php $label = \App\Http\Controllers\Admin\InventoryController::MOVEMENT_TYPES[$key]; @endphp
-                                            <button type="button" class="combo-select-option w-full flex items-center justify-between gap-2 px-3 py-2 text-xs text-left hover:bg-gray-50 text-gray-600"
-                                                data-value="{{ $key }}" data-label="{{ $label }}">
-                                                <span class="truncate">{{ $label }}</span>
-                                                <svg class="combo-select-check hidden w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-                                            </button>
-                                        @endforeach
-                                    </div>
-                                    <p class="combo-select-empty hidden px-3 py-4 text-center text-xs text-gray-400">No matching reasons.</p>
+                    <div class="mb-4" id="movement-reason-field">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Reason</label>
+                        <div class="relative" data-combo-select="movement_type_select" data-allow-custom="false" data-placeholder="Select a reason">
+                            <input type="hidden" name="movement_type" id="movement-type-select" value="opening_balance" required>
+                            <button type="button" class="combo-select-trigger w-full flex items-center justify-between gap-2 border rounded-lg px-3 py-2 text-sm text-left hover:border-gray-400 focus:outline-none">
+                                <span class="combo-select-value min-w-0 truncate text-gray-400">Select a reason</span>
+                                <svg class="combo-select-chevron w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                            </button>
+                            <div class="combo-select-popover hidden absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg z-30 overflow-hidden">
+                                <div class="combo-select-list max-h-48 overflow-y-auto py-1">
+                                    @foreach (\App\Http\Controllers\Admin\InventoryController::RECORDABLE_MOVEMENT_TYPES as $key)
+                                        @php $label = \App\Http\Controllers\Admin\InventoryController::MOVEMENT_TYPES[$key]; @endphp
+                                        <button type="button" class="combo-select-option w-full flex items-center justify-between gap-2 px-3 py-2 text-xs text-left hover:bg-gray-50 text-gray-600"
+                                            data-value="{{ $key }}" data-label="{{ $label }}">
+                                            <span class="truncate">{{ $label }}</span>
+                                            <svg class="combo-select-check hidden w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                        </button>
+                                    @endforeach
                                 </div>
+                                <p class="combo-select-empty hidden px-3 py-4 text-center text-xs text-gray-400">No matching reasons.</p>
                             </div>
                         </div>
                     </div>
 
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1" id="movement-qty-label">Amount Received</label>
-                        <input type="number" step="0.01" min="0.01" name="qty_changed" id="movement-qty-input" required class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="0.00">
-                        <p class="text-xs text-gray-400 mt-1" id="movement-qty-hint">This amount will be added to stock.</p>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3 mb-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Delivery Date</label>
-                            <input type="date" name="delivery_date" id="movement-delivery-date" class="w-full border rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed">
+                    <div class="mb-4" id="movement-data-fields">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1" id="movement-qty-label">Amount Received</label>
+                            <input type="number" step="0.01" min="0.01" name="qty_changed" id="movement-qty-input" required class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="0.00">
+                            <p class="text-xs text-gray-400 mt-1" id="movement-qty-hint">This amount will be added to stock.</p>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Expiration Date</label>
-                            <input type="date" name="expiration_date" id="movement-expiration-date" class="w-full border rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed">
+                        <div class="grid grid-cols-2 gap-3 mb-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Delivery Date</label>
+                                <input type="date" name="delivery_date" id="movement-delivery-date" class="w-full border rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Expiration Date</label>
+                                <input type="date" name="expiration_date" id="movement-expiration-date" class="w-full border rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed">
+                            </div>
                         </div>
-                    </div>
-
-                    <div id="movement-create-only-fields-2">
                         <div class="mb-4">
                             <label class="block text-sm font-medium text-gray-700 mb-1">Reference Number / Invoice (optional)</label>
                             <input type="text" name="reference_number" id="movement-reference-number" placeholder="e.g. DR# or invoice number" class="w-full border rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed">
                         </div>
-
                         <div class="mb-6">
                             <label class="block text-sm font-medium text-gray-700 mb-1">Remarks / Notes (optional)</label>
                             <input type="text" name="notes" placeholder="e.g. Supplier delivered dented cans" class="w-full border rounded-lg px-3 py-2 text-sm">
                         </div>
                     </div>
 
-                    {{-- Edit mode only: correcting an existing entry always requires
-                         saying why, and can optionally backdate/forward-date it —
-                         see InventoryController::updateMovement(). --}}
                     <div class="hidden" id="movement-edit-only-fields">
                         <div class="mb-4">
                             <label class="block text-sm font-medium text-gray-700 mb-1">Reason for Edit</label>
                             <input type="text" name="edit_reason" id="movement-edit-reason-input" placeholder="e.g. Typo, meant to type 5 instead of 50" class="w-full border rounded-lg px-3 py-2 text-sm">
                         </div>
-
                         <div class="mb-6">
                             <label class="block text-sm font-medium text-gray-700 mb-1">Date of Transaction (optional)</label>
                             <input type="date" name="recorded_at" id="movement-recorded-at-input" class="w-full border rounded-lg px-3 py-2 text-sm">
@@ -397,11 +369,12 @@
                         </div>
                     </div>
 
-                    <div class="flex justify-end gap-3">
-                        <button type="button" id="movement-modal-cancel" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100">Cancel</button>
-                        <button type="submit" class="bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-600">Save Movement</button>
-                    </div>
-                </form>
+                    </form>
+            </div>
+
+            <div class="px-6 py-4 border-t bg-gray-50 rounded-b-xl flex justify-end gap-3 flex-none">
+                <button type="button" id="movement-modal-cancel" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100">Cancel</button>
+                <button type="submit" id="movement-modal-save" form="movement-modal-form" class="bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-600">Save Movement</button>
             </div>
         </div>
     </div>
@@ -416,8 +389,8 @@
             const ingredientSelect = document.getElementById('movement-ingredient-select');
             const ingredientDisplayField = document.getElementById('movement-ingredient-display-field');
             const ingredientDisplayText = document.getElementById('movement-ingredient-display-text');
-            const createOnlyFields = document.getElementById('movement-create-only-fields');
-            const createOnlyFields2 = document.getElementById('movement-create-only-fields-2');
+            const reasonField = document.getElementById('movement-reason-field');
+            const dataFields = document.getElementById('movement-data-fields');
             const editOnlyFields = document.getElementById('movement-edit-only-fields');
             const editReasonInput = document.getElementById('movement-edit-reason-input');
             const recordedAtInput = document.getElementById('movement-recorded-at-input');
@@ -433,11 +406,11 @@
             const container = document.getElementById('ledger-scroll-container');
             const leftHint = document.getElementById('ledger-scroll-hint-left');
             const rightHint = document.getElementById('ledger-scroll-hint-right');
-            const saveBtn = form.querySelector('button[type="submit"]');
+            const saveBtn = document.getElementById('movement-modal-save');
 
             const QTY_COPY = {
                 delivery: { label: 'Amount Received', hint: 'This amount will be added to stock.' },
-                opening_balance: { label: 'Starting Quantity', hint: 'This becomes the ingredient\u2019s starting stock.' },
+                opening_balance: { label: 'Starting Quantity', hint: 'This becomes the ingredient’s starting stock.' },
                 spoilage: { label: 'Amount Wasted', hint: 'This amount will be deducted from stock.' },
                 internal_use: { label: 'Amount Used', hint: 'This amount will be deducted from stock.' },
                 manual_adjustment: { label: 'Quantity Adjustment', hint: 'Use a positive number to add, negative to subtract.' },
@@ -460,84 +433,32 @@
             window.addEventListener('resize', updateScrollHints);
             updateScrollHints();
 
-            function updateFieldStates(type, qty) {
+            function isFormValid() {
+                const type = typeSelect.value;
+                const qty = qtyInput.value;
+                const ingredient = ingredientSelect.value;
+                const expDate = expDateInput.value;
+                const editReason = editReasonInput.value;
+
+                if (!type || !qty || (form.dataset.mode === 'create' && !ingredient)) return false;
+                if (isNaN(parseFloat(qty)) || parseFloat(qty) === 0) return false;
+
+                // Conditional Expiration Date
                 const isDelivery = (type === 'delivery');
                 const isOpening = (type === 'opening_balance');
-                const isManual = (type === 'manual_adjustment');
-                const isPositiveManual = (isManual && parseFloat(qty) > 0);
+                const isPositiveManual = (type === 'manual_adjustment' && parseFloat(qty) > 0);
+                if ((isDelivery || isOpening || isPositiveManual) && !expDate) return false;
 
-                // Delivery Date & Reference Number
-                const deliveryFieldsEnabled = isDelivery;
-                deliveryDateInput.disabled = !deliveryFieldsEnabled;
-                refNumberInput.disabled = !deliveryFieldsEnabled;
-                if (!deliveryFieldsEnabled) {
-                    deliveryDateInput.value = '';
-                    refNumberInput.value = '';
-                }
+                // Edit Mode: Reason is required
+                if (form.dataset.mode === 'edit' && !editReason.trim()) return false;
 
-                // Expiration Date
-                const expDateEnabled = isDelivery || isOpening || isPositiveManual;
-                expDateInput.disabled = !expDateEnabled;
-                expDateInput.required = expDateEnabled;
-                if (!expDateEnabled) {
-                    expDateInput.value = '';
-                }
+                return true;
             }
 
-            async function updateOpeningBalanceAvailability() {
-                const ingredientId = ingredientSelect.value;
-                if (!ingredientId) return;
-
-                try {
-                    const response = await fetch(`${recordUrlBase.replace(/\/$/, '')}/${ingredientId}/has-opening-balance`);
-                    if (!response.ok) throw new Error('Network response was not ok');
-                    const data = await response.json();
-                    const hasOpening = data.hasOpeningBalance;
-
-                    const typeContainer = document.getElementById('movement-type-select').closest('[data-combo-select]');
-                    const openingOption = typeContainer.querySelector('.combo-select-option[data-value="opening_balance"]');
-
-                    if (openingOption) {
-                        openingOption.disabled = hasOpening;
-                        openingOption.classList.toggle('disabled:bg-gray-100', hasOpening);
-                        openingOption.classList.toggle('disabled:text-gray-400', hasOpening);
-                        openingOption.classList.toggle('disabled:cursor-not-allowed', hasOpening);
-
-                        // To actually apply the styling since it's not a native input:
-                        if (hasOpening) {
-                            openingOption.classList.add('bg-gray-100', 'text-gray-400', 'cursor-not-allowed', 'pointer-events-none');
-                        } else {
-                            openingOption.classList.remove('bg-gray-100', 'text-gray-400', 'cursor-not-allowed', 'pointer-events-none');
-                        }
-                    }
-
-                    if (hasOpening && typeSelect.value === 'opening_balance') {
-                        // If Opening Balance was selected but is now disabled, switch to Delivery as a sensible default
-                        setComboSelectValue(typeContainer, 'delivery', 'Supplier Delivery / Purchase');
-                        syncQtyFieldToType('delivery');
-                        updateFieldStates('delivery', qtyInput.value);
-                    }
-                } catch (err) {
-                    console.error('Failed to check opening balance:', err);
-                }
-            }
-
-            // Adjusts the quantity field's label, hint, and allowed sign based on the
-            // reason code, this is what stops an admin from having to remember
-            // "waste needs a minus sign." Every reason except Physical Count
-            // Adjustment takes a plain positive magnitude; the server decides the
-            // actual direction from the reason (see normalizeQtySign()).
-            function syncQtyFieldToType(type) {
-                const copy = QTY_COPY[type] ?? QTY_COPY.manual_adjustment;
-                qtyLabel.textContent = copy.label;
-                qtyHint.textContent = copy.hint;
-                if (type === 'manual_adjustment') {
-                    qtyInput.removeAttribute('min');
-                } else {
-                    qtyInput.min = '0.01';
-                }
-                updateFieldStates(type, qtyInput.value);
-            }
+            // Listeners for all potential triggers
+            [qtyInput, expDateInput, refNumberInput, form.querySelector('[name="notes"]'), editReasonInput, recordedAtInput].forEach((el) => {
+                if (el) el.addEventListener('input', () => {});
+            });
 
             typeSelect.addEventListener('change', () => {
                 syncQtyFieldToType(typeSelect.value);
@@ -552,6 +473,51 @@
                 updateOpeningBalanceAvailability();
             });
 
+            function syncQtyFieldToType(type) {
+                const copy = QTY_COPY[type] || QTY_COPY.delivery;
+                qtyLabel.textContent = copy.label;
+                qtyHint.textContent = copy.hint;
+
+                const isDelivery = (type === 'delivery');
+                const isOpening = (type === 'opening_balance');
+
+                deliveryDateInput.disabled = !isDelivery;
+                expDateInput.disabled = !(isDelivery || isOpening);
+                refNumberInput.disabled = !isDelivery;
+            }
+
+            function updateFieldStates(type, qty) {
+                if (type === 'manual_adjustment') {
+                    qtyInput.min = '-99999999';
+                } else {
+                    qtyInput.min = '0.01';
+                }
+            }
+
+            async function updateOpeningBalanceAvailability() {
+                const ingredientId = ingredientSelect.value;
+                if (!ingredientId) return;
+
+                const typeContainer = document.getElementById('movement-type-select').closest('[data-combo-select]');
+                const openingOption = typeContainer.querySelector('.combo-select-option[data-value="opening_balance"]');
+                if (!openingOption) return;
+
+                try {
+                    const response = await fetch(`${recordUrlBase}/${ingredientId}/has-opening-balance`, { headers: { 'Accept': 'application/json' } });
+                    const data = await response.json();
+
+                    if (data.hasOpeningBalance) {
+                        openingOption.disabled = true;
+                        openingOption.classList.add('bg-gray-100', 'text-gray-400', 'cursor-not-allowed', 'pointer-events-none');
+                    } else {
+                        openingOption.disabled = false;
+                        openingOption.classList.remove('bg-gray-100', 'text-gray-400', 'cursor-not-allowed', 'pointer-events-none');
+                    }
+                } catch (err) {
+                    console.error('Failed to check opening balance availability', err);
+                }
+            }
+
             function openCreateModal() {
                 form.reset();
                 errorBox.classList.add('hidden');
@@ -560,7 +526,6 @@
                 form.dataset.mode = 'create';
                 form.dataset.movementId = '';
 
-                // Reset Opening Balance option to enabled
                 const typeContainer = document.getElementById('movement-type-select').closest('[data-combo-select]');
                 const openingOption = typeContainer.querySelector('.combo-select-option[data-value="opening_balance"]');
                 if (openingOption) {
@@ -572,8 +537,8 @@
                 ingredientDisplayField.classList.add('hidden');
                 ingredientSelect.required = true;
 
-                createOnlyFields.classList.remove('hidden');
-                createOnlyFields2.classList.remove('hidden');
+                reasonField.classList.remove('hidden');
+                dataFields.classList.remove('hidden');
                 editOnlyFields.classList.add('hidden');
                 editReasonInput.required = false;
 
@@ -599,24 +564,32 @@
                 ingredientSelectField.classList.add('hidden');
                 ingredientSelect.required = false;
                 ingredientDisplayField.classList.remove('hidden');
-                ingredientDisplayText.textContent = `${data.ingredientName} (${data.ingredientUnit}) \u2014 ${data.typeLabel}`;
+                ingredientDisplayText.textContent = `${data.ingredientName} (${data.ingredientUnit}) — ${data.typeLabel}`;
 
-                // Reason code is locked in from the original entry — not part of
-                // this form in edit mode (see InventoryController::updateMovement()).
-                createOnlyFields.classList.add('hidden');
-                createOnlyFields2.classList.add('hidden');
+                // Reason is read-only in Edit mode
+                reasonField.classList.remove('hidden');
+                const typeContainer = document.getElementById('movement-type-select').closest('[data-combo-select]');
+                setComboSelectValue(typeContainer, data.type, data.typeLabel);
                 typeSelect.required = false;
+                typeContainer.querySelector('.combo-select-trigger').classList.add('bg-gray-50', 'text-gray-500', 'cursor-not-allowed');
+                typeContainer.querySelector('.combo-select-trigger').style.pointerEvents = 'none';
 
+                dataFields.classList.remove('hidden');
                 editOnlyFields.classList.remove('hidden');
                 editReasonInput.required = true;
                 recordedAtInput.value = data.recordedAt ?? '';
 
-                initialSnapshot = snapshotForm();
-                checkDirty();
-
+                // Load existing data
                 qtyInput.value = data.qty;
+                deliveryDateInput.value = data.deliveryDate ?? '';
+                expDateInput.value = data.expirationDate ?? '';
+                refNumberInput.value = data.referenceNumber ?? '';
+                form.querySelector('[name="notes"]').value = data.notes ?? '';
+
                 syncQtyFieldToType(data.type);
                 updateFieldStates(data.type, data.qty);
+
+                initialSnapshot = snapshotForm();
 
                 modal.classList.remove('hidden');
                 document.body.classList.add('overflow-hidden');
@@ -625,27 +598,28 @@
             function closeModal() {
                 modal.classList.add('hidden');
                 document.body.classList.remove('overflow-hidden');
+                // Cleanup reason trigger styling
+                const typeContainer = document.getElementById('movement-type-select').closest('[data-combo-select]');
+                if (typeContainer) {
+                    const trigger = typeContainer.querySelector('.combo-select-trigger');
+                    trigger.classList.remove('bg-gray-50', 'text-gray-500', 'cursor-not-allowed');
+                    trigger.style.pointerEvents = '';
+                }
             }
 
             let initialSnapshot = null;
 
             function snapshotForm() {
-                return JSON.stringify({ qty: qtyInput.value, editReason: editReasonInput.value, recordedAt: recordedAtInput.value });
+                return JSON.stringify({
+                    qty: qtyInput.value,
+                    deliveryDate: deliveryDateInput.value,
+                    expirationDate: expDateInput.value,
+                    referenceNumber: refNumberInput.value,
+                    notes: form.querySelector('[name="notes"]').value,
+                    editReason: editReasonInput.value,
+                    recordedAt: recordedAtInput.value
+                });
             }
-
-            function checkDirty() {
-                if (form.dataset.mode !== 'edit' || !initialSnapshot) {
-                    saveBtn.disabled = false;
-                    saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                    return;
-                }
-                const dirty = snapshotForm() !== initialSnapshot;
-                saveBtn.disabled = !dirty;
-                saveBtn.classList.toggle('opacity-50', !dirty);
-                saveBtn.classList.toggle('cursor-not-allowed', !dirty);
-            }
-
-            [qtyInput, editReasonInput, recordedAtInput].forEach((el) => el.addEventListener('input', checkDirty));
 
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -662,11 +636,6 @@
                         errorBox,
                         onSuccess: () => {
                             closeModal();
-                            // Full reload here (as before): this page spans every
-                            // ingredient and can be filtered, so a fresh load is the
-                            // simplest way to get the new row (and refreshed stat
-                            // cards) into correct position without duplicating the
-                            // server's sort/filter/aggregation logic client-side.
                             window.location.reload();
                         },
                     });
@@ -680,9 +649,6 @@
                         errorBox,
                         toastKind: 'edit',
                         onSuccess: () => {
-                            // A corrected quantity/date also shifts the stat cards
-                            // (Net Stock especially), so resync from the server
-                            // rather than hand-patching just this one row.
                             closeModal();
                             window.location.reload();
                         },
@@ -690,10 +656,6 @@
                 }
             });
 
-            // "Delete" never erases a row — it voids it, see
-            // InventoryController::destroyMovement(). A full reload picks up
-            // both the now-locked original row and the new reversing entry,
-            // plus refreshed stat cards, the same reasoning as create() above.
             function voidMovement(btn) {
                 submitAjaxAction({
                     url: `${baseMovementUrl}/${btn.dataset.id}`,
@@ -720,6 +682,10 @@
                     typeLabel: btn.dataset.typeLabel,
                     qty: btn.dataset.qty,
                     recordedAt: btn.dataset.recordedAt,
+                    deliveryDate: btn.dataset.deliveryDate,
+                    expirationDate: btn.dataset.expirationDate,
+                    referenceNumber: btn.dataset.referenceNumber,
+                    notes: btn.dataset.notes,
                 }));
             });
             document.querySelectorAll('.void-movement-btn').forEach((btn) => {
@@ -733,8 +699,6 @@
 
             document.querySelectorAll('.view-notes-btn').forEach((btn) => {
                 btn.addEventListener('click', () => {
-                    // textContent only — notes/edit reasons are free text typed by staff,
-                    // never trust them as HTML.
                     notesModalNotes.textContent = btn.dataset.notes || '(no notes entered)';
                     if (btn.dataset.editReason) {
                         notesModalEditReason.textContent = btn.dataset.editReason;
@@ -746,7 +710,7 @@
                 });
             });
             document.getElementById('notes-modal-close').addEventListener('click', () => notesModal.classList.add('hidden'));
-            notesModal.addEventListener('click', (e) => { if (e.target === notesModal) notesModal.classList.add('hidden'); });
+            notesModal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
             document.getElementById('record-movement-btn').addEventListener('click', openCreateModal);
             document.getElementById('movement-modal-close').addEventListener('click', closeModal);

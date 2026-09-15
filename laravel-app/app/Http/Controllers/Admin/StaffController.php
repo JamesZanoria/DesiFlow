@@ -282,6 +282,14 @@ class StaffController extends Controller{
     // cashier/kitchen, same as store() — no path in this form can ever
     // promote someone to admin.
     public function update(Request $request, User $user){
+        // Security Restriction: Prevent editing Admin/Manager accounts.
+        if ($user->role === 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Admin accounts cannot be edited through this interface.',
+            ], 403);
+        }
+
         // Guardrail: Validate input strings via Ollama to prevent gibberish/malicious data.
         $guard = app(InputValidationService::class);
         $inputToValidate = trim($request->input('name', '') . ' ' . $request->input('email', ''));
@@ -344,6 +352,14 @@ class StaffController extends Controller{
     // it's caught here and turned into a clear, specific message the admin can act
     // on. Same pattern as InventoryController::destroy().
     public function destroy(Request $request, User $user){
+        // Security Restriction: Prevent deleting Admin/Manager accounts.
+        if ($user->role === 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Admin accounts cannot be deleted.',
+            ], 403);
+        }
+
         try {
             $user->delete();
         } catch (QueryException $e) {

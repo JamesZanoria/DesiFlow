@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\AnalyticsSnapshot;
 use App\Models\Ingredient;
 use App\Models\MenuItem;
+use App\Models\Order;
+
 
 class AnalyticsController extends Controller{
     // Display the analytics report, each section pulled from the most recent
@@ -18,12 +20,24 @@ class AnalyticsController extends Controller{
         $demandForecast = $this->latestBatchWithNames('demand_forecast', Ingredient::class, 'ingredient_id');
         $spoilageRisk = $this->latestBatchWithNames('spoilage_risk', Ingredient::class, 'ingredient_id');
 
+        // Real-time KPIs for immediate business overview
+        $kpis = [
+            'total_revenue' => Order::sum('total_amount'),
+            'total_orders' => Order::count(),
+            'active_menu_items' => MenuItem::count(),
+            'high_risk_ingredients' => AnalyticsSnapshot::where('snapshot_type', 'spoilage_risk')
+                ->whereJsonContains('result_data->risk_level', 'critical')
+                ->orWhereJsonContains('result_data->risk_level', 'high')
+                ->count(),
+        ];
+
         return view('admin.analytics.index', [
             'businessHealth' => $businessHealth,
             'businessHealthHistory' => $businessHealthHistory,
             'menuEngineering' => $menuEngineering,
             'demandForecast' => $demandForecast,
             'spoilageRisk' => $spoilageRisk,
+            'kpis' => $kpis,
         ]);
     }
 

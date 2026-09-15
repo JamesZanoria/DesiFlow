@@ -17,10 +17,10 @@
     <table class="w-full text-sm text-left">
         <thead class="text-gray-500 text-xs border-b">
             <tr>
-                <th class="px-4 py-3 font-medium">Item ID</th>
                 <th class="px-4 py-3 font-medium">Name</th>
                 <th class="px-4 py-3 font-medium">Category</th>
                 <th class="px-4 py-3 font-medium">Price</th>
+                <th class="px-4 py-3 font-medium">Inventory</th>
                 <th class="px-4 py-3 font-medium">Status</th>
                 <th class="px-4 py-3 font-medium text-right">Actions</th>
             </tr>
@@ -28,7 +28,6 @@
         <tbody id="menu-table-body" class="divide-y">
             @forelse ($menuItems as $item)
                 <tr id="menu-row-{{ $item->menu_item_id }}">
-                    <td class="px-4 py-3 text-gray-400 cell-id">#{{ $item->menu_item_id }}</td>
                     <td class="px-4 py-3 cell-name-cell">
                         <div class="flex items-center gap-3">
                             @if ($item->image_url)
@@ -43,19 +42,43 @@
                     </td>
                     <td class="px-4 py-3 text-gray-600 cell-category">{{ $item->category }}</td>
                     <td class="px-4 py-3 text-gray-600 cell-price">₱{{ number_format($item->price, 2) }}</td>
+                    <td class="px-4 py-3">
+                        @php $invStatus = $item->inventoryAvailable(); @endphp
+                        @if($invStatus === 'available')
+                            <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                Available
+                            </span>
+                        @elseif($invStatus === 'warning')
+                            <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                Low Stock
+                            </span>
+                        @else
+                            <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                                Unavailable
+                            </span>
+                        @endif
+                    </td>
                     <td class="px-4 py-3 cell-status">
-                        <span class="relative inline-block status-wrapper">
-                            <select
-                                class="status-select appearance-none text-xs font-medium rounded-full border pl-2.5 pr-6 py-1 cursor-pointer focus:outline-none focus:ring-1 focus:ring-amber-400 {{ $item->is_available ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200' }}"
-                                data-id="{{ $item->menu_item_id }}"
-                                data-item-name="{{ $item->item_name }}"
-                                data-category="{{ $item->category }}"
-                                data-price="{{ $item->price }}">
-                                <option value="1" {{ $item->is_available ? 'selected' : '' }}>Active</option>
-                                <option value="0" {{ !$item->is_available ? 'selected' : '' }}>Out of Stock</option>
-                            </select>
-                            <svg class="status-chevron w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none {{ $item->is_available ? 'text-green-700' : 'text-red-700' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
-                        </span>
+                        @php $details = $item->getAvailabilityDetails(); @endphp
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium {{ $details['is_available'] ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
+                                <span class="w-1.5 h-1.5 rounded-full {{ $details['is_available'] ? 'bg-green-500' : 'bg-red-500' }}"></span>
+                                {{ $details['is_available'] ? 'Active' : 'Unavailable' }}
+                            </span>
+                            @if(!$details['is_available'])
+                                <button type="button"
+                                    class="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
+                                    onclick="showAvailabilityDetails(event, {{ $item->menu_item_id }}, {{ json_encode($details) }})"
+                                    title="Why unavailable?">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </button>
+                            @endif
+                        </div>
                     </td>
                     <td class="px-4 py-3 text-right">
                         <button type="button"

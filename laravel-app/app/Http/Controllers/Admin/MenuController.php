@@ -196,6 +196,28 @@ class MenuController extends Controller{
         return redirect()->back()->withErrors($validator)->withInput();
     }
 
+    // Return detailed information for a single menu item, including its recipe.
+    public function show(MenuItem $menuItem){
+        return response()->json([
+            'id' => $menuItem->menu_item_id,
+            'itemName' => $menuItem->item_name,
+            'category' => $menuItem->category,
+            'price' => $menuItem->price,
+            'imageUrl' => $menuItem->image_url,
+            'isAvailable' => $menuItem->is_available,
+            'recipe' => $menuItem->recipeIngredients()
+                ->where('is_active', true)
+                ->with('ingredient')
+                ->get()
+                ->map(fn($ri) => [
+                    'ingredient_id' => $ri->ingredient_id,
+                    'ingredient_name' => $ri->ingredient->ingredient_name ?? 'Unknown',
+                    'unit' => $ri->ingredient->unit_of_measurement ?? '',
+                    'qty_consumed' => $ri->qty_consumed,
+                ]),
+        ]);
+    }
+
     // Store a newly created menu item. Accepts an optional uploaded image file
     // (stored on the public disk) instead of a raw image URL.
     public function store(Request $request){
@@ -216,9 +238,13 @@ class MenuController extends Controller{
             'category' => ['required', 'string', 'max:50', $this->notPlaceholderRule()],
             'item_name' => ['required', 'string', 'max:100', $this->duplicateNameRule(), $this->notPlaceholderRule()],
             'price' => 'required|numeric|min:0',
-            'is_available' => 'required|in:0,1',
+            'is_available' => 'nullable|in:0,1',
             'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'recipe' => 'nullable|array',
+            'recipe.*.ingredient_id' => 'required|integer|exists:ingredients,ingredient_id',
+            'recipe.*.qty_consumed' => 'required|numeric|min:0.001',
         ], $this->validationMessages());
+
 
         if ($validator->fails()) {
             return $this->validationFailedResponse($request, $validator);
@@ -238,7 +264,19 @@ class MenuController extends Controller{
 
         try {
             $menuItem = MenuItem::create($validated);
+
+            // Sync Recipe
+            if ($request->has('recipe')) {
+                foreach ($request->input('recipe') as $line) {
+                    \App\Models\RecipeIngredient::updateOrCreate(
+                        ['menu_item_id' => $menuItem->menu_item_id, 'ingredient_id' => $line['ingredient_id']],
+                        ['qty_consumed' => $line['qty_consumed'], 'is_active' => true]
+                    );
+                }
+            }
+            $menuItem->syncAvailabilityStatus();
         } catch (QueryException $e) {
+
             if ($this->isDuplicateNameViolation($e)) {
                 return $this->duplicateNameResponse($request);
             }
@@ -289,7 +327,11 @@ class MenuController extends Controller{
             'price' => 'required|numeric|min:0',
             'is_available' => 'required|in:0,1',
             'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'recipe' => 'nullable|array',
+            'recipe.*.ingredient_id' => 'required|integer|exists:ingredients,ingredient_id',
+            'recipe.*.qty_consumed' => 'required|numeric|min:0.001',
         ], $this->validationMessages());
+
 
         if ($validator->fails()) {
             return $this->validationFailedResponse($request, $validator);
@@ -311,7 +353,23 @@ class MenuController extends Controller{
 
         try {
             $menuItem->update($validated);
+
+            // Sync Recipe
+            if ($request->has('recipe')) {
+                // Deactivate all current recipe ingredients first
+                \App\Models\RecipeIngredient::where('menu_item_id', $menuItem->menu_item_id)
+                    ->update(['is_active' => false]);
+
+                foreach ($request->input('recipe') as $line) {
+                    \App\Models\RecipeIngredient::updateOrCreate(
+                        ['menu_item_id' => $menuItem->menu_item_id, 'ingredient_id' => $line['ingredient_id']],
+                        ['qty_consumed' => $line['qty_consumed'], 'is_active' => true]
+                    );
+                }
+            }
+            $menuItem->syncAvailabilityStatus();
         } catch (QueryException $e) {
+
             if ($this->isDuplicateNameViolation($e)) {
                 return $this->duplicateNameResponse($request);
             }

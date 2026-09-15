@@ -483,6 +483,7 @@ document.addEventListener('keydown', (e) => {
  * <input> (posted as a real form field) instead of a GET filter, and lets
  * the admin type a value that isn't in the list yet.
  */
+// ... (existing code before line 486)
 function setComboSelectValue(container, value, label) {
     const hidden = container.querySelector('input[type="hidden"]');
     const trigger = container.querySelector('.combo-select-value');
@@ -497,6 +498,59 @@ function setComboSelectValue(container, value, label) {
     });
 }
 window.setComboSelectValue = setComboSelectValue; // used by index.blade.php's openModal() to sync Edit mode
+
+/**
+ * Multi-select variant of the combo-select.
+ * Manages a list of selected tags and updates a hidden input with comma-separated IDs.
+ */
+function setMultiComboSelectValue(container, values, optionsMap = {}) {
+    const hidden = container.querySelector('input[type="hidden"]');
+    const trigger = container.querySelector('.multi-combo-select-value');
+
+    // values is an array of IDs
+    if (hidden) {
+        hidden.value = (values || []).join(',');
+        hidden.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    // Render tags with summary for overflow
+    trigger.innerHTML = '';
+    const selected = values || [];
+    if (selected.length === 0) {
+        trigger.textContent = container.dataset.placeholder || 'Select items';
+        trigger.classList.add('text-gray-400');
+        trigger.classList.remove('text-gray-800');
+    } else {
+        trigger.classList.remove('text-gray-400');
+        trigger.classList.add('text-gray-800');
+
+        const maxTags = 2;
+        const visibleTags = selected.slice(0, maxTags);
+        const overflowCount = selected.length - maxTags;
+
+        visibleTags.forEach(val => {
+            const label = optionsMap[val] || val;
+            const tag = document.createElement('span');
+            tag.className = 'bg-amber-100 text-amber-800 text-[11px] font-medium px-1.5 py-0.5 rounded flex items-center gap-1 mr-1 mb-1 border border-amber-200';
+            tag.innerHTML = `${label} <button type="button" class="remove-tag hover:text-amber-900 leading-none" data-value="${val}">&times;</button>`;
+            trigger.appendChild(tag);
+        });
+
+        if (overflowCount > 0) {
+            const overflow = document.createElement('span');
+            overflow.className = 'text-[11px] text-gray-500 font-medium mr-1 mb-1';
+            overflow.textContent = `+${overflowCount} more`;
+            trigger.appendChild(overflow);
+        }
+    }
+
+    container.querySelectorAll('.combo-select-option').forEach((opt) => {
+        const val = opt.dataset.value;
+        opt.querySelector('.combo-select-check')?.classList.toggle('hidden', !selected.includes(val));
+    });
+}
+window.setMultiComboSelectValue = setMultiComboSelectValue;
+// ... (rest of the file)
 
 function closeComboSelectPopover(container) {
     container.querySelector('.combo-select-popover')?.classList.add('hidden');

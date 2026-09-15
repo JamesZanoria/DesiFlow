@@ -46,13 +46,13 @@
 
     {{-- Add / Edit popup --}}
     <div id="staff-modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-y-auto">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-md my-8 max-h-[90vh] overflow-y-auto">
-            <div class="bg-indigo-50 rounded-t-xl px-6 py-4 flex items-center justify-between sticky top-0">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md my-8 max-h-[90vh] flex flex-col">
+            <div class="bg-indigo-50 rounded-t-xl px-6 py-4 flex items-center justify-between flex-none">
                 <h2 id="staff-modal-title" class="text-lg font-semibold text-gray-800">Add Staff</h2>
                 <button type="button" id="staff-modal-close" class="text-gray-400 hover:text-gray-600">&times;</button>
             </div>
 
-            <div class="p-6">
+            <div class="flex-1 min-h-0 overflow-y-auto p-6">
                     <form id="staff-form">
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
@@ -137,12 +137,18 @@
                         </div>
                         <p id="staff-confirm-hint" class="hidden text-xs text-red-600 mt-1">Passwords do not match.</p>
                     </div>
-
-                    <div class="flex justify-end gap-3">
-                        <button type="button" id="staff-modal-cancel" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100">Cancel</button>
-                        <button type="submit" id="staff-modal-save" class="bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-amber-500">Save</button>
-                    </div>
                 </form>
+            </div>
+
+            <div class="px-6 py-4 border-t bg-gray-50 rounded-b-xl flex justify-end gap-3 flex-none">
+                <button type="button" id="staff-modal-cancel"
+                    class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100">
+                    Cancel
+                </button>
+                <button type="submit" id="staff-modal-save" form="staff-form"
+                    class="bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-600">
+                    Save Staff
+                </button>
             </div>
         </div>
     </div>
@@ -176,14 +182,33 @@
                     || form.role.value !== editSnapshot.role;
             }
 
-            function refreshSaveButtonState() {
-                saveBtn.disabled = editSnapshot !== null && !hasUnsavedChanges();
+            function getFormSnapshot() {
+                return {
+                    name: form.name.value.trim(),
+                    email: form.email.value.trim(),
+                    role: form.role.value,
+                };
             }
 
-            ['name', 'email', 'role', 'password'].forEach((fieldName) => {
-                form.elements[fieldName].addEventListener('input', refreshSaveButtonState);
+            function isFormValid() {
+                const name = form.name.value.trim();
+                const email = form.email.value.trim();
+                const role = form.role.value;
+                const password = form.password.value;
+                const confirm = form.password_confirmation.value;
+
+                if (!name || !email || !role) return false;
+                if (!emailPattern.test(email)) return false;
+                if (!passwordMeetsPolicy(password)) return false;
+                if (password !== confirm) return false;
+
+                return true;
+            }
+
+            ['name', 'email', 'role', 'password', 'password_confirmation'].forEach((fieldName) => {
+                form.elements[fieldName].addEventListener('input', () => {});
             });
-            form.role.addEventListener('change', refreshSaveButtonState);
+            form.role.addEventListener('change', () => {});
 
             const passwordEditHint = document.getElementById('staff-password-edit-hint');
             const emailHint = document.getElementById('staff-email-hint');
@@ -543,7 +568,7 @@
                     form.password.placeholder = 'Enter a strong password';
                     passwordEditHint.classList.add('hidden');
                     editSnapshot = null;
-                    saveBtn.disabled = false;
+
 
                     roleLocked = false;
                     roleAdminNote.classList.add('hidden');
@@ -568,7 +593,6 @@
                         email: data.email.trim(),
                         role: data.role,
                     };
-                    saveBtn.disabled = true;
                 }
                 updateRoleTriggerVisuals();
 
@@ -668,6 +692,15 @@
                             evaluatePasswordField(true);
                             updateStrengthChecklist(form.password.value);
                             form.password.focus();
+                            return;
+                        }
+
+                        if (errors.role?.length) {
+                            const roleTrigger = document.getElementById('staff-role-trigger');
+                            if (roleTrigger) {
+                                roleTrigger.classList.add('border-red-400', 'ring-1', 'ring-red-300');
+                            }
+                            form.role.focus();
                             return;
                         }
 

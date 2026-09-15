@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\Concerns\ClampsPaginationPage;
 use App\Http\Controllers\Admin\Concerns\HandlesProtectedImageUploads;
 use App\Http\Controllers\Controller;
 use App\Models\Ingredient;
+use App\Models\MenuItem;
 use App\Models\StockMovement;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -50,21 +51,14 @@ class InventoryController extends Controller{
         $units = collect(Ingredient::UNITS)
             ->merge(Ingredient::query()->pluck('unit_of_measurement'))
             ->filter()->unique()->sort()->values();
-        $categories = collect(Ingredient::CATEGORIES)
-            ->merge(Ingredient::query()->whereNotNull('category')->pluck('category'))
-            ->filter()->unique()->sort()->values();
         $stats = $this->currentStockStats();
         $allIngredientNames = Ingredient::query()->orderBy('ingredient_name')->pluck('ingredient_name');
+        $menuItems = MenuItem::query()->orderBy('item_name')->get(['menu_item_id', 'item_name']);
 
         if ($request->wantsJson()) {
             return response()->json([
                 'html' => view('admin.inventory._table', ['ingredients' => $ingredients])->render(),
                 'statsHtml' => view('admin.inventory._current_stock_stats', ['stats' => $stats])->render(),
-                'categoryOptionsHtml' => view('admin.partials._filter_select_popover', [
-                    'name' => 'category', 'label' => 'Category',
-                    'value' => $request->input('category'),
-                    'options' => $categories->mapWithKeys(fn ($c) => [$c => $c]),
-                ])->render(),
                 'ingredientSuggestionsHtml' => view('admin.partials._search_suggestions', [
                     'suggestions' => $allIngredientNames,
                 ])->render(),
@@ -74,9 +68,9 @@ class InventoryController extends Controller{
         return view('admin.inventory.index', [
             'ingredients' => $ingredients,
             'units' => $units,
-            'categories' => $categories,
             'stats' => $stats,
             'allIngredientNames' => $allIngredientNames,
+            'menuItems' => $menuItems,
         ]);
     }
 
@@ -85,10 +79,6 @@ class InventoryController extends Controller{
 
         if ($request->filled('search')) {
             $query->where('ingredient_name', 'ILIKE', '%' . $request->input('search') . '%');
-        }
-
-        if ($request->filled('category')) {
-            $query->where('category', $request->input('category'));
         }
 
         if ($request->filled('status') && in_array($request->input('status'), Ingredient::STATUSES, true)) {
@@ -122,13 +112,20 @@ class InventoryController extends Controller{
 
         $callback = function() use ($ingredients) {
             $file = fopen('php://output', 'w');
-            fputcsv($file, ['ID', 'Ingredient', 'Category', 'Unit', 'Current Stock', 'Unit Cost', 'Threshold', 'Status']);
+            fputcsv($file, ['ID', 'Ingredient', 'Linked Menu Items', 'Unit', 'Current Stock', 'Unit Cost', 'Threshold', 'Status']);
 
             foreach ($ingredients as $ingredient) {
+                $linkedItems = $ingredient->recipeIngredients()
+                    ->where('is_active', true)
+                    ->with('menuItem')
+                    ->get()
+                    ->map(fn($ri) => $ri->menuItem->item_name)
+                    ->implode(', ');
+
                 fputcsv($file, [
                     '#ITM-' . str_pad($ingredient->ingredient_id, 3, '0', STR_PAD_LEFT),
                     $ingredient->ingredient_name,
-                    $ingredient->category ?? 'Uncategorized',
+                    $linkedItems ?: 'None',
                     $ingredient->unit_of_measurement,
                     number_format($ingredient->current_stock ?? 0, 2),
                     '₱' . number_format($ingredient->unit_cost, 2),
@@ -253,7 +250,8 @@ class InventoryController extends Controller{
     public function store(Request $request){
         $validator = Validator::make($request->all(), [
             'ingredient_name' => ['required', 'string', 'max:100', $this->notPlaceholderRule(), $this->duplicateNameRule()],
-            'category' => ['nullable', 'string', 'max:50', $this->notPlaceholderRule()],
+            'menu_items' => ['nullable', 'array', 'max:50'],
+            'menu_items.*' => ['integer', 'exists:menu_items,menu_item_id'],
             'unit_of_measurement' => ['required', 'string', 'max:20', Rule::in($this->allowedUnits())],
             'unit_cost' => 'required|numeric|min:0',
             'restock_threshold' => 'required|numeric|min:0',
@@ -268,9 +266,6 @@ class InventoryController extends Controller{
         $validated = $validator->validated();
         $validated['ingredient_name'] = trim($validated['ingredient_name']);
         $validated['unit_of_measurement'] = trim($validated['unit_of_measurement']);
-        if (isset($validated['category'])) {
-            $validated['category'] = trim($validated['category']) ?: null;
-        }
 
         $validated['shelf_life_days'] = $this->shelfLifeDaysFromExpirationDate($validated['expiration_date'] ?? null);
         unset($validated['expiration_date']);
@@ -282,6 +277,18 @@ class InventoryController extends Controller{
 
         try {
             $ingredient = Ingredient::create($validated);
+
+            // Sync Linked Menu Items
+            if (!empty($validated['menu_items'])) {
+                foreach ($validated['menu_items'] as $menuItemId) {
+                    \App\Models\RecipeIngredient::create([
+                        'menu_item_id' => $menuItemId,
+                        'ingredient_id' => $ingredient->ingredient_id,
+                        'qty_consumed' => 1.00,
+                        'is_active' => true,
+                    ]);
+                }
+            }
         } catch (QueryException $e) {
             if ($this->isDuplicateNameViolation($e)) return $this->duplicateNameResponse($request);
             throw $e;
@@ -302,7 +309,8 @@ class InventoryController extends Controller{
     public function update(Request $request, Ingredient $ingredient){
         $validator = Validator::make($request->all(), [
             'ingredient_name' => ['required', 'string', 'max:100', $this->notPlaceholderRule(), $this->duplicateNameRule($ingredient->ingredient_id)],
-            'category' => ['nullable', 'string', 'max:50', $this->notPlaceholderRule()],
+            'menu_items' => ['nullable', 'array', 'max:50'],
+            'menu_items.*' => ['integer', 'exists:menu_items,menu_item_id'],
             'unit_of_measurement' => ['required', 'string', 'max:20', Rule::in($this->allowedUnits())],
             'unit_cost' => 'required|numeric|min:0',
             'restock_threshold' => 'required|numeric|min:0',
@@ -315,12 +323,25 @@ class InventoryController extends Controller{
         $validated = $validator->validated();
         $validated['ingredient_name'] = trim($validated['ingredient_name']);
         $validated['unit_of_measurement'] = trim($validated['unit_of_measurement']);
-        if (isset($validated['category'])) {
-            $validated['category'] = trim($validated['category']) ?: null;
-        }
 
         try {
             $ingredient->update($validated);
+
+            // Sync Linked Menu Items
+            $selectedItems = $validated['menu_items'] ?? [];
+
+            // 1. Deactivate links not in the current selection
+            \App\Models\RecipeIngredient::where('ingredient_id', $ingredient->ingredient_id)
+                ->whereNotIn('menu_item_id', $selectedItems)
+                ->update(['is_active' => false]);
+
+            // 2. Activate or create links for selected items
+            foreach ($selectedItems as $menuItemId) {
+                \App\Models\RecipeIngredient::updateOrCreate(
+                    ['menu_item_id' => $menuItemId, 'ingredient_id' => $ingredient->ingredient_id],
+                    ['is_active' => true]
+                );
+            }
         } catch (QueryException $e) {
             if ($this->isDuplicateNameViolation($e)) return $this->duplicateNameResponse($request);
             throw $e;
@@ -349,6 +370,70 @@ class InventoryController extends Controller{
             return response()->json(['success' => true, 'message' => 'Ingredient deleted successfully.']);
         }
         return redirect()->route('admin.inventory.index')->with('success', 'Ingredient deleted successfully.');
+    }
+
+    public function wasteExpired(Request $request, Ingredient $ingredient){
+        \Log::info('DEBUG: wasteExpired started for ingredient: ' . $ingredient->ingredient_id);
+        try {
+            // 1. Calculate Total Expired Supply (FIFO: everything delivered by today, ignoring voids)
+            $totalExpiredSupply = \App\Models\StockMovement::where('ingredient_id', $ingredient->ingredient_id)
+                ->whereNull('voided_at')
+                ->whereIn('movement_type', ['delivery', 'opening_balance'])
+                ->where('expiration_date', '<=', now()->toDateString())
+                ->sum('qty_changed');
+
+            // 2. Calculate Total Consumption (All non-voided outflows)
+            // Since we use FIFO, we assume the oldest (and thus most likely expired) stock was used first.
+            $totalConsumption = \App\Models\StockMovement::where('ingredient_id', $ingredient->ingredient_id)
+                ->whereNull('voided_at')
+                ->where(function($q) {
+                    $q->whereIn('movement_type', ['sale_deduction', 'spoilage', 'internal_use'])
+                      ->orWhere(function($sq) {
+                          $sq->where('movement_type', 'manual_adjustment')
+                             ->where('qty_changed', '<', 0);
+                      });
+                })
+                ->sum('qty_changed');
+
+            $totalConsumption = abs($totalConsumption);
+
+            // 3. The remaining expired stock is the supply that hasn't been consumed yet.
+            $expiredQty = $totalExpiredSupply - $totalConsumption;
+
+            // We can't waste more than what we actually have in stock.
+            $currentStock = $ingredient->stockMovements()->sum('qty_changed');
+            $wasteAmount = min($currentStock, max(0, $expiredQty));
+
+            if ($wasteAmount <= 0) {
+                return $request->wantsJson()
+                    ? response()->json(['success' => false, 'message' => 'No expired stock available to mark as waste.'], 422)
+                    : redirect()->back()->with('error', 'No expired stock available to mark as waste.');
+            }
+
+            \Log::info('DEBUG: recording waste movement for amount: ' . $wasteAmount);
+            \App\Models\StockMovement::create([
+                'ingredient_id' => $ingredient->ingredient_id,
+                'user_id' => auth()->id(),
+                'movement_type' => 'spoilage',
+                'qty_changed' => -$wasteAmount,
+                'recorded_at' => now(),
+                'notes' => 'Automatic waste deduction of expired stock.',
+            ]);
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Marked " . number_format($wasteAmount, 2) . " as waste.",
+                    'newTotal' => $currentStock - $wasteAmount
+                ]);
+            }
+            return redirect()->route('admin.inventory.index')->with('success', 'Expired stock marked as waste.');
+        } catch (\Throwable $e) {
+            \Log::error('DEBUG: wasteExpired failed: ' . $e->getMessage());
+            return $request->wantsJson()
+                ? response()->json(['success' => false, 'message' => 'Internal Server Error'], 500)
+                : redirect()->back()->with('error', 'Internal Server Error');
+        }
     }
 
     public function recordMovement(Request $request, Ingredient $ingredient){
@@ -458,6 +543,8 @@ class InventoryController extends Controller{
             'qty_changed' => 'required|numeric',
             'delivery_date' => 'nullable|date',
             'expiration_date' => 'nullable|date',
+            'reference_number' => 'nullable|string|max:100',
+            'notes' => 'nullable|string|max:255',
             'edit_reason' => 'required|string|max:150',
             'recorded_at' => 'nullable|date',
         ]);
@@ -469,6 +556,8 @@ class InventoryController extends Controller{
         }
         $movement->delivery_date = $validated['delivery_date'] ?? $movement->delivery_date;
         $movement->expiration_date = $validated['expiration_date'] ?? $movement->expiration_date;
+        $movement->reference_number = $validated['reference_number'] ?? $movement->reference_number;
+        $movement->notes = $validated['notes'] ?? $movement->notes;
         $movement->save();
         $movement->load(['recordedBy', 'ingredient']);
 

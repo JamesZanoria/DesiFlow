@@ -41,13 +41,14 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
 
     // Menu Management
     Route::get('/menu', [MenuController::class, 'index'])->name('menu.index');
+    Route::get('/menu/{menuItem}', [MenuController::class, 'show'])->name('menu.show');
     Route::get('/menu/create', [MenuController::class, 'create'])->name('menu.create');
     Route::post('/menu', [MenuController::class, 'store'])->name('menu.store');
     Route::get('/menu/{menuItem}/edit', [MenuController::class, 'edit'])->name('menu.edit');
     Route::put('/menu/{menuItem}', [MenuController::class, 'update'])->name('menu.update');
     Route::delete('/menu/{menuItem}', [MenuController::class, 'destroy'])->name('menu.destroy');
 
-    // Inventory Management
+    Route::put('/inventory/{ingredient}/waste-expired', [InventoryController::class, 'wasteExpired'])->name('inventory.waste-expired');
     Route::get('/inventory/export', [InventoryController::class, 'export'])->name('inventory.export');
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
     Route::get('/inventory/create', [InventoryController::class, 'create'])->name('inventory.create');

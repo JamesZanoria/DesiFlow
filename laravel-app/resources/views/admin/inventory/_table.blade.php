@@ -21,7 +21,6 @@
     <table class="w-full text-sm text-left">
         <thead class="text-gray-500 text-xs border-b bg-gray-50">
             <tr>
-                <th class="px-4 py-3 font-medium">ID</th>
                 <th class="px-4 py-3 font-medium">Ingredient</th>
                 <th class="px-4 py-3 font-medium">Unit</th>
                 <th class="px-4 py-3 font-medium">Current Stock</th>
@@ -35,7 +34,6 @@
             @forelse ($ingredients as $ingredient)
                 @php $status = $ingredient->stockStatus(); @endphp
                 <tr id="ingredient-row-{{ $ingredient->ingredient_id }}">
-                    <td class="px-4 py-3 text-gray-400 cell-id">#ITM-{{ str_pad($ingredient->ingredient_id, 3, '0', STR_PAD_LEFT) }}</td>
                     <td class="px-4 py-3 cell-name">
                         <div class="flex items-center gap-3">
                             <div class="w-9 h-9 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
@@ -47,7 +45,6 @@
                             </div>
                             <div class="min-w-0">
                                 <p class="font-semibold text-gray-800 cell-name-text truncate">{{ $ingredient->ingredient_name }}</p>
-                                <p class="text-xs text-gray-400 truncate">{{ $ingredient->category ?? 'Uncategorized' }}</p>
                             </div>
                         </div>
                     </td>
@@ -75,11 +72,11 @@
                             title="Edit"
                             data-id="{{ $ingredient->ingredient_id }}"
                             data-name="{{ $ingredient->ingredient_name }}"
-                            data-category="{{ $ingredient->category }}"
                             data-unit="{{ $ingredient->unit_of_measurement }}"
                             data-cost="{{ $ingredient->unit_cost }}"
                             data-threshold="{{ $ingredient->restock_threshold }}"
-                            data-current-stock="{{ $ingredient->current_stock ?? 0 }}">
+                            data-current-stock="{{ $ingredient->current_stock ?? 0 }}"
+                            data-linked-item-ids="{{ $ingredient->recipeIngredients()->where('is_active', true)->pluck('menu_item_id')->implode(',') }}">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
                         </button>
                         <button type="button"

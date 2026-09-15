@@ -82,6 +82,20 @@ class Ingredient extends Model{
         return $query->withSum('stockMovements as current_stock', 'qty_changed');
     }
 
+    /**
+     * Calculates the amount of stock that is actually usable (not expired).
+     * Usable Stock = SUM(qty_changed) for all movements where (expiration_date IS NULL OR expiration_date > now()).
+     * This ensures that expired stock is not counted towards recipe requirements.
+     */
+    public function usableStock(): float {
+        return (float) $this->stockMovements()
+            ->where(function($q) {
+                $q->whereNull('expiration_date')
+                  ->orWhere('expiration_date', '>', now());
+            })
+            ->sum('qty_changed');
+    }
+
     // Companion to withCurrentStock(): attaches the timestamp of this
     // ingredient's most recent delivery as last_delivery_at, the same
     // single-aggregated-query-instead-of-N-queries approach. Needed by

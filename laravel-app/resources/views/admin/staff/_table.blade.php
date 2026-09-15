@@ -18,12 +18,13 @@
         'cashier' => 'Cashier',
         'kitchen' => 'Kitchen Staff',
     ];
+    // Deterministic color per name
+    $avatarPalette = ['bg-amber-500', 'bg-blue-500', 'bg-purple-500', 'bg-emerald-500', 'bg-rose-500', 'bg-indigo-500'];
 @endphp
 <div class="bg-white border rounded-xl shadow-sm overflow-hidden">
     <table class="w-full text-sm text-left">
         <thead class="text-gray-500 text-xs border-b">
             <tr>
-                <th class="px-4 py-3 font-medium">ID</th>
                 <th class="px-4 py-3 font-medium">Name</th>
                 <th class="px-4 py-3 font-medium">Email</th>
                 <th class="px-4 py-3 font-medium">Role</th>
@@ -32,9 +33,18 @@
         </thead>
         <tbody id="staff-table-body" class="divide-y">
             @forelse ($staff as $member)
+                @php
+                    $avatarColor = $avatarPalette[crc32($member->name) % count($avatarPalette)];
+                @endphp
                 <tr id="staff-row-{{ $member->user_id }}">
-                    <td class="px-4 py-3 text-gray-400 cell-id">#{{ $member->user_id }}</td>
-                    <td class="px-4 py-3 font-semibold text-gray-800 cell-name">{{ $member->name }}</td>
+                    <td class="px-4 py-3 cell-name">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full {{ $avatarColor }} text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                                {{ strtoupper(substr($member->name, 0, 1)) }}
+                            </div>
+                            <span class="font-semibold text-gray-800">{{ $member->name }}</span>
+                        </div>
+                    </td>
                     <td class="px-4 py-3 text-gray-600 cell-email">{{ $member->email }}</td>
                     <td class="px-4 py-3 cell-role">
                         <span class="px-2.5 py-1 rounded-full text-xs font-medium {{ $roleBadge[$member->role] ?? 'bg-gray-100 text-gray-700' }}">
@@ -42,22 +52,24 @@
                         </span>
                     </td>
                     <td class="px-4 py-3 text-right">
-                        <button type="button"
-                            class="edit-staff-btn inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50"
-                            title="Edit"
-                            data-id="{{ $member->user_id }}"
-                            data-name="{{ $member->name }}"
-                            data-email="{{ $member->email }}"
-                            data-role="{{ $member->role }}">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
-                        </button>
-                        <button type="button"
-                            class="delete-staff-btn inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"
-                            title="Delete"
-                            data-id="{{ $member->user_id }}"
-                            data-name="{{ $member->name }}">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165" /></svg>
-                        </button>
+                        @if($member->role !== 'admin')
+                            <button type="button"
+                                class="edit-staff-btn inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+                                title="Edit"
+                                data-id="{{ $member->user_id }}"
+                                data-name="{{ $member->name }}"
+                                data-email="{{ $member->email }}"
+                                data-role="{{ $member->role }}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
+                            </button>
+                            <button type="button"
+                                class="delete-staff-btn inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"
+                                title="Delete"
+                                data-id="{{ $member->user_id }}"
+                                data-name="{{ $member->name }}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165" /></svg>
+                            </button>
+                        @endif
                     </td>
                 </tr>
             @empty

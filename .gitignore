@@ -14,3 +14,4 @@ fastapi_analytics/**/*.egg-info/
 
 CLAUDE.md
 Capstone1.txt
+.claude

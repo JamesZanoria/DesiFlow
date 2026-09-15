@@ -32,13 +32,6 @@
     <form method="GET" action="{{ route('admin.inventory.index') }}" class="flex items-center justify-between gap-2 mb-4 flex-wrap">
         <div class="flex items-center gap-2">
             @include('admin.partials._filter_select', [
-                'name' => 'category',
-                'label' => 'Category',
-                'value' => request('category'),
-                'options' => $categories->mapWithKeys(fn ($c) => [$c => $c]),
-            ])
-
-            @include('admin.partials._filter_select', [
                 'name' => 'status',
                 'label' => 'Status',
                 'value' => request('status'),
@@ -73,13 +66,13 @@
 
     {{-- Add / Edit popup --}}
     <div id="ingredient-modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-y-auto">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-md my-8 max-h-[90vh] overflow-y-auto">
-            <div class="bg-indigo-50 rounded-t-xl px-6 py-4 flex items-center justify-between sticky top-0">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md my-8 max-h-[90vh] flex flex-col">
+            <div class="bg-indigo-50 rounded-t-xl px-6 py-4 flex items-center justify-between flex-none">
                 <h2 id="ingredient-modal-title" class="text-lg font-semibold text-gray-800">Add Ingredient</h2>
                 <button type="button" id="ingredient-modal-close" class="text-gray-400 hover:text-gray-600">&times;</button>
             </div>
 
-            <div class="p-6">
+            <div class="flex-1 min-h-0 overflow-y-auto p-6">
                     <div id="ingredient-current-stock-display" class="hidden mb-4 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
                     <p class="text-xs text-gray-500">Current Stock</p>
                     <p class="text-sm font-semibold text-gray-800"><span id="ingredient-current-stock-value">0</span> <span id="ingredient-current-stock-unit"></span></p>
@@ -93,31 +86,28 @@
                     </div>
 
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                        <div class="relative" data-combo-select="category" data-allow-custom="true" data-placeholder="Select or type new">
-                            <input type="hidden" name="category" value="">
-                            <button type="button"
-                                class="combo-select-trigger w-full flex items-center justify-between gap-2 border rounded-lg px-3 py-2 text-sm text-left hover:border-gray-400 focus:outline-none">
-                                <span class="combo-select-value min-w-0 truncate text-gray-400">Select or type new</span>
-                                <svg class="combo-select-chevron w-4 h-4 text-gray-400 flex-shrink-0 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Linked Menu Items</label>
+                        <div class="relative" data-multi-combo-select="menu_items" data-placeholder="Select menu items">
+                            <button type="button" id="menu-items-trigger" class="multi-combo-select-trigger w-full flex items-center justify-between gap-2 border rounded-lg px-3 py-2 text-sm text-left hover:border-gray-400 focus:outline-none min-h-[42px]">
+                                <div class="multi-combo-select-value flex flex-wrap gap-1 overflow-hidden text-gray-400">Select menu items</div>
+                                <svg class="combo-select-chevron w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
                             </button>
 
-                            <div class="combo-select-popover hidden absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg z-30 overflow-hidden">
-                                <div class="p-2 border-b">
-                                    <input type="text" class="combo-select-search w-full border rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-400" placeholder="Search or type a new category...">
+                            <div class="multi-combo-select-popover hidden absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg z-30 overflow-hidden">
+                                <div class="p-2 border-b bg-gray-50 flex gap-2">
+                                    <input type="text" class="multi-combo-select-search w-full border rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-400" placeholder="Search menu items...">
+                                    <button type="button" class="multi-combo-select-all text-xs text-amber-600 hover:text-amber-700 font-medium px-1">All</button>
+                                    <button type="button" class="multi-combo-select-clear text-xs text-gray-500 hover:text-gray-700 font-medium px-1">Clear</button>
                                 </div>
                                 <div class="combo-select-list max-h-48 overflow-y-auto py-1">
-                                    @foreach ($categories as $category)
-                                        <button type="button" class="combo-select-option w-full flex items-center justify-between gap-2 px-3 py-2 text-xs text-left hover:bg-gray-50 text-gray-600" data-value="{{ $category }}" data-label="{{ $category }}">
-                                            <span class="truncate">{{ $category }}</span>
+                                    @foreach ($menuItems as $item)
+                                        <button type="button" class="combo-select-option w-full flex items-center justify-between gap-2 px-3 py-2 text-xs text-left hover:bg-gray-50 text-gray-600" data-value="{{ $item->menu_item_id }}" data-label="{{ $item->item_name }}">
+                                            <span class="truncate">{{ $item->item_name }}</span>
                                             <svg class="combo-select-check hidden w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
                                         </button>
                                     @endforeach
                                 </div>
-                                <button type="button" class="combo-select-use-typed hidden w-full text-left px-3 py-2 text-xs text-amber-700 bg-amber-50 hover:bg-amber-100 border-t">
-                                    Use "<span class="combo-select-typed-value font-medium"></span>"
-                                </button>
-                                <p class="combo-select-empty hidden px-3 py-4 text-center text-xs text-gray-400">Type to add a new category.</p>
+                                <p class="combo-select-empty hidden px-3 py-4 text-center text-xs text-gray-400">No matching menu items.</p>
                             </div>
                         </div>
                     </div>
@@ -194,12 +184,18 @@
                             <p id="ingredient-image-error" class="hidden text-xs text-red-600 mt-1"></p>
                         </div>
                     </div>
-
-                    <div class="flex justify-end gap-3">
-                        <button type="button" id="ingredient-modal-cancel" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100">Cancel</button>
-                        <button type="submit" id="ingredient-form-save-btn" class="bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed">Save</button>
-                    </div>
                 </form>
+            </div>
+
+            <div class="px-6 py-4 border-t bg-gray-50 rounded-b-xl flex justify-end gap-3 flex-none">
+                <button type="button" id="ingredient-modal-cancel"
+                    class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100">
+                    Cancel
+                </button>
+                <button type="submit" id="ingredient-form-save-btn" form="ingredient-form"
+                    class="bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-600">
+                    Save Ingredient
+                </button>
             </div>
         </div>
     </div>
@@ -239,26 +235,36 @@
             function snapshotEditableFields() {
                 return JSON.stringify({
                     name: form.ingredient_name.value.trim(),
-                    category: form.category.value,
+                    menu_items: form.elements['menu_items[]'] ? Array.from(form.elements['menu_items[]']).map(i => i.value).sort() : [],
                     unit: form.unit_of_measurement.value,
                     threshold: form.restock_threshold.value,
                     cost: form.unit_cost.value,
                 });
             }
 
-            function checkDirty() {
-                if (form.dataset.mode !== 'edit' || initialSnapshot === null) {
-                    saveBtn.disabled = false;
-                    return;
-                }
-                saveBtn.disabled = snapshotEditableFields() === initialSnapshot;
+            function isFormValid() {
+                const name = form.ingredient_name.value.trim();
+                const unit = form.unit_of_measurement.value;
+                const threshold = form.restock_threshold.value;
+                const cost = form.unit_cost.value;
+
+                return name !== '' && unit !== '' && threshold !== '' && cost !== '';
             }
 
             ['ingredient_name', 'restock_threshold', 'unit_cost'].forEach((name) => {
-                form.elements[name]?.addEventListener('input', checkDirty);
+                form.elements[name]?.addEventListener('input', () => {});
             });
-            form.category.addEventListener('change', checkDirty);
-            form.unit_of_measurement.addEventListener('change', checkDirty);
+            // Use a proxy or delegation for multi-select change since it's not a simple input
+            document.addEventListener('change', (e) => {
+                if (e.target && e.target.name === 'menu_items[]') {
+                }
+            });
+            form.unit_of_measurement.addEventListener('change', () => {
+                const trigger = document.querySelector('[data-combo-select="unit_of_measurement"] .combo-select-trigger');
+                if (trigger) {
+                    trigger.classList.remove('border-red-400', 'ring-1', 'ring-red-300');
+                }
+            });
 
             // ---------------------------------------------------------------
             // Field error display
@@ -269,6 +275,7 @@
                 errorableFields.forEach((name) => {
                     form.elements[name]?.classList.remove('border-red-400', 'ring-1', 'ring-red-300');
                 });
+                document.getElementById('menu-items-trigger')?.classList.remove('border-red-400', 'ring-1', 'ring-red-300');
             }
 
             function errorIconSvg() {
@@ -284,7 +291,16 @@
             function showFieldError(fieldName, message) {
                 showToast({title: 'Validation Error', message: message}, 'error');
 
-                const field = form.elements[fieldName];
+                let field = form.elements[fieldName];
+
+                // For combo-selects, target the trigger button instead of the hidden input
+                if (fieldName === 'unit_of_measurement') {
+                    const container = document.querySelector(`[data-combo-select="${fieldName}"]`);
+                    if (container) {
+                        field = container.querySelector('.combo-select-trigger');
+                    }
+                }
+
                 if (field) {
                     field.classList.add('border-red-400', 'ring-1', 'ring-red-300');
                     field.focus();
@@ -454,8 +470,6 @@
                     const data = await response.json();
                     const container = tableContainer();
                     container.innerHTML = data.html;
-                    attachRowListeners(container);
-                    attachPaginationListeners(container);
 
                     if (data.statsHtml) {
                         document.getElementById('inventory-stats-container').innerHTML = data.statsHtml;
@@ -476,15 +490,44 @@
                 }
             }
 
-            function attachPaginationListeners(scope) {
-                scope.querySelectorAll('.pagination-link').forEach((link) => {
-                    link.addEventListener('click', (e) => {
-                        if (link.classList.contains('pointer-events-none')) return;
+            // Event delegation for all table interactions (Pagination, Edit, Delete, Waste)
+            // This replaces the need to re-attach listeners after every refreshTable() call.
+            (function() {
+                const container = tableContainer();
+                if (!container) return;
+
+                container.addEventListener('click', (e) => {
+                    // Pagination
+                    const paginationLink = e.target.closest('.pagination-link');
+                    if (paginationLink) {
+                        if (paginationLink.classList.contains('pointer-events-none')) return;
                         e.preventDefault();
-                        refreshTable(link.href);
-                    });
+                        refreshTable(paginationLink.href);
+                        return;
+                    }
+
+                    // Mark as Waste
+                    const wasteBtn = e.target.closest('.mark-waste-btn');
+                    if (wasteBtn) {
+                        markAsWaste(wasteBtn);
+                        return;
+                    }
+
+                    // Edit
+                    const editBtn = e.target.closest('.edit-ingredient-btn');
+                    if (editBtn) {
+                        openModal('edit', editBtn.dataset);
+                        return;
+                    }
+
+                    // Delete
+                    const deleteBtn = e.target.closest('.delete-ingredient-btn');
+                    if (deleteBtn) {
+                        deleteIngredient(deleteBtn);
+                        return;
+                    }
                 });
-            }
+            })();
 
             const AUTO_REFRESH_INTERVAL_MS = 5000;
             let refreshInFlight = false;
@@ -514,13 +557,17 @@
                     resetImageDropzone(null);
 
                     initialSnapshot = null;
-                    saveBtn.disabled = false;
                 } else {
                     title.textContent = 'Edit Ingredient';
                     form.dataset.mode = 'edit';
                     form.dataset.ingredientId = data.id;
                     form.ingredient_name.value = data.name;
-                    setComboSelectValue(document.querySelector('[data-combo-select="category"]'), data.category || '', data.category || '');
+
+                    // Handle multi-select for Linked Menu Items
+                    const multiSelect = document.querySelector('[data-multi-combo-select="menu_items"]');
+                    const linkedItemsIds = data.linkedItemIds ? data.linkedItemIds.split(',') : [];
+                    window.syncIngredientMenuItems(linkedItemsIds);
+
                     setComboSelectValue(document.querySelector('[data-combo-select="unit_of_measurement"]'), data.unit || '', data.unit || '');
                     form.restock_threshold.value = data.threshold;
                     form.unit_cost.value = data.cost;
@@ -534,7 +581,6 @@
                     // Snapshot taken AFTER the fields above are populated, this
                     // is the "unchanged" baseline Save stays disabled against.
                     initialSnapshot = snapshotEditableFields();
-                    saveBtn.disabled = true;
                 }
 
                 modal.classList.remove('hidden');
@@ -544,9 +590,152 @@
             function closeModal() {
                 modal.classList.add('hidden');
                 document.body.classList.remove('overflow-hidden');
+
+                // Comprehensive reset
+                form.reset();
+                clearFieldErrors();
+                resetImageDropzone(null);
+
+                // Reset custom selects UI
+                document.querySelectorAll('[data-combo-select]').forEach((c) => {
+                    setComboSelectValue(c, '', '');
+                    const trigger = c.querySelector('.combo-select-trigger');
+                    if (trigger) trigger.classList.remove('border-red-400', 'ring-1', 'ring-red-300');
+                });
+
+                // Reset multi-select UI
+                if (window.syncIngredientMenuItems) {
+                    window.syncIngredientMenuItems([]);
+                }
             }
 
+            // Multi-combo-select logic
+            (function() {
+                const container = document.querySelector('[data-multi-combo-select="menu_items"]');
+                if (!container) return;
+
+                const trigger = container.querySelector('.multi-combo-select-trigger');
+                const popover = container.querySelector('.multi-combo-select-popover');
+                const searchInput = container.querySelector('.multi-combo-select-search');
+                const allBtn = container.querySelector('.multi-combo-select-all');
+                const clearBtn = container.querySelector('.multi-combo-select-clear');
+                const options = container.querySelectorAll('.combo-select-option');
+                const emptyMsg = container.querySelector('.combo-select-empty');
+
+                let selectedValues = [];
+                const optionsMap = {};
+                options.forEach(opt => {
+                    optionsMap[opt.dataset.value] = opt.dataset.label;
+                });
+
+                function updateUI() {
+                    setMultiComboSelectValue(container, selectedValues, optionsMap);
+
+                    // Clear error state if items are selected
+                    if (selectedValues.length > 0) {
+                        trigger.classList.remove('border-red-400', 'ring-1', 'ring-red-300');
+                    }
+
+                    // Sync hidden inputs for the form (arrays in Laravel)
+                    const currentHiddens = container.querySelectorAll('input[name="menu_items[]"]');
+                    currentHiddens.forEach(h => h.remove());
+                    selectedValues.forEach(val => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'menu_items[]';
+                        input.value = val;
+                        container.appendChild(input);
+                    });
+                }
+
+                // Close dropdown when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!container.contains(e.target)) {
+                        popover.classList.add('hidden');
+                    }
+                });
+
+                trigger.addEventListener('click', (e) => {
+                    const removeBtn = e.target.closest('.remove-tag');
+                    if (removeBtn) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const val = removeBtn.dataset.value;
+                        selectedValues = selectedValues.filter(v => v !== val);
+                        updateUI();
+                        return;
+                    }
+
+                    popover.classList.toggle('hidden');
+                    if (!popover.classList.contains('hidden')) {
+                        searchInput.value = '';
+                        searchInput.dispatchEvent(new Event('input'));
+                        searchInput.focus();
+                    }
+                });
+
+                options.forEach(opt => {
+                    opt.addEventListener('click', () => {
+                        const val = opt.dataset.value;
+                        if (selectedValues.includes(val)) {
+                            selectedValues = selectedValues.filter(v => v !== val);
+                        } else {
+                            selectedValues.push(val);
+                        }
+                        updateUI();
+                    });
+                });
+
+                searchInput.addEventListener('input', () => {
+                    const query = searchInput.value.trim().toLowerCase();
+                    let anyVisible = false;
+                    options.forEach(opt => {
+                        const label = opt.dataset.label.toLowerCase();
+                        const matches = label.includes(query);
+                        opt.classList.toggle('hidden', !matches);
+                        if (matches) anyVisible = true;
+                    });
+                    emptyMsg.classList.toggle('hidden', anyVisible);
+                });
+
+                allBtn.addEventListener('click', () => {
+                    // Select only currently visible/filtered items
+                    const visibleValues = Array.from(options)
+                        .filter(opt => !opt.classList.contains('hidden'))
+                        .map(opt => opt.dataset.value);
+
+                    // Merge with existing to avoid deselecting things that are currently filtered out
+                    const uniqueSet = new Set([...selectedValues, ...visibleValues]);
+                    selectedValues = Array.from(uniqueSet);
+                    updateUI();
+                });
+
+                clearBtn.addEventListener('click', () => {
+                    selectedValues = [];
+                    updateUI();
+                });
+
+                // Delegate tag removal
+                trigger.addEventListener('click', (e) => {
+                    const removeBtn = e.target.closest('.remove-tag');
+                    if (removeBtn) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const val = removeBtn.dataset.value;
+                        selectedValues = selectedValues.filter(v => v !== val);
+                        updateUI();
+                    }
+                });
+
+                // Sync with Edit mode (called from openModal)
+                window.syncIngredientMenuItems = (ids) => {
+                    selectedValues = ids || [];
+                    updateUI();
+                };
+            })();
+
             async function submitForm(e) {
+
                 e.preventDefault();
                 const mode = form.dataset.mode;
                 const ingredientId = form.dataset.ingredientId;
@@ -556,8 +745,20 @@
                     return;
                 }
 
+                // Linked Menu Items validation
+                const menuItems = Array.from(form.querySelectorAll('input[name="menu_items[]"]')).filter(i => i.value.trim() !== '');
+                if (menuItems.length === 0) {
+                    showToast({title: 'Validation Error', message: 'Please select a menu item.'}, 'error');
+                    const trigger = document.getElementById('menu-items-trigger');
+                    if (trigger) {
+                        trigger.classList.add('border-red-400', 'ring-1', 'ring-red-300');
+                        trigger.focus();
+                    }
+                    return;
+                }
+
                 if (!form.unit_of_measurement.value) {
-                    showToast({title: 'Validation Error', message: 'Please select a unit of measurement.'}, 'error');
+                    showFieldError('unit_of_measurement', 'Please select a unit of measurement.');
                     return;
                 }
 
@@ -604,18 +805,12 @@
             }
 
             function markAsWaste(btn) {
-                const qty = parseFloat(btn.dataset.currentStock);
                 submitAjaxAction({
-                    url: `${baseUrl}/${btn.dataset.id}/movement`,
-                    method: 'POST',
-                    extraFields: {
-                        movement_type: 'spoilage',
-                        qty_changed: qty,
-                        notes: 'Marked as waste, past shelf life',
-                    },
+                    url: `${baseUrl}/${btn.dataset.id}/waste-expired`,
+                    method: 'PUT',
                     confirmMessage: {
                         title: 'Mark Expired Stock as Waste?',
-                        message: `Are you sure you want to mark ${numberFormat(qty)} ${btn.dataset.unit} of "${btn.dataset.name}" as waste? This will remove the expired quantity from current available stock.`,
+                        message: `Are you sure you want to mark the expired stock of "${btn.dataset.name}" as waste? The system will automatically calculate and remove only the quantity that has passed its shelf life.`,
                         actionLabel: 'Mark as Waste',
                         type: 'warning'
                     },
@@ -641,18 +836,6 @@
                 });
             }
 
-            function attachRowListeners(scope) {
-                scope.querySelectorAll('.mark-waste-btn').forEach((btn) => {
-                    btn.addEventListener('click', () => markAsWaste(btn));
-                });
-                scope.querySelectorAll('.edit-ingredient-btn').forEach((btn) => {
-                    btn.addEventListener('click', () => openModal('edit', btn.dataset));
-                });
-                scope.querySelectorAll('.delete-ingredient-btn').forEach((btn) => {
-                    btn.addEventListener('click', () => deleteIngredient(btn));
-                });
-            }
-
             function sanitizeCsvCell(text) {
                 return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
             }
@@ -667,9 +850,6 @@
             document.getElementById('ingredient-modal-cancel').addEventListener('click', closeModal);
             modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
             form.addEventListener('submit', submitForm);
-
-            attachRowListeners(tableContainer());
-            attachPaginationListeners(tableContainer());
         })();
     </script>
 

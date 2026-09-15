@@ -33,25 +33,33 @@
         </form>
     </div>
 
-    {{-- Table + pagination now live in a shared partial, wrapped in this container so
-         the JS can swap the whole thing out after Add/Edit/Delete or a Prev/Next click
-         without a full browser reload, see refreshTable() below. --}}
     <div id="menu-table-container">
         @include('admin.menu._table')
     </div>
 
-    {{-- Add / Edit popup. overflow-y-auto on the backdrop + max-h-[90vh] on the panel is what
-         stops the modal from overflowing past the viewport ("jumping out of the page") once
-         it has enough content, Description, Category, Price and the image uploader
-         all stacked together are taller than the old version. --}}
+    {{-- Availability Details Popover --}}
+    <div id="availability-popover" class="hidden fixed z-[60] bg-white border shadow-xl rounded-lg p-4 w-72 pointer-events-auto">
+        <div class="flex items-center justify-between mb-3 pb-2 border-b">
+            <h4 class="text-xs font-bold text-gray-800 uppercase tracking-wide">Why unavailable?</h4>
+            <button type="button" id="availability-popover-close" class="text-gray-400 hover:text-gray-600">&times;</button>
+        </div>
+        <div id="availability-popover-content" class="space-y-3">
+            {{-- Content injected by JS --}}
+        </div>
+        <div class="mt-4 pt-2 border-t">
+            <p class="text-[10px] text-gray-400 italic">Reasons: Expired, out of stock, or insufficient usable stock.</p>
+        </div>
+    </div>
+
+    {{-- Add / Edit popup --}}
     <div id="menu-modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-y-auto">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-md my-8 max-h-[90vh] overflow-y-auto">
-            <div class="bg-indigo-50 rounded-t-xl px-6 py-4 flex items-center justify-between sticky top-0">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md my-8 max-h-[90vh] flex flex-col">
+            <div class="bg-indigo-50 rounded-t-xl px-6 py-4 flex items-center justify-between flex-none">
                 <h2 id="menu-modal-title" class="text-lg font-semibold text-gray-800">Add New Menu Item</h2>
                 <button type="button" id="menu-modal-close" class="text-gray-400 hover:text-gray-600">&times;</button>
             </div>
 
-            <div class="p-6">
+            <div class="flex-1 min-h-0 overflow-y-auto p-6">
                 <form id="menu-form">
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
@@ -75,16 +83,49 @@
                         </div>
                     </div>
 
-                    {{-- Status is intentionally not an editable field here, it's
-                         managed exclusively through the quick-toggle dropdown on
-                         each table row (see _table.blade.php / handleStatusChange
-                         below), which is faster for the common case of just
-                         flipping an item available/unavailable. This hidden field
-                         still carries the value the server expects on every
-                         save: defaulted to Active on create, and set to the
-                         item's current status on edit so saving other fields
-                         (price, description, image) never accidentally changes
-                         availability as a side effect. --}}
+                    <div class="mb-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="block text-sm font-medium text-gray-700">Ingredients / Recipe</label>
+                            <button type="button" id="add-recipe-line-btn" class="text-xs font-medium text-amber-600 hover:text-amber-700 flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                                Add Ingredient
+                            </button>
+                        </div>
+
+                        <div id="recipe-lines-container" class="space-y-2 mb-4 max-h-60 overflow-y-auto pr-2">
+                            {{-- Recipe lines will be injected here by JS --}}
+                        </div>
+
+                        {{-- Ingredient Selector (hidden by default) --}}
+                        <div id="recipe-ingredient-selector" class="hidden mb-4 p-3 bg-gray-50 border rounded-lg">
+                            <div class="relative" data-combo-select="recipe-ing-select" data-allow-custom="false" data-placeholder="Search ingredients...">
+                                <input type="hidden" name="recipe_temp_ing" id="recipe-temp-ing">
+                                <button type="button" class="combo-select-trigger w-full flex items-center justify-between gap-2 border rounded-lg px-3 py-2 text-sm text-left hover:border-gray-400 focus:outline-none">
+                                    <span class="combo-select-value min-w-0 truncate text-gray-400">Select an ingredient...</span>
+                                    <svg class="combo-select-chevron w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                                </button>
+                                <div class="combo-select-popover hidden absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg z-30 overflow-hidden">
+                                    <div class="p-2 border-b">
+                                        <input type="text" class="combo-select-search w-full border rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-400" placeholder="Search ingredients...">
+                                    </div>
+                                    <div class="combo-select-list max-h-48 overflow-y-auto py-1">
+                                        @foreach (\App\Models\Ingredient::all() as $ing)
+                                            <button type="button" class="combo-select-option w-full flex items-center justify-between gap-2 px-3 py-2 text-xs text-left hover:bg-gray-50 text-gray-600" data-value="{{ $ing->ingredient_id }}" data-label="{{ $ing->ingredient_name }} ({{ $ing->unit_of_measurement }})" data-unit="{{ $ing->unit_of_measurement }}">
+                                                <span class="truncate">{{ $ing->ingredient_name }} ({{ $ing->unit_of_measurement }})</span>
+                                                <svg class="combo-select-check hidden w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                    <p class="combo-select-empty hidden px-3 py-4 text-center text-xs text-gray-400">No matching ingredients.</p>
+                                </div>
+                            </div>
+                            <div class="flex justify-end gap-2 mt-2">
+                                <button type="button" id="cancel-recipe-select" class="px-2 py-1 text-xs text-gray-500 hover:text-gray-700">Cancel</button>
+                                <button type="button" id="confirm-recipe-select" class="px-2 py-1 text-xs bg-amber-500 text-white rounded hover:bg-amber-600">Add to Recipe</button>
+                            </div>
+                        </div>
+                    </div>
+
                     <input type="hidden" name="is_available" id="menu-status-select">
 
 
@@ -94,32 +135,22 @@
                             <input type="file" id="menu-image-input" name="image" accept="image/jpeg,image/png,.jpg,.jpeg,.png" class="hidden">
                             <input type="hidden" id="menu-remove-image" name="remove_image" value="0">
 
-                            {{-- All inner content below is pointer-events-none (except the Remove
-                                 button) so drag/hover events only ever fire on this outer container,
-                                 not on the icon/text/image inside it. Without this, moving the cursor
-                                 across those child elements fires dragleave/dragenter repeatedly as
-                                 the browser crosses their boundaries, causing the state to flicker. --}}
-
-                            {{-- Idle state: nothing selected yet --}}
                             <div id="menu-image-placeholder" class="pointer-events-none">
                                 <svg class="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l-3.75 3.75M12 9.75l3.75 3.75M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" /></svg>
                                 <p class="text-sm text-gray-600">Click or drag to upload image</p>
                             </div>
 
-                            {{-- Dragging a file over the dropzone --}}
                             <div id="menu-image-dragover-state" class="hidden pointer-events-none">
                                 <svg class="w-8 h-8 text-amber-500 mx-auto mb-2" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" /></svg>
                                 <p class="text-sm font-medium text-amber-600">Release to upload</p>
                             </div>
 
-                            {{-- A file has been picked/dropped and is ready (or currently uploading) --}}
                             <div id="menu-image-preview-wrap" class="hidden pointer-events-none">
                                 <img id="menu-image-preview" class="mx-auto h-20 w-20 object-cover rounded-lg mb-2" alt="">
                                 <p id="menu-image-filename" class="text-xs text-gray-500"></p>
                                 <button type="button" id="menu-image-clear" class="mt-2 text-xs text-red-600 hover:underline pointer-events-auto">Remove</button>
                             </div>
 
-                            {{-- Shown only while the XHR upload is actively in progress --}}
                             <div id="menu-image-uploading" class="hidden pointer-events-none">
                                 <p id="menu-image-upload-text" class="text-xs text-gray-600 mb-2">Uploading... 0%</p>
                                 <div class="w-full bg-gray-200 rounded-full h-2">
@@ -130,18 +161,18 @@
                         <p class="text-xs text-gray-400 mt-1.5">Accepted formats: JPG, JPEG, PNG only. Max 2MB.</p>
                         <p id="menu-image-error" class="hidden text-xs text-red-600 mt-1"></p>
                     </div>
-
-                    <div class="flex justify-end gap-3">
-                        <button type="button" id="menu-modal-cancel"
-                            class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100">
-                            Cancel
-                        </button>
-                        <button type="submit"
-                            class="bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-amber-500">
-                            Save Item
-                        </button>
-                    </div>
                 </form>
+            </div>
+
+            <div class="px-6 py-4 border-t bg-gray-50 rounded-b-xl flex justify-end gap-3 flex-none">
+                <button type="button" id="menu-modal-cancel"
+                    class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100">
+                    Cancel
+                </button>
+                <button type="submit" id="menu-modal-save" form="menu-form"
+                    class="bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-600">
+                    Save Item
+                </button>
             </div>
         </div>
     </div>
@@ -155,12 +186,6 @@
             const baseUrl = '{{ url('admin/menu') }}';
             const indexUrl = '{{ route('admin.menu.index') }}';
 
-            // ---------------------------------------------------------------
-            // Field error display, shown only after the admin clicks Save and
-            // the server rejects the submission (duplicate name, numbers in a
-            // text field, etc.). Nothing is checked or blocked while typing;
-            // this mirrors how the duplicate-name error already works.
-            // ---------------------------------------------------------------
             const errorableFields = ['item_name', 'category'];
 
             function clearFieldErrors() {
@@ -169,9 +194,6 @@
                 });
             }
 
-            // Filled red circle + white exclamation mark, matches the reference
-            // design exactly. Shared by every error message in this modal so the
-            // visual language stays consistent.
             function errorIconSvg() {
                 return `
                     <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -182,16 +204,6 @@
                 `;
             }
 
-            // Duplicate-name errors get their own handler rather than reusing
-            // a generic field error function, because the desired behavior differs by mode:
-            //   - Add New Item: clear the whole form (the error message stays
-            //     visible) so the admin can immediately type a completely
-            //     different item, but the Item Name field keeps its red outline
-            //     even once emptied, exactly as shown in the reference design,
-            //     as a persistent visual cue that this is the field to fix.
-            //   - Edit: the admin is mid-change on a specific existing item, so
-            //     wiping the form would lose legitimate edits, just highlight
-            //     the conflicting field instead, same as any other field error.
             function showDuplicateError(mode) {
                 showToast('Item already exists', 'error');
 
@@ -208,10 +220,6 @@
                 if (mode !== 'create') form.item_name.select();
             }
 
-            // Once the admin starts editing any field that previously errored,
-            // clear that field's red outline so it doesn't linger after they've
-            // clearly started correcting it. The message stays until they submit
-            // again, only re-submitting (successfully or not) refreshes it.
             errorableFields.forEach((name) => {
                 const field = form.elements[name];
                 if (!field) return;
@@ -221,17 +229,6 @@
                 });
             });
 
-            // ---------------------------------------------------------------
-            // Table refresh (fixes pagination going stale after Add/Edit/Delete)
-            //
-            // Instead of hand-patching the DOM (appending a row, decrementing a
-            // counter, etc.), which drifts out of sync with the real, sorted,
-            // server-side pagination the moment a page fills up or an item's
-            // alphabetical position changes, every mutation just re-asks the
-            // server for the current page's table+pagination fragment and swaps
-            // it in. This is what makes pagination "automatic": no manual
-            // reload is ever required to see correct page counts/links again.
-            // ---------------------------------------------------------------
             function tableContainer() {
                 return document.getElementById('menu-table-container');
             }
@@ -247,29 +244,16 @@
                     attachRowListeners(container);
                     attachPaginationListeners(container);
 
-                    // Keeps the Category filter chip's option list current,
-                    // without this, a category introduced (or removed) by the
-                    // add/edit/delete that just happened wouldn't show up
-                    // until a real page reload, since this popover was
-                    // previously only ever rendered once on initial page
-                    // load. No re-binding needed for the swapped-in content:
-                    // its click/search handling is delegated globally in
-                    // admin.js, not attached per-element.
                     if (data.categoryOptionsHtml) {
                         const categoryPopover = document.querySelector('[data-filter-select][data-name="category"] .filter-select-popover');
                         if (categoryPopover) categoryPopover.innerHTML = data.categoryOptionsHtml;
                     }
 
-                    // Same idea for the search box's suggestion list, an
-                    // item just added/renamed/deleted should be reflected in
-                    // suggestions immediately, not just in the table.
                     if (data.itemSuggestionsHtml) {
                         const suggestList = document.querySelector('[data-search-suggest] .search-suggest-list');
                         if (suggestList) suggestList.innerHTML = data.itemSuggestionsHtml;
                     }
 
-                    // Keep the address bar (and back/refresh behavior) in sync with
-                    // whichever page/search/category is now actually being shown.
                     history.replaceState(null, '', targetUrl);
                 } catch (err) {
                     console.error('Failed to refresh menu table', err);
@@ -287,10 +271,70 @@
                 });
             }
 
-            function openModal(mode, data) {
+            const recipeLinesContainer = document.getElementById('recipe-lines-container');
+            const recipeSelector = document.getElementById('recipe-ingredient-selector');
+            const recipeIngSelect = document.getElementById('recipe-temp-ing');
+
+            function addRecipeLine(ingredientId, ingredientLabel, unit, qty = 1.00) {
+                const rowId = `recipe-row-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+                const row = document.createElement('div');
+                row.className = 'flex items-center gap-2 bg-white border rounded-lg p-2 shadow-sm';
+                row.id = rowId;
+                row.innerHTML = `
+                    <div class="flex-1 min-w-0">
+                        <span class="text-xs font-medium text-gray-700 truncate block">${ingredientLabel}</span>
+                        <input type="hidden" name="recipe[${rowId}][ingredient_id]" value="${ingredientId}">
+                    </div>
+                    <div class="flex items-center gap-1 w-32">
+                        <input type="number" step="0.01" min="0.001" name="recipe[${rowId}][qty_consumed]"
+                            value="${qty}" class="w-full border rounded px-2 py-1 text-xs text-right focus:ring-1 focus:ring-amber-400 outline-none"
+                            placeholder="0.00">
+                        <span class="text-[10px] text-gray-400 w-8 text-center">${unit}</span>
+                    </div>
+                    <button type="button" class="remove-recipe-line-btn text-gray-300 hover:text-red-500 p-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                `;
+
+                row.querySelector('.remove-recipe-line-btn').addEventListener('click', () => {
+                    row.remove();
+                    updateSaveButtonState();
+                });
+
+                row.querySelector('input').addEventListener('input', updateSaveButtonState);
+
+                recipeLinesContainer.appendChild(row);
+                updateSaveButtonState();
+            }
+
+            document.getElementById('add-recipe-line-btn').addEventListener('click', () => {
+                recipeSelector.classList.remove('hidden');
+                setComboSelectValue(document.querySelector('[data-combo-select="recipe-ing-select"]'), '', 'Select an ingredient...');
+            });
+
+            document.getElementById('cancel-recipe-select').addEventListener('click', () => {
+                recipeSelector.classList.add('hidden');
+            });
+
+            document.getElementById('confirm-recipe-select').addEventListener('click', () => {
+                const val = recipeIngSelect.value;
+                if (!val) return;
+
+                const selectedOption = document.querySelector(`[data-combo-select="recipe-ing-select"] .combo-select-option[data-value="${val}"]`);
+                const label = selectedOption?.dataset.label || '';
+                const unit = selectedOption?.dataset.unit || '';
+                const name = label.replace(` (${unit})`, '');
+
+                addRecipeLine(val, name, unit);
+                recipeSelector.classList.add('hidden');
+            });
+
+            async function openModal(mode, data) {
+
                 form.reset();
                 uploadStartedAt = null;
                 clearFieldErrors();
+                recipeLinesContainer.innerHTML = '';
 
                 if (mode === 'create') {
                     title.textContent = 'Add New Menu Item';
@@ -302,11 +346,28 @@
                     title.textContent = 'Edit Menu Item';
                     form.dataset.mode = 'edit';
                     form.dataset.itemId = data.id;
-                    form.item_name.value = data.itemName;
-                    form.category.value = data.category;
-                    form.price.value = data.price;
-                    form.is_available.value = data.isAvailable;
-                    resetImageDropzone(data.imageUrl || null);
+
+                    try {
+                        const response = await fetch(`${baseUrl}/${data.id}`);
+                        if (!response.ok) throw new Error('Failed to fetch item details');
+                        const item = await response.json();
+
+                        form.item_name.value = item.itemName;
+                        form.category.value = item.category;
+                        form.price.value = item.price;
+                        form.is_available.value = item.isAvailable ? '1' : '0';
+                        resetImageDropzone(item.imageUrl || null);
+
+                        if (item.recipe && item.recipe.length > 0) {
+                            item.recipe.forEach(line => {
+                                addRecipeLine(line.ingredient_id, line.ingredient_name, line.unit, line.qty_consumed);
+                            });
+                        }
+                    } catch (err) {
+                        console.error('Error loading item:', err);
+                        showToast('Could not load item details.', 'error');
+                        return;
+                    }
                 }
 
                 modal.classList.remove('hidden');
@@ -319,30 +380,17 @@
                 document.body.classList.remove('overflow-hidden');
             }
 
-            // Image dropzone elements
             const dropzone = document.getElementById('menu-image-dropzone');
             const fileInput = document.getElementById('menu-image-input');
             const removeImageField = document.getElementById('menu-remove-image');
 
-            // ---------------------------------------------------------------
-            // Disable Save until something has actually changed from what the
-            // modal opened with, applies to both Add (a still-blank form
-            // shouldn't be submittable) and Edit (no point re-saving
-            // unmodified data). A snapshot of every field Save would actually
-            // submit is captured the moment the modal opens; Save stays
-            // disabled until the live form diverges from that snapshot.
-            // ---------------------------------------------------------------
-            const saveButton = form.querySelector('button[type="submit"]');
+            const saveButton = document.getElementById('menu-modal-save');
             let savedSnapshot = '';
 
             function getFormSnapshot() {
                 const fields = ['item_name', 'category', 'price', 'is_available', 'remove_image']
                     .map((name) => form.elements[name]?.value ?? '');
 
-                // A File object can't be meaningfully diffed by value, so a
-                // newly-selected file is represented by its name+size+modified
-                // timestamp instead, enough to detect "a different file was
-                // chosen" without needing to read the file's actual bytes.
                 const file = fileInput.files[0];
                 fields.push(file ? `${file.name}:${file.size}:${file.lastModified}` : '');
 
@@ -351,14 +399,10 @@
 
             function captureSnapshot() {
                 savedSnapshot = getFormSnapshot();
-                updateSaveButtonState();
             }
 
-            function updateSaveButtonState() {
-                saveButton.disabled = getFormSnapshot() === savedSnapshot;
-            }
 
-            form.addEventListener('input', updateSaveButtonState);
+            form.addEventListener('input', () => {});
             const imagePlaceholder = document.getElementById('menu-image-placeholder');
             const dragoverState = document.getElementById('menu-image-dragover-state');
             const previewWrap = document.getElementById('menu-image-preview-wrap');
@@ -369,15 +413,6 @@
             const uploadBar = document.getElementById('menu-image-upload-bar');
             const imageErrorMsg = document.getElementById('menu-image-error');
 
-            // Single source of truth for which of the dropzone's states is
-            // showing. Previously each handler (dragover/dragleave/drop/etc.)
-            // hid-then-showed states with its own separate add/remove calls,
-            // which was how "Click or drag to upload image" and "Release to
-            // upload" ended up rendering on top of each other, nothing
-            // actually enforced that only one could be visible at a time.
-            // Routing every state change through this one function makes that
-            // combination structurally impossible: it always hides all five
-            // states first, then shows exactly one.
             function setDropzoneState(state) {
                 imagePlaceholder.classList.add('hidden');
                 dragoverState.classList.add('hidden');
@@ -399,8 +434,6 @@
                 } else if (state === 'uploading') {
                     uploadingState.classList.remove('hidden');
                 } else if (state === 'error') {
-                    // Falls back to the idle icon/text underneath the red
-                    // border + message, rather than a blank dropzone.
                     imagePlaceholder.classList.remove('hidden');
                     dropzone.classList.add('border-red-400', 'bg-red-50');
                 }
@@ -452,21 +485,11 @@
                     : `Uploading... ${percent}%`;
             }
 
-            // accept="..." on the <input> only filters what's offered in the
-            // file picker dialog, it does nothing to police a drag-and-drop,
-            // so both paths need this same real check before a file is
-            // accepted. The server (MenuController's `mimes:jpeg,png,jpg`
-            // rule) is still the actual enforcement, since this can be
-            // bypassed by anyone not using the browser UI at all; this is
-            // purely so a mistaken drop gets instant feedback instead of a
-            // round trip to the server.
             const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png'];
             const ACCEPTED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png'];
 
             function isValidImageFile(file) {
                 if (ACCEPTED_IMAGE_TYPES.includes(file.type)) return true;
-                // Fallback to extension when the browser/OS didn't set a
-                // MIME type at all (some file managers leave file.type blank).
                 const ext = file.name.split('.').pop()?.toLowerCase();
                 return !file.type && ACCEPTED_IMAGE_EXTENSIONS.includes(ext);
             }
@@ -493,7 +516,6 @@
                 setDropzoneState('dragover');
             });
             dropzone.addEventListener('dragleave', () => {
-                // Restore whatever state was showing before the drag started.
                 setDropzoneState(fileInput.files[0] ? 'preview' : 'idle');
             });
             dropzone.addEventListener('drop', (e) => {
@@ -522,7 +544,7 @@
                 e.preventDefault();
                 const mode = form.dataset.mode;
                 const itemId = form.dataset.itemId;
-                const saveBtn = form.querySelector('button[type="submit"]');
+                const saveBtn = document.getElementById('menu-modal-save');
                 const hasNewFile = fileInput.files.length > 0;
 
                 uploadStartedAt = null;
@@ -536,17 +558,9 @@
                     toastKind: mode === 'create' ? 'success' : 'edit',
                     onUploadProgress: hasNewFile ? showUploadProgress : undefined,
                     onSuccess: async () => {
-                        // Re-fetch the current page from the server instead of patching
-                        // the DOM by hand, guarantees the row count, sort order, and
-                        // Prev/Next state are all correct immediately, no reload needed.
                         await refreshTable(mode === 'create' ? indexUrl : window.location.href);
                         closeModal();
                     },
-                    // A 422 lands here instead of the generic bullet-list. This branch
-                    // never calls showToast and never calls closeModal, the admin stays
-                    // on the form, sees exactly what's wrong (with the same icon + red
-                    // outline treatment for every field), and can immediately fix just
-                    // that field without losing anything else they'd filled in.
                     onValidationError: (data) => {
                         const errors = data?.errors || {};
 
@@ -570,10 +584,6 @@
                             return;
                         }
 
-                        // Server-side image errors (e.g. a file over 2MB, which
-                        // the client-side check above never catches) get the
-                        // same under-dropzone treatment as a client-rejected
-                        // file, not the generic top-of-form error box.
                         if (errors.image?.length) {
                             showImageError(errors.image[0]);
                             return;
@@ -603,9 +613,6 @@
                     toastKind: isAvailable ? 'available' : 'unavailable',
                     toastMessage: isAvailable ? 'Marked available.' : 'Marked unavailable.',
                     onSuccess: () => {
-                        // Availability doesn't change total item count or sort order,
-                        // so a lightweight in-place style swap is enough here, no need
-                        // to round-trip the whole table.
                         select.classList.remove('bg-green-50', 'text-green-700', 'border-green-200', 'bg-red-50', 'text-red-700', 'border-red-200');
                         select.classList.add(...(isAvailable
                             ? ['bg-green-50', 'text-green-700', 'border-green-200']
@@ -638,8 +645,6 @@
                     },
                     toastKind: 'delete',
                     onSuccess: () => {
-                        // Deleting can also shift pagination (e.g. removing the last item
-                        // on a page), so resync from the server here too.
                         refreshTable(window.location.href);
                     },
                 });
@@ -652,10 +657,59 @@
                 scope.querySelectorAll('.delete-menu-item-btn').forEach((btn) => {
                     btn.addEventListener('click', () => deleteItem(btn));
                 });
-                scope.querySelectorAll('.status-select').forEach((select) => {
-                    select.addEventListener('change', () => handleStatusChange(select));
-                });
             }
+
+            window.showAvailabilityDetails = function(event, itemId, details) {
+                event.stopPropagation();
+                const popover = document.getElementById('availability-popover');
+                const content = document.getElementById('availability-popover-content');
+
+                let html = '';
+                if (details.failing_ingredients && details.failing_ingredients.length > 0) {
+                    details.failing_ingredients.forEach(ing => {
+                        const isExpired = ing.status === 'expired';
+                        html += `
+                            <div class="flex flex-col gap-1">
+                                <span class="text-xs font-semibold text-gray-800">• ${ing.name}</span>
+                                ${isExpired
+                                    ? `<span class="text-[11px] text-red-600 font-medium ml-2">Expired</span>`
+                                    : `<div class="flex justify-between text-[11px] text-gray-500 ml-2">
+                                        <span>Required: ${ing.required} ${ing.unit || ''}</span>
+                                        <span>Available: ${ing.available} ${ing.unit || ''}</span>
+                                    </div>`
+                                }
+                            </div>
+                        `;
+                    });
+                } else {
+                    html = `<p class="text-xs text-gray-600">${details.reason || 'Unknown issue.'}</p>`;
+                }
+
+                content.innerHTML = html;
+                popover.classList.remove('hidden');
+
+                // Position popover relative to the clicked icon
+                const rect = event.target.closest('button').getBoundingClientRect();
+                popover.style.top = `${rect.bottom + window.scrollY + 8}px`;
+                popover.style.left = `${Math.min(rect.left + window.scrollX, window.innerWidth - 320)}px`;
+            };
+
+            document.getElementById('availability-popover-close')?.addEventListener('click', () => {
+                document.getElementById('availability-popover').classList.add('hidden');
+            });
+
+            document.addEventListener('click', (e) => {
+                const popover = document.getElementById('availability-popover');
+                if (!popover.contains(e.target) && !e.target.closest('[onclick="showAvailabilityDetails(...)"]')) {
+                    popover.classList.add('hidden');
+                }
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    document.getElementById('availability-popover').classList.add('hidden');
+                }
+            });
 
             document.getElementById('add-menu-item-btn').addEventListener('click', () => openModal('create'));
             document.getElementById('menu-modal-close').addEventListener('click', closeModal);
