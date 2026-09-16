@@ -308,7 +308,7 @@
 
                     <div class="mb-4 hidden" id="movement-ingredient-display-field">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Ingredient</label>
-                        <p id="movement-ingredient-display-text" class="text-sm text-gray-800 bg-gray-50 border rounded-lg px-3 py-2 font-medium"></p>
+                        <div id="movement-ingredient-display-text" class="text-sm text-gray-500 bg-gray-100 border border-gray-200 rounded-lg px-3 py-2 font-medium cursor-not-allowed select-none"></div>
                     </div>
 
                     <div class="mb-4" id="movement-reason-field">
@@ -361,15 +361,19 @@
                         </div>
                     </div>
 
-                    <div class="hidden" id="movement-edit-only-fields">
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Reason for Edit</label>
-                            <input type="text" name="edit_reason" id="movement-edit-reason-input" placeholder="e.g. Typo, meant to type 5 instead of 50" class="w-full border rounded-lg px-3 py-2 text-sm">
+                    <div class="hidden mt-6 p-4 bg-amber-50/50 border border-amber-100 rounded-xl" id="movement-edit-only-fields">
+                        <div class="flex items-center gap-2 mb-4 pb-2 border-b border-amber-100">
+                            <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <h3 class="text-xs font-bold text-amber-800 uppercase tracking-wider">Edit Audit Details</h3>
                         </div>
-                        <div class="mb-6">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Reason for Edit <span class="text-red-500">*</span></label>
+                            <input type="text" name="edit_reason" id="movement-edit-reason-input" placeholder="e.g. Typo, meant to type 5 instead of 50" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-amber-400 outline-none">
+                        </div>
+                        <div class="mb-2">
                             <label class="block text-sm font-medium text-gray-700 mb-1">Date of Transaction (optional)</label>
-                            <input type="date" name="recorded_at" id="movement-recorded-at-input" class="w-full border rounded-lg px-3 py-2 text-sm">
-                            <p class="text-xs text-gray-400 mt-1">Only set this if the original date itself was wrong.</p>
+                            <input type="date" name="recorded_at" id="movement-recorded-at-input" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-amber-400 outline-none">
+                            <p class="text-[11px] text-amber-600/70 mt-1">Only set this if the original date itself was wrong.</p>
                         </div>
                     </div>
 
@@ -568,14 +572,14 @@
                 ingredientSelectField.classList.add('hidden');
                 ingredientSelect.required = false;
                 ingredientDisplayField.classList.remove('hidden');
-                ingredientDisplayText.textContent = `${data.ingredientName} (${data.ingredientUnit}) — ${data.typeLabel}`;
+                ingredientDisplayText.textContent = `${data.ingredientName} (${data.ingredientUnit})`;
 
                 // Reason is read-only in Edit mode
                 reasonField.classList.remove('hidden');
                 const typeContainer = document.getElementById('movement-type-select').closest('[data-combo-select]');
                 setComboSelectValue(typeContainer, data.type, data.typeLabel);
                 typeSelect.required = false;
-                typeContainer.querySelector('.combo-select-trigger').classList.add('bg-gray-50', 'text-gray-500', 'cursor-not-allowed');
+                typeContainer.querySelector('.combo-select-trigger').classList.add('bg-gray-100', 'text-gray-400', 'border-gray-200', 'cursor-not-allowed');
                 typeContainer.querySelector('.combo-select-trigger').style.pointerEvents = 'none';
 
                 dataFields.classList.remove('hidden');
@@ -606,7 +610,7 @@
                 const typeContainer = document.getElementById('movement-type-select').closest('[data-combo-select]');
                 if (typeContainer) {
                     const trigger = typeContainer.querySelector('.combo-select-trigger');
-                    trigger.classList.remove('bg-gray-50', 'text-gray-500', 'cursor-not-allowed');
+                    trigger.classList.remove('bg-gray-100', 'text-gray-400', 'border-gray-200', 'cursor-not-allowed');
                     trigger.style.pointerEvents = '';
                 }
             }
