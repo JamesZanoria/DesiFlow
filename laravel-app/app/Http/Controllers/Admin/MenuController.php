@@ -38,7 +38,7 @@ class MenuController extends Controller{
             }
 
             return $query->orderByDesc('menu_item_id');
-        }, $request, 8);
+        }, $request, 7);
 
         // Distinct list of categories currently in use, to populate the filter dropdown
         // and the Add/Edit modal's category suggestions.

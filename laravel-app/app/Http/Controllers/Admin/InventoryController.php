@@ -46,7 +46,7 @@ class InventoryController extends Controller{
     public function index(Request $request){
         $ingredients = $this->paginateClamped(function () use ($request) {
             return $this->getFilteredIngredientsQuery($request);
-        }, $request, 5);
+        }, $request, 4);
 
         $units = collect(Ingredient::UNITS)
             ->merge(Ingredient::query()->pluck('unit_of_measurement'))
@@ -684,7 +684,7 @@ class InventoryController extends Controller{
             }
 
             return $query->orderByDesc('recorded_at');
-        }, $request, 5);
+        }, $request, 4);
 
         $ingredients = Ingredient::orderBy('ingredient_name')
             ->get(['ingredient_id', 'ingredient_name', 'unit_of_measurement']);

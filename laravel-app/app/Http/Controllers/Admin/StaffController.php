@@ -41,7 +41,7 @@ class StaffController extends Controller{
             }
 
             return $query->orderByDesc('user_id');
-        }, $request, 8);
+        }, $request, 7);
 
         // Full, unpaginated list of staff names for the search box's
         // suggestions dropdown, deliberately separate from $staff (only the
