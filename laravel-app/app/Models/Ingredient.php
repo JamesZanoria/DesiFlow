@@ -88,12 +88,7 @@ class Ingredient extends Model{
      * This ensures that expired stock is not counted towards recipe requirements.
      */
     public function usableStock(): float {
-        return (float) $this->stockMovements()
-            ->where(function($q) {
-                $q->whereNull('expiration_date')
-                  ->orWhere('expiration_date', '>', now());
-            })
-            ->sum('qty_changed');
+        return (float) (($this->current_stock ?? 0) - $this->expiredQuantity());
     }
 
     // Companion to withCurrentStock(): attaches the timestamp of this
@@ -156,14 +151,11 @@ class Ingredient extends Model{
             return 'out_of_stock';
         }
 
-        $expiry = $this->expiryDate();
-        if ($expiry) {
-            if (now()->greaterThanOrEqualTo($expiry)) {
-                return 'expired';
-            }
-            if (now()->greaterThanOrEqualTo($expiry->copy()->subDays(self::EXPIRY_WARNING_DAYS))) {
-                return 'expiring_soon';
-            }
+        if ($this->expiredQuantity() > 0) {
+            return 'expired';
+        }
+        if ($this->expiringSoonQuantity() > 0) {
+            return 'expiring_soon';
         }
 
         if ($stock <= $this->restock_threshold) {
@@ -172,4 +164,64 @@ class Ingredient extends Model{
 
         return 'active';
     }
+
+    /**
+     * Sum of all non-voided outflows (sales, waste, internal use, negative adjustments).
+     */
+    public function getTotalConsumption(): float {
+        return abs((float) $this->stockMovements()
+            ->whereNull('voided_at')
+            ->where(function($q) {
+                $q->whereIn('movement_type', ['sale_deduction', 'spoilage', 'internal_use'])
+                  ->orWhere(function($sq) {
+                      $sq->where('movement_type', 'manual_adjustment')
+                         ->where('qty_changed', '<', 0);
+                  });
+            })
+            ->sum('qty_changed'));
+    }
+
+    /**
+     * Calculates remaining expired stock using Naive FIFO.
+     * Expired Remaining = Max(0, All Expired Supply - Total Consumption).
+     */
+    public function expiredQuantity(): float {
+        $expiredSupply = (float) $this->stockMovements()
+            ->whereNull('voided_at')
+            ->whereNotNull('expiration_date')
+            ->where('expiration_date', '<=', now()->toDateString())
+            ->whereIn('movement_type', ['delivery', 'opening_balance'])
+            ->sum('qty_changed');
+
+        return max(0, $expiredSupply - $this->getTotalConsumption());
+    }
+
+    /**
+     * Calculates remaining stock that will expire within the warning window using Naive FIFO.
+     * Expiring Soon Remaining = Max(0, All Warning Supply - Total Consumption) - Expired Remaining.
+     */
+    public function expiringSoonQuantity(): float {
+        $warningDate = now()->addDays(self::EXPIRY_WARNING_DAYS)->toDateString();
+
+        $warningSupply = (float) $this->stockMovements()
+            ->whereNull('voided_at')
+            ->whereNotNull('expiration_date')
+            ->where('expiration_date', '<=', $warningDate)
+            ->whereIn('movement_type', ['delivery', 'opening_balance'])
+            ->sum('qty_changed');
+
+        $totalConsumption = $this->getTotalConsumption();
+        $expiredSupply = (float) $this->stockMovements()
+            ->whereNull('voided_at')
+            ->whereNotNull('expiration_date')
+            ->where('expiration_date', '<=', now()->toDateString())
+            ->whereIn('movement_type', ['delivery', 'opening_balance'])
+            ->sum('qty_changed');
+
+        $expiredRemaining = max(0, $expiredSupply - $totalConsumption);
+        $warningRemaining = max(0, $warningSupply - $totalConsumption);
+
+        return $warningRemaining - $expiredRemaining;
+    }
+
 }

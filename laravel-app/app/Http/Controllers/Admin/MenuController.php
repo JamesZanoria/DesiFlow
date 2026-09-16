@@ -188,7 +188,6 @@ class MenuController extends Controller{
     private function validationFailedResponse(Request $request, $validator){
         if ($request->wantsJson()) {
             return response()->json([
-                'message' => 'Please check the form and try again.',
                 'errors' => $validator->errors(),
             ], 422);
         }
@@ -200,11 +199,11 @@ class MenuController extends Controller{
     public function show(MenuItem $menuItem){
         return response()->json([
             'id' => $menuItem->menu_item_id,
-            'itemName' => $menuItem->item_name,
+            'item_name' => $menuItem->item_name,
             'category' => $menuItem->category,
             'price' => $menuItem->price,
-            'imageUrl' => $menuItem->image_url,
-            'isAvailable' => $menuItem->is_available,
+            'image_url' => $menuItem->image_url,
+            'is_available' => $menuItem->is_available,
             'recipe' => $menuItem->recipeIngredients()
                 ->where('is_active', true)
                 ->with('ingredient')

@@ -663,6 +663,7 @@
                         const invalidInputMsg = Object.values(errors).flat().find((m) => m === 'Invalid input');
                         if (invalidInputMsg) {
                             showToast('Invalid input', 'error');
+                            form.reset();
                             Object.entries(errors).forEach(([field, messages]) => {
                                 if (Array.isArray(messages) && messages.includes('Invalid input')) {
                                     const input = form.elements[field];

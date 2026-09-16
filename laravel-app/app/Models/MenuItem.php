@@ -51,7 +51,9 @@ class MenuItem extends Model{
         // If it's available, check if any of its ingredients are in a warning state (low stock or expiring soon)
         $activeIngredients = $this->recipeIngredients()
             ->where('is_active', true)
-            ->with('ingredient')
+            ->with(['ingredient' => function($q) {
+                $q->withCurrentStock();
+            }])
             ->get();
 
         foreach ($activeIngredients as $recipeLine) {
@@ -80,7 +82,9 @@ class MenuItem extends Model{
     public function getAvailabilityDetails(): array {
         $activeIngredients = $this->recipeIngredients()
             ->where('is_active', true)
-            ->with(['ingredient'])
+            ->with(['ingredient' => function($q) {
+                $q->withCurrentStock();
+            }])
             ->get();
 
         if ($activeIngredients->isEmpty()) {

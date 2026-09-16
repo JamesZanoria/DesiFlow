@@ -64,6 +64,20 @@
         @include('admin.inventory._table')
     </div>
 
+    {{-- Waste Details Popover --}}
+    <div id="waste-popover" class="hidden fixed z-[60] bg-white border shadow-xl rounded-lg p-4 w-72 max-w-[calc(100vw-32px)] max-h-[80vh] overflow-y-auto pointer-events-auto">
+        <div class="flex items-center justify-between mb-3 pb-2 border-b sticky top-0 bg-white z-10">
+            <h4 class="text-xs font-bold text-gray-800 uppercase tracking-wide">Waste Details</h4>
+            <button type="button" id="waste-popover-close" class="text-gray-400 hover:text-gray-600">&times;</button>
+        </div>
+        <div id="waste-popover-content" class="space-y-3">
+            {{-- Content injected by JS --}}
+        </div>
+        <div class="mt-4 pt-2 border-t sticky bottom-0 bg-white">
+            <p class="text-[10px] text-gray-400 italic">Quantities based on Naive FIFO stock movement.</p>
+        </div>
+    </div>
+
     {{-- Add / Edit popup --}}
     <div id="ingredient-modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-y-auto">
         <div class="bg-white rounded-xl shadow-xl w-full max-w-md my-8 max-h-[90vh] flex flex-col">
@@ -783,6 +797,7 @@
                         const invalidInputMsg = Object.values(errors).flat().find((m) => m === 'Invalid input');
                         if (invalidInputMsg) {
                             showToast('Invalid input', 'error');
+                            form.reset();
                             Object.entries(errors).forEach(([field, messages]) => {
                                 if (Array.isArray(messages) && messages.includes('Invalid input')) {
                                     const input = form.elements[field];
@@ -835,6 +850,73 @@
                     onSuccess: () => refreshTable(window.location.href),
                 });
             }
+
+            window.showWasteDetails = function(event, data) {
+                event.stopPropagation();
+                const popover = document.getElementById('waste-popover');
+                const content = document.getElementById('waste-popover-content');
+
+                content.innerHTML = `
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-gray-500">Ingredient:</span>
+                            <span class="text-xs font-semibold text-gray-800">${data.name}</span>
+                        </div>
+                        <div class="p-3 bg-rose-50 rounded-lg border border-rose-100">
+                            <div class="flex justify-between items-center">
+                                <span class="text-[11px] font-medium text-rose-600">Already Expired:</span>
+                                <span class="text-xs font-bold text-rose-700">${data.expired} ${data.unit}</span>
+                            </div>
+                        </div>
+                        <div class="p-3 bg-orange-50 rounded-lg border border-orange-100">
+                            <div class="flex justify-between items-center">
+                                <span class="text-[11px] font-medium text-orange-600">Expiring Soon:</span>
+                                <span class="text-xs font-bold text-orange-700">${data.expiring} ${data.unit}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                popover.classList.remove('hidden');
+
+                const trigger = event.target.closest('button');
+                const triggerRect = trigger.getBoundingClientRect();
+                const popoverRect = popover.getBoundingClientRect();
+                const popoverHeight = popoverRect.height;
+                const popoverWidth = popoverRect.width;
+
+                let top = triggerRect.bottom + 8;
+                if (top + popoverHeight > window.innerHeight) {
+                    top = triggerRect.top - popoverHeight - 8;
+                }
+                popover.style.top = `${Math.max(8, top)}px`;
+
+                let left = triggerRect.left;
+                if (left + popoverWidth > window.innerWidth) {
+                    left = window.innerWidth - popoverWidth - 16;
+                }
+                if (left < 16) {
+                    left = 16;
+                }
+                popover.style.left = `${left}px`;
+            };
+
+            document.getElementById('waste-popover-close')?.addEventListener('click', () => {
+                document.getElementById('waste-popover').classList.add('hidden');
+            });
+
+            document.addEventListener('click', (e) => {
+                const popover = document.getElementById('waste-popover');
+                if (popover && !popover.contains(e.target) && !e.target.closest('[onclick="showWasteDetails(...)"]')) {
+                    popover.classList.add('hidden');
+                }
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    document.getElementById('waste-popover')?.classList.add('hidden');
+                }
+            });
 
             function sanitizeCsvCell(text) {
                 return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;

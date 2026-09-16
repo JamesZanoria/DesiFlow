@@ -38,15 +38,15 @@
     </div>
 
     {{-- Availability Details Popover --}}
-    <div id="availability-popover" class="hidden fixed z-[60] bg-white border shadow-xl rounded-lg p-4 w-72 pointer-events-auto">
-        <div class="flex items-center justify-between mb-3 pb-2 border-b">
+    <div id="availability-popover" class="hidden fixed z-[60] bg-white border shadow-xl rounded-lg p-4 w-72 max-w-[calc(100vw-32px)] max-h-[80vh] overflow-y-auto pointer-events-auto">
+        <div class="flex items-center justify-between mb-3 pb-2 border-b sticky top-0 bg-white z-10">
             <h4 class="text-xs font-bold text-gray-800 uppercase tracking-wide">Why unavailable?</h4>
             <button type="button" id="availability-popover-close" class="text-gray-400 hover:text-gray-600">&times;</button>
         </div>
         <div id="availability-popover-content" class="space-y-3">
             {{-- Content injected by JS --}}
         </div>
-        <div class="mt-4 pt-2 border-t">
+        <div class="mt-4 pt-2 border-t sticky bottom-0 bg-white">
             <p class="text-[10px] text-gray-400 italic">Reasons: Expired, out of stock, or insufficient usable stock.</p>
         </div>
     </div>
@@ -352,11 +352,11 @@
                         if (!response.ok) throw new Error('Failed to fetch item details');
                         const item = await response.json();
 
-                        form.item_name.value = item.itemName;
+                        form.item_name.value = item.item_name;
                         form.category.value = item.category;
                         form.price.value = item.price;
-                        form.is_available.value = item.isAvailable ? '1' : '0';
-                        resetImageDropzone(item.imageUrl || null);
+                        form.is_available.value = item.is_available ? '1' : '0';
+                        resetImageDropzone(item.image_url || null);
 
                         if (item.recipe && item.recipe.length > 0) {
                             item.recipe.forEach(line => {
@@ -397,12 +397,18 @@
                 return fields.join('|');
             }
 
+            function updateSaveButtonState() {
+                const currentSnapshot = getFormSnapshot();
+                saveButton.disabled = (currentSnapshot === savedSnapshot);
+            }
+
             function captureSnapshot() {
                 savedSnapshot = getFormSnapshot();
+                updateSaveButtonState();
             }
 
 
-            form.addEventListener('input', () => {});
+            form.addEventListener('input', updateSaveButtonState);
             const imagePlaceholder = document.getElementById('menu-image-placeholder');
             const dragoverState = document.getElementById('menu-image-dragover-state');
             const previewWrap = document.getElementById('menu-image-preview-wrap');
@@ -573,6 +579,7 @@
                         const invalidInputMsg = Object.values(errors).flat().find((m) => m === 'Invalid input');
                         if (invalidInputMsg) {
                             showToast('Invalid input', 'error');
+                            form.reset();
                             Object.entries(errors).forEach(([field, messages]) => {
                                 if (Array.isArray(messages) && messages.includes('Invalid input')) {
                                     const input = form.elements[field];
@@ -689,9 +696,28 @@
                 popover.classList.remove('hidden');
 
                 // Position popover relative to the clicked icon
-                const rect = event.target.closest('button').getBoundingClientRect();
-                popover.style.top = `${rect.bottom + window.scrollY + 8}px`;
-                popover.style.left = `${Math.min(rect.left + window.scrollX, window.innerWidth - 320)}px`;
+                const trigger = event.target.closest('button');
+                const triggerRect = trigger.getBoundingClientRect();
+                const popoverRect = popover.getBoundingClientRect();
+                const popoverHeight = popoverRect.height;
+                const popoverWidth = popoverRect.width;
+
+                // Vertical positioning: prefer above, fallback to below
+                let top = triggerRect.bottom + 8;
+                if (top + popoverHeight > window.innerHeight) {
+                    top = triggerRect.top - popoverHeight - 8;
+                }
+                popover.style.top = `${Math.max(8, top)}px`;
+
+                // Horizontal positioning: anchor to left, but keep in viewport
+                let left = triggerRect.left;
+                if (left + popoverWidth > window.innerWidth) {
+                    left = window.innerWidth - popoverWidth - 16;
+                }
+                if (left < 16) {
+                    left = 16;
+                }
+                popover.style.left = `${left}px`;
             };
 
             document.getElementById('availability-popover-close')?.addEventListener('click', () => {

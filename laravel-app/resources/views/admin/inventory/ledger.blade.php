@@ -112,16 +112,16 @@
                 <table class="text-sm text-left border-collapse" style="width: 1570px; table-layout: fixed;">
                     <thead class="bg-gray-50/80 text-gray-500 text-xs uppercase tracking-wider font-semibold border-b border-gray-200">
                         <tr class="h-10">
-                            <th class="px-6 py-4 font-semibold sticky left-0 z-10 bg-gray-50" style="width:200px;">Date &amp; Time</th>
-                            <th class="px-6 py-4 font-semibold sticky z-10 bg-gray-50 shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)]" style="left:200px; width:220px;">Ingredient</th>
-                            <th class="px-6 py-4 font-semibold" style="width:200px;">Type</th>
-                            <th class="px-6 py-4 font-semibold" style="width:120px;">Qty Changed</th>
-                            <th class="px-6 py-4 font-semibold" style="width:120px;">Delivery Date</th>
-                            <th class="px-6 py-4 font-semibold" style="width:140px;">Expiration Date</th>
-                            <th class="px-6 py-4 font-semibold" style="width:150px;">Recorded By</th>
-                            <th class="px-6 py-4 font-semibold" style="width:200px;">Notes</th>
-                            <th class="px-6 py-4 font-semibold" style="width:110px;">Reference #</th>
-                            <th class="px-6 py-4 font-semibold text-right" style="width:110px;">Actions</th>
+                            <th class="px-6 py-4 font-semibold sticky left-0 z-10 bg-gray-50 whitespace-nowrap" style="width:200px;">Date &amp; Time</th>
+                            <th class="px-6 py-4 font-semibold sticky z-10 bg-gray-50 shadow-[4px_0_6px_-4px_rgba(0,0,0,0.15)] whitespace-nowrap" style="left:200px; width:220px;">Ingredient</th>
+                            <th class="px-6 py-4 font-semibold whitespace-nowrap" style="width:200px;">Type</th>
+                            <th class="px-6 py-4 font-semibold whitespace-nowrap" style="width:120px;">Qty Changed</th>
+                            <th class="px-6 py-4 font-semibold whitespace-nowrap" style="width:120px;">Delivery Date</th>
+                            <th class="px-6 py-4 font-semibold whitespace-nowrap" style="width:140px;">Expiration Date</th>
+                            <th class="px-6 py-4 font-semibold whitespace-nowrap" style="width:150px;">Recorded By</th>
+                            <th class="px-6 py-4 font-semibold whitespace-nowrap" style="width:200px;">Notes</th>
+                            <th class="px-6 py-4 font-semibold whitespace-nowrap" style="width:110px;">Reference #</th>
+                            <th class="px-6 py-4 font-semibold text-right whitespace-nowrap" style="width:110px;">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="ledger-table-body" class="divide-y divide-gray-100">
@@ -147,18 +147,20 @@
                                         </span>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 truncate" style="width:200px;">
-                                    <span class="cell-type-badge px-2.5 py-1 rounded-full text-xs font-medium {{ $typeMeta['badge'] }}">
-                                        {{ $typeMeta['label'] }}
-                                    </span>
-                                    @if ($movement->voided_at)
-                                        <span class="ml-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-500 border border-gray-300">Voided</span>
-                                    @endif
+                                <td class="px-6 py-4" style="width:200px;">
+                                    <div class="flex items-center gap-1.5 overflow-hidden">
+                                        <span class="cell-type-badge px-2.5 py-1 rounded-full text-xs font-medium truncate {{ $movement->voided_at ? 'bg-gray-100 text-gray-500 border border-gray-200' : $typeMeta['badge'] }}">
+                                            {{ $typeMeta['label'] }}
+                                        </span>
+                                        @if ($movement->voided_at)
+                                            <span class="flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-200 text-gray-600 border border-gray-300 uppercase tracking-tighter">Voided</span>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4 cell-qty {{ $movement->qty_changed < 0 ? 'text-red-600 font-semibold' : 'text-green-700 font-semibold' }} truncate" style="width:120px;">
                                     {{ $movement->qty_changed > 0 ? '+' : '' }}{{ number_format($movement->qty_changed, 2) }}
                                 </td>
-                                <td class="px-6 py-4 text-gray-500 truncate" style="width:120px;">
+                                <td class="px-6 py-4 text-gray-500 whitespace-nowrap" style="width:120px;">
                                     {{ $movement->delivery_date ? $movement->delivery_date->format('M d, Y') : '—' }}
                                 </td>
                                 <td class="px-6 py-4 text-gray-500 truncate" style="width:140px;">
@@ -175,15 +177,16 @@
                                 <td class="px-6 py-4 text-gray-500 cell-notes truncate" style="width:200px;">
                                     @if ($movement->notes || $movement->edit_reason)
                                         <button type="button" class="view-notes-btn text-left hover:underline hover:text-gray-700 block truncate max-w-[18rem]"
+                                            title="{{ $movement->notes ?? 'View edit reason' }}"
                                             data-notes="{{ $movement->notes }}"
                                             data-edit-reason="{{ $movement->edit_reason }}">
-                                            {{ \Illuminate\Support\Str::limit($movement->notes ?? 'View edit reason', 30) }}
+                                            {{ $movement->notes ?? 'View edit reason' }}
                                         </button>
                                     @else
                                         <span class="text-gray-300">—</span>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 text-gray-500 cell-reference truncate" style="width:110px;">{{ $movement->reference_number ?? '—' }}</td>
+                                <td class="px-6 py-4 text-gray-500 cell-reference truncate" title="{{ $movement->reference_number ?? '' }}" style="width:110px;">{{ $movement->reference_number ?? '—' }}</td>
                                 <td class="px-6 py-4 text-right truncate" style="width:110px;">
                                     @if ($movement->movement_type !== 'void' && ! $movement->voided_at)
                                         <div class="flex justify-end gap-1">

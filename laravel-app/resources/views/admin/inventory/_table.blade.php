@@ -52,9 +52,45 @@
                         <td class="px-6 py-4 text-gray-900 font-medium cell-cost">₱{{ number_format($ingredient->unit_cost, 2) }}</td>
                         <td class="px-6 py-4 text-gray-500 cell-threshold">{{ number_format($ingredient->restock_threshold, 2) }}</td>
                         <td class="px-6 py-4 cell-status">
-                            <span class="px-2.5 py-1 rounded-full text-xs font-medium {{ $statusMeta[$status]['badge'] }} border border-transparent">
-                                {{ $statusMeta[$status]['label'] }}
-                            </span>
+                            <div class="flex items-center gap-2">
+                                @php
+                                    $status = $ingredient->stockStatus();
+                                    $isExpiryStatus = ($status === 'expired' || $status === 'expiring_soon');
+                                    $dotColor = $status === 'expired' ? 'bg-rose-600' : 'bg-orange-500';
+                                    $borderColor = $status === 'expired' ? 'border-rose-300' : 'border-orange-200';
+                                @endphp
+
+                                <div class="flex flex-col gap-1">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium {{ $statusMeta[$status]['badge'] }} {{ $isExpiryStatus ? $borderColor : 'border-transparent' }} border">
+                                        @if($isExpiryStatus)
+                                            <span class="w-1.5 h-1.5 rounded-full {{ $dotColor }}"></span>
+                                        @endif
+                                        {{ $statusMeta[$status]['label'] }}
+                                    </span>
+
+                                    @if($status === 'low_stock')
+                                        <span class="text-[11px] font-medium text-gray-600">
+                                            {{ number_format($ingredient->current_stock ?? 0, 2) }} {{ $ingredient->unit_of_measurement }} remaining
+                                        </span>
+                                    @endif
+                                </div>
+
+                                @if($isExpiryStatus)
+                                    <button type="button"
+                                        class="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
+                                        onclick="showWasteDetails(event, {{ json_encode([
+                                            'name' => $ingredient->ingredient_name,
+                                            'unit' => $ingredient->unit_of_measurement,
+                                            'expired' => number_format($ingredient->expiredQuantity(), 2),
+                                            'expiring' => number_format($ingredient->expiringSoonQuantity(), 2)
+                                        ]) }})"
+                                        title="View waste details">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </button>
+                                @endif
+                            </div>
                         </td>
                         <td class="px-6 py-4 text-right">
                             <div class="flex justify-end gap-1">

@@ -195,7 +195,6 @@ class StaffController extends Controller{
     private function validationFailedResponse(Request $request, $validator){
         if ($request->wantsJson()) {
             return response()->json([
-                'message' => 'Please check the form and try again.',
                 'errors' => $validator->errors(),
             ], 422);
         }
