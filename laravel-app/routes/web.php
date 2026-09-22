@@ -8,7 +8,7 @@ use App\Http\Controllers\Admin\StaffController;
 use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\OrderMonitorController;
 use App\Http\Controllers\Admin\SmartAssistantController;
-use App\Http\Controllers\Admin\NotificationController;
+use App\Http\Controllers\Admin\NotificationsController;
 use App\Http\Controllers\Admin\ProtectedFileController;
 
 Route::get('/', function () {
@@ -38,6 +38,12 @@ Route::get('/files/{type}/{filename}', [ProtectedFileController::class, 'show'])
 // prefix is admin-only for now; a future POS/KDS route group would use
 // role:cashier / role:kitchen the same way.
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function () {
+
+    Route::get('/', function() {
+        return redirect()->route('admin.dashboard.index');
+    });
+
+    Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard.index');
 
     // Menu Management
     Route::get('/menu', [MenuController::class, 'index'])->name('menu.index');
@@ -83,6 +89,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::post('/assistant/ask', [SmartAssistantController::class, 'ask'])->name('assistant.ask');
 
     // Notifications (bell dropdown, shared layout)
-    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications', [NotificationsController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/mark-read', [NotificationsController::class, 'markAllAsRead'])->name('notifications.markRead');
 
 });

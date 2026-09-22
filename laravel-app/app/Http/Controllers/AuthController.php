@@ -52,10 +52,8 @@ class AuthController extends Controller{
         RateLimiter::clear($this->throttleKey($request));
         $request->session()->regenerate();
 
-        // Real-Time Orders, not "Dashboard", app.blade.php's Dashboard link
-        // is still a coming-soon placeholder, so landing there after login
-        // would drop the admin on a dead page. Swap this once Dashboard ships.
-        return redirect()->intended(route('admin.orders.index'));
+        // Default landing page for Admin.
+        return redirect()->intended(route('admin.dashboard.index'));
     }
 
     public function logout(Request $request){

@@ -16,6 +16,13 @@ use Illuminate\Validation\Rules\Password;
 class StaffController extends Controller{
     use ClampsPaginationPage;
 
+    protected $notificationService;
+
+    public function __construct(\App\Services\NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
+
     private const BLOCKED_PLACEHOLDER_VALUES = [
         'test', 'testing', 'tests', 'sample', 'samples', 'sample data',
         'asdf', 'asdfgh', 'qwerty', 'foo', 'bar', 'foobar', 'xxx', 'xyz',
@@ -241,6 +248,7 @@ class StaffController extends Controller{
 
         try {
             $user = User::create($validated);
+            $this->notificationService->notifyStaffEvent('created', $user);
         } catch (QueryException $e) {
             if ($this->isDuplicateEmailViolation($e)) {
                 return $this->duplicateEmailResponse($request);
@@ -360,6 +368,7 @@ class StaffController extends Controller{
         }
 
         try {
+            $this->notificationService->notifyStaffEvent('deleted', $user);
             $user->delete();
         } catch (QueryException $e) {
             $message = "Can't delete \"{$user->name}\", they have order or stock movement history tied to their account.";

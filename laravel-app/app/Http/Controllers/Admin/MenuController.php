@@ -16,6 +16,13 @@ class MenuController extends Controller{
     use ClampsPaginationPage;
     use HandlesProtectedImageUploads;
 
+    protected $notificationService;
+
+    public function __construct(\App\Services\NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
+
     private const BLOCKED_PLACEHOLDER_VALUES = [
         'test', 'testing', 'tests', 'sample', 'samples', 'sample data',
         'asdf', 'asdfgh', 'qwerty', 'foo', 'bar', 'foobar', 'xxx', 'xyz',
@@ -273,7 +280,8 @@ class MenuController extends Controller{
                     );
                 }
             }
-            $menuItem->syncAvailabilityStatus();
+            $isAvailable = $menuItem->syncAvailabilityStatus();
+            $this->notificationService->notifyMenuAvailability($menuItem, $isAvailable);
         } catch (QueryException $e) {
 
             if ($this->isDuplicateNameViolation($e)) {
@@ -351,6 +359,7 @@ class MenuController extends Controller{
         unset($validated['image']);
 
         try {
+            $oldAvailability = $menuItem->is_available;
             $menuItem->update($validated);
 
             // Sync Recipe
@@ -366,7 +375,11 @@ class MenuController extends Controller{
                     );
                 }
             }
-            $menuItem->syncAvailabilityStatus();
+            $newAvailability = $menuItem->syncAvailabilityStatus();
+
+            if ($oldAvailability !== $newAvailability) {
+                $this->notificationService->notifyMenuAvailability($menuItem, $newAvailability);
+            }
         } catch (QueryException $e) {
 
             if ($this->isDuplicateNameViolation($e)) {
