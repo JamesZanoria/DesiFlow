@@ -18,6 +18,13 @@ class InventoryController extends Controller{
     use ClampsPaginationPage;
     use HandlesProtectedImageUploads;
 
+    protected $notificationService;
+
+    public function __construct(\App\Services\NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
+
     public const MOVEMENT_TYPES = [
         'delivery' => 'Supplier Delivery / Purchase',
         'opening_balance' => 'Opening Balance',
@@ -342,6 +349,8 @@ class InventoryController extends Controller{
                     ['is_active' => true]
                 );
             }
+
+            $this->notificationService->checkAndNotifyInventoryStatus($ingredient->ingredient_id);
         } catch (QueryException $e) {
             if ($this->isDuplicateNameViolation($e)) return $this->duplicateNameResponse($request);
             throw $e;
@@ -373,7 +382,6 @@ class InventoryController extends Controller{
     }
 
     public function wasteExpired(Request $request, Ingredient $ingredient){
-        \Log::info('DEBUG: wasteExpired started for ingredient: ' . $ingredient->ingredient_id);
         try {
             // 1. Calculate Total Expired Supply (FIFO: everything delivered by today, ignoring voids)
             $totalExpiredSupply = \App\Models\StockMovement::where('ingredient_id', $ingredient->ingredient_id)
@@ -410,7 +418,6 @@ class InventoryController extends Controller{
                     : redirect()->back()->with('error', 'No expired stock available to mark as waste.');
             }
 
-            \Log::info('DEBUG: recording waste movement for amount: ' . $wasteAmount);
             \App\Models\StockMovement::create([
                 'ingredient_id' => $ingredient->ingredient_id,
                 'user_id' => auth()->id(),
@@ -419,6 +426,8 @@ class InventoryController extends Controller{
                 'recorded_at' => now(),
                 'notes' => 'Automatic waste deduction of expired stock.',
             ]);
+
+            $this->notificationService->checkAndNotifyInventoryStatus($ingredient->ingredient_id);
 
             if ($request->wantsJson()) {
                 return response()->json([
@@ -429,7 +438,6 @@ class InventoryController extends Controller{
             }
             return redirect()->route('admin.inventory.index')->with('success', 'Expired stock marked as waste.');
         } catch (\Throwable $e) {
-            \Log::error('DEBUG: wasteExpired failed: ' . $e->getMessage());
             return $request->wantsJson()
                 ? response()->json(['success' => false, 'message' => 'Internal Server Error'], 500)
                 : redirect()->back()->with('error', 'Internal Server Error');
@@ -437,9 +445,7 @@ class InventoryController extends Controller{
     }
 
     public function recordMovement(Request $request, Ingredient $ingredient){
-        \Log::info('DEBUG: recordMovement started for ingredient: ' . $ingredient->ingredient_id);
         try {
-            \Log::info('DEBUG: validating request');
             $validated = $request->validate([
                 'movement_type' => 'required|in:' . implode(',', self::RECORDABLE_MOVEMENT_TYPES),
                 'qty_changed' => 'required|numeric',
@@ -448,12 +454,10 @@ class InventoryController extends Controller{
                 'notes' => 'nullable|string|max:255',
                 'reference_number' => 'nullable|string|max:100',
             ]);
-            \Log::info('DEBUG: validation successful');
 
             $type = $validated['movement_type'];
             $qty = (float) $validated['qty_changed'];
 
-            \Log::info('DEBUG: checking delivery date/ref number');
             if ($type !== 'delivery' && (($validated['delivery_date'] ?? null) || ($validated['reference_number'] ?? null))) {
                 \Log::info('DEBUG: delivery date/ref number check failed');
                 return $request->wantsJson()
@@ -461,10 +465,8 @@ class InventoryController extends Controller{
                     : redirect()->back()->with('error', 'Delivery date and reference number are only permitted for Supplier Deliveries.')->withInput();
             }
 
-            \Log::info('DEBUG: checking expiration date');
             $expRequired = ($type === 'delivery' || $type === 'opening_balance' || ($type === 'manual_adjustment' && $qty > 0));
             if ($expRequired && empty($validated['expiration_date'])) {
-                \Log::info('DEBUG: expiration date check failed');
                 return $request->wantsJson()
                     ? response()->json(['success' => false, 'message' => 'Expiration date is required for this movement type.'], 422)
                     : redirect()->back()->with('error', 'Expiration date is required for this movement type.')->withInput();
@@ -473,7 +475,6 @@ class InventoryController extends Controller{
                 $validated['expiration_date'] = null;
             }
 
-            \Log::info('DEBUG: checking opening balance');
             if ($type === 'opening_balance' && \App\Models\StockMovement::where('ingredient_id', $ingredient->ingredient_id)->where('movement_type', 'opening_balance')->exists()) {
                 \Log::info('DEBUG: opening balance check failed');
                 return $request->wantsJson()
@@ -481,11 +482,9 @@ class InventoryController extends Controller{
                     : redirect()->back()->with('error', 'An opening balance already exists for this ingredient.')->withInput();
             }
 
-            \Log::info('DEBUG: checking expired stock');
             if (in_array($validated['movement_type'], ['delivery', 'opening_balance'], true)) {
                 $current = Ingredient::withCurrentStock()->withLastDeliveryAt()->find($ingredient->ingredient_id);
                 if ($current && $current->stockStatus() === 'expired') {
-                    \Log::info('DEBUG: expired stock check failed');
                     $message = "Expired stock. Mark as Waste before delivery.";
                     if ($request->wantsJson()) {
                         return response()->json(['success' => false, 'message' => $message], 422);
@@ -494,7 +493,6 @@ class InventoryController extends Controller{
                 }
             }
 
-            \Log::info('DEBUG: normalizing qty sign');
             $validated['qty_changed'] = $this->normalizeQtySign($validated['movement_type'], (float) $validated['qty_changed']);
 
             \Log::info('DEBUG: creating stock movement');
@@ -509,10 +507,10 @@ class InventoryController extends Controller{
                 'notes' => $validated['notes'] ?? null,
                 'reference_number' => $validated['reference_number'] ?? null,
             ])->load(['recordedBy', 'ingredient']);
-            \Log::info('DEBUG: stock movement created');
+
+            $this->notificationService->checkAndNotifyInventoryStatus($ingredient->ingredient_id);
 
             if ($request->wantsJson()) {
-                \Log::info('DEBUG: returning JSON response');
                 return response()->json([
                     'success' => true,
                     'movement' => $movement,
@@ -520,10 +518,8 @@ class InventoryController extends Controller{
                     'message' => 'Stock movement recorded.',
                 ]);
             }
-            \Log::info('DEBUG: returning redirect response');
             return redirect()->route('admin.inventory.index')->with('success', 'Stock movement recorded.');
         } catch (\Throwable $e) {
-            \Log::error('DEBUG: Record movement failed: ' . $e->getMessage(), ['exception' => $e]);
             if ($request->wantsJson()) {
                 return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
             }
@@ -561,6 +557,8 @@ class InventoryController extends Controller{
         $movement->save();
         $movement->load(['recordedBy', 'ingredient']);
 
+        $this->notificationService->checkAndNotifyLowStock($movement->ingredient_id);
+
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
@@ -594,6 +592,8 @@ class InventoryController extends Controller{
         $movement->save();
 
         $ingredient = $movement->ingredient;
+
+        $this->notificationService->checkAndNotifyLowStock($ingredient->ingredient_id);
 
         if ($request->wantsJson()) {
             return response()->json([
