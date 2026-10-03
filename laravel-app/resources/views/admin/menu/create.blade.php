@@ -295,11 +295,6 @@
                             No description provided. Describe the flavors and experience of this dish to entice customers.
                         </p>
 
-                        <div class="flex items-center justify-between pt-4 border-t border-slate-100">
-                            <div class="flex flex-col">
-                                <span class="text-[9px] text-slate-400 uppercase font-black tracking-tighter">Price</span>
-                                <span id="preview-card-price-val" class="text-sm font-bold text-slate-700">₱0.00</span>
-                            </div>
                         </div>
                     </div>
                 </div>
