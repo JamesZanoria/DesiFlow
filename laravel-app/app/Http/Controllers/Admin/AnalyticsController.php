@@ -82,7 +82,17 @@ class AnalyticsController extends Controller{
                 ->keyBy('reference_id');
         }
 
+        // Determine the correct name column based on the model class
+        // We use a mapping to avoid hardcoding strings repeatedly
+        $nameColumns = [
+            \App\Models\Ingredient::class => 'ingredient_name',
+            \App\Models\MenuItem::class => 'item_name',
+        ];
+
+        $nameColumn = $nameColumns[$modelClass] ?? 'name';
+
         return $modelClass::query()
+            ->select($keyColumn, $nameColumn) // Optimize: Only select the ID and Name for the mapping
             ->get()
             ->map(function ($record) use ($snapshotsByRecordId, $keyColumn) {
                 $snapshot = $snapshotsByRecordId->get($record->{$keyColumn});

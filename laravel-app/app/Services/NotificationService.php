@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\Notification;
 use App\Models\Ingredient;
+use App\Models\User;
+use App\Models\MenuItem;
 use Illuminate\Support\Facades\Auth;
 
 class NotificationService
@@ -55,6 +57,14 @@ class NotificationService
         }
 
         return $notifications;
+    }
+
+    /**
+     * Notify all admin users about low stock.
+     */
+    public function checkAndNotifyLowStock(int $ingredientId)
+    {
+        $this->checkAndNotifyInventoryStatus($ingredientId);
     }
 
     /**

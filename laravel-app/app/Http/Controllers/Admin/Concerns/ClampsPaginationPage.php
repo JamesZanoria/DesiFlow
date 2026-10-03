@@ -22,8 +22,14 @@ use Illuminate\Pagination\LengthAwarePaginator;
  */
 trait ClampsPaginationPage
 {
-    private function paginateClamped(Closure $queryFactory, Request $request, int $perPage): LengthAwarePaginator
+    private function paginateClamped(Closure $queryFactory, Request $request, int $basePerPage): LengthAwarePaginator
     {
+        // Responsive row count: if mobile, reduce the base count (approx 60%)
+        $deviceType = $request->header('X-Device-Type', 'desktop');
+        $perPage = ($deviceType === 'mobile')
+            ? (int) max(floor($basePerPage * 0.6), 1)
+            : $basePerPage;
+
         $page = max((int) $request->input('page', 1), 1);
 
         $results = $queryFactory()

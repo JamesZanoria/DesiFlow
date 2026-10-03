@@ -19,6 +19,7 @@ class MenuItem extends Model{
         'category',
         'item_name',
         'price',
+        'description',
         'image_url',
         'is_available',
     ];

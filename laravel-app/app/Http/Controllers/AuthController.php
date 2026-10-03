@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller{
@@ -15,9 +17,53 @@ class AuthController extends Controller{
         return view('auth.login');
     }
 
+    // Password Reset Logic
+    public function showResetForm(){
+        return view('auth.passwords.email');
+    }
+
+    public function sendResetLink(Request $request){
+        $request->validate(['email' => 'required|email']);
+
+        // Standard Laravel Password Broker handles the token generation and mailing
+        Password::sendResetLink($request->only('email'));
+
+        return back()->with('status', 'We have emailed your password reset link!');
+    }
+
+    public function showResetPasswordForm(Request $request, $token = null){
+        return view('auth.passwords.reset', ['token' => $token]);
+    }
+
+    public function resetPassword(Request $request){
+        $request->validate([
+            'token' => 'required',
+            'password' => 'required|confirmed|min:8',
+        ]);
+
+        // Using the Password broker to verify the token and update the password
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function ($user) use ($request) {
+                $user->forceFill([
+                    'password' => Hash::make($request->password),
+                ])->save();
+                return true;
+            }
+        );
+
+        if (!$status) {
+            throw ValidationException::withMessages([
+                'password' => 'The provided token is invalid or has expired.',
+            ]);
+        }
+
+        return redirect()->route('login')->with('status', 'Your password has been reset successfully.');
+    }
+
     // Authenticate a staff account. Requires a valid
     // email + password, denies access and shows an error on any failure.
-    
+
     // Deliberately restricted to role === 'admin' beyond just checking the
     // password: Cashier and Kitchen Staff accounts can already be created in
     // Staff Management, but their modules (POS, KDS) don't exist as views
@@ -64,7 +110,7 @@ class AuthController extends Controller{
         return redirect()->route('login');
     }
 
-    // 5 attempts per minute, keyed by email + IP together, keyed on both so
+    // 5 attempts per minute, keyed by email + IP together, keyed on so
     // one attacker can't lock a real admin out just by repeatedly guessing
     // their email from a different device, and so the same IP trying many
     // different emails doesn't get an unfairly high combined budget.
