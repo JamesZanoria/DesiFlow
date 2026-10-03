@@ -21,9 +21,31 @@
     // Deterministic color per name
     $avatarPalette = ['bg-amber-500', 'bg-blue-500', 'bg-purple-500', 'bg-emerald-500', 'bg-rose-500', 'bg-indigo-500'];
 @endphp
-<div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+<div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+    <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row items-center justify-between gap-4">
+        <form method="GET" action="{{ route('admin.staff.index') }}" class="flex items-center gap-2 w-full md:w-auto">
+            @include('admin.partials._filter_search', [
+                'name' => 'search',
+                'placeholder' => 'Search name or email...',
+                'value' => request('search'),
+                'suggestions' => $allStaffNames ?? [],
+            ])
+
+            @include('admin.partials._filter_select', [
+                'name' => 'role',
+                'label' => 'Role',
+                'value' => request('role'),
+                'options' => [
+                    'admin' => 'Admin / Manager',
+                    'cashier' => 'Cashier',
+                    'kitchen' => 'Kitchen Staff',
+                ],
+            ])
+        </form>
+    </div>
+
     <table class="w-full text-sm text-left border-collapse">
-        <thead class="bg-gray-50/80 text-gray-500 text-xs uppercase tracking-wider font-semibold border-b border-gray-200">
+        <thead class="bg-slate-50/80 text-slate-500 text-xs uppercase tracking-wider font-semibold border-b border-slate-200">
             <tr class="h-10">
                 <th class="px-6 py-4 font-semibold">Name</th>
                 <th class="px-6 py-4 font-semibold">Email</th>
@@ -31,12 +53,12 @@
                 <th class="px-6 py-4 font-semibold text-right">Actions</th>
             </tr>
         </thead>
-        <tbody id="staff-table-body" class="divide-y divide-gray-100">
+        <tbody id="staff-table-body" class="divide-y divide-slate-100">
             @forelse ($staff as $member)
                 @php
                     $avatarColor = $avatarPalette[crc32($member->name) % count($avatarPalette)];
                 @endphp
-                <tr id="staff-row-{{ $member->user_id }}" class="hover:bg-gray-50 transition-colors duration-150 group">
+                <tr id="staff-row-{{ $member->user_id }}" class="hover:bg-slate-50 transition-colors duration-150 group">
                     <td class="px-6 py-4 cell-name">
                         <div class="flex items-center gap-3">
                             <div class="w-8 h-8 rounded-full {{ $avatarColor }} text-white flex items-center justify-center text-xs font-semibold flex-shrink-0 shadow-sm">
@@ -54,15 +76,11 @@
                     <td class="px-6 py-4 text-right">
                         @if($member->role !== 'admin')
                             <div class="flex justify-end gap-1">
-                                <button type="button"
-                                    class="edit-staff-btn p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                                    title="Edit"
-                                    data-id="{{ $member->user_id }}"
-                                    data-name="{{ $member->name }}"
-                                    data-email="{{ $member->email }}"
-                                    data-role="{{ $member->role }}">
+                                <a href="{{ route('admin.staff.edit', $member->user_id) }}"
+                                    class="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                    title="Edit">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
-                                </button>
+                                </a>
                                 <button type="button"
                                     class="delete-staff-btn p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                                     title="Delete"
@@ -87,19 +105,19 @@
         </tbody>
     </table>
 
-    <div class="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50/30">
-        <p id="staff-pagination-summary" class="text-xs text-gray-500 font-medium uppercase tracking-wider">
+    <div class="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50/30">
+        <p id="staff-pagination-summary" class="text-xs text-slate-500 font-medium uppercase tracking-wider">
             Showing {{ $staff->firstItem() ?? 0 }} to {{ $staff->lastItem() ?? 0 }} of {{ $staff->total() }} staff
         </p>
         <div class="flex gap-2">
             <a href="{{ $staff->onFirstPage() ? '#' : $staff->previousPageUrl() }}"
                 data-ajax-page="prev"
-                class="pagination-link p-2 rounded-lg border border-gray-200 bg-white transition-all {{ $staff->onFirstPage() ? 'text-gray-300 border-gray-100 pointer-events-none' : 'text-gray-600 hover:bg-gray-50 hover:border-gray-300' }}">
+                class="pagination-link p-2 rounded-lg border border-slate-200 bg-white transition-all {{ $staff->onFirstPage() ? 'text-gray-300 border-slate-100 pointer-events-none' : 'text-gray-600 hover:bg-gray-50 hover:border-slate-300' }}">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
             </a>
             <a href="{{ $staff->hasMorePages() ? $staff->nextPageUrl() : '#' }}"
                 data-ajax-page="next"
-                class="pagination-link p-2 rounded-lg border border-gray-200 bg-white transition-all {{ $staff->hasMorePages() ? 'text-gray-600 hover:bg-gray-50 hover:border-gray-300' : 'text-gray-300 border-gray-100 pointer-events-none' }}">
+                class="pagination-link p-2 rounded-lg border border-slate-200 bg-white transition-all {{ $staff->hasMorePages() ? 'text-gray-600 hover:bg-gray-50 hover:border-slate-300' : 'text-gray-300 border-slate-100 pointer-events-none' }}">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
             </a>
         </div>
