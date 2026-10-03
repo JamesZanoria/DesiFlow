@@ -1210,8 +1210,8 @@
                     form: cleanedFormData,
                     url: isEditMode ? updateUrl : storeUrl,
                     method: isEditMode ? updateMethod : 'POST',
-                    toastKind: isEditMode ? null : 'success',
-                    onSuccess: async () => {
+                    toastKind: null,
+                    onSuccess: async (data) => {
                         await fetch(saveDraftUrl, {
                             method: 'POST',
                             headers: {

@@ -291,6 +291,7 @@ class MenuController extends Controller{
         }
 
         if ($request->wantsJson()) {
+            session()->put('menu_success', 'Menu item added successfully.');
             return response()->json([
                 'success' => true,
                 'menuItem' => $menuItem,
@@ -413,6 +414,7 @@ class MenuController extends Controller{
         }
 
         if ($request->wantsJson()) {
+            session()->put('menu_success', 'Menu item updated successfully.');
             return response()->json([
                 'success' => true,
                 'menuItem' => $menuItem->fresh(),
