@@ -249,7 +249,9 @@ class InventoryController extends Controller{
 
     private function validationFailedResponse(Request $request, $validator){
         if ($request->wantsJson()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return response()->json(['errors' => $validator instanceof \Illuminate\Contracts\Validation\Validator
+                ? $validator->errors()
+                : $validator->errors], 422);
         }
         return redirect()->back()->withErrors($validator)->withInput();
     }
@@ -346,7 +348,7 @@ class InventoryController extends Controller{
             foreach ($selectedItems as $menuItemId) {
                 \App\Models\RecipeIngredient::updateOrCreate(
                     ['menu_item_id' => $menuItemId, 'ingredient_id' => $ingredient->ingredient_id],
-                    ['is_active' => true]
+                    ['is_active' => true, 'qty_consumed' => 1.00]
                 );
             }
 

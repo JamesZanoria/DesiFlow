@@ -143,26 +143,26 @@ class Ingredient extends Model{
     // method), keep the two in sync if this logic ever changes.
     public function stockStatus(): string{
         $stock = $this->current_stock ?? 0;
-
         if ($stock < 0) {
             return 'negative_stock';
         }
         if ($stock <= 0) {
             return 'out_of_stock';
         }
-
         if ($this->expiredQuantity() > 0) {
             return 'expired';
         }
         if ($this->expiringSoonQuantity() > 0) {
             return 'expiring_soon';
         }
-
         if ($stock <= $this->restock_threshold) {
             return 'low_stock';
         }
-
         return 'active';
+    }
+
+    public function inventoryAvailable(): string{
+        return $this->stockStatus();
     }
 
     /**

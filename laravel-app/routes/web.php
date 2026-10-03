@@ -21,16 +21,24 @@ Route::get('/', function () {
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AuthController::class, 'login']);
+
+    // Password Reset Flow
+    Route::get('/forgot-password', [AuthController::class, 'showResetForm'])->name('password.request');
+    Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('password.email');
+    Route::get('/reset-password/{token}', [AuthController::class, 'showResetPasswordForm'])->name('password.reset');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])
     ->middleware('auth')
     ->name('logout');
 
-Route::get('/files/{type}/{filename}', [ProtectedFileController::class, 'show'])
-    ->name('files.show')
-    ->where('type', 'menu-items|ingredients')
-    ->where('filename', '[A-Za-z0-9_-]+\.(jpg|jpeg|png)');
+Route::middleware('auth')->group(function () {
+    Route::get('/files/{type}/{filename}', [ProtectedFileController::class, 'show'])
+        ->name('files.show')
+        ->where('type', 'menu-items|ingredients')
+        ->where('filename', '[A-Za-z0-9_-]+\.(jpg|jpeg|png)');
+});
 
 // 'role:admin', see App\Http\Middleware\EnsureUserHasRole. Cashier and
 // Kitchen Staff accounts exist in the users table (Staff Management already
@@ -46,9 +54,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard.index');
 
     // Menu Management
+    Route::get('/menu/create', [MenuController::class, 'create'])->name('menu.create');
+    Route::post('/menu/save-draft', [MenuController::class, 'saveDraft'])->name('menu.save-draft');
     Route::get('/menu', [MenuController::class, 'index'])->name('menu.index');
     Route::get('/menu/{menuItem}', [MenuController::class, 'show'])->name('menu.show');
-    Route::get('/menu/create', [MenuController::class, 'create'])->name('menu.create');
     Route::post('/menu', [MenuController::class, 'store'])->name('menu.store');
     Route::get('/menu/{menuItem}/edit', [MenuController::class, 'edit'])->name('menu.edit');
     Route::put('/menu/{menuItem}', [MenuController::class, 'update'])->name('menu.update');

@@ -64,4 +64,29 @@ class NotificationsController extends Controller
             'message' => 'All notifications marked as read.',
         ]);
     }
+
+    public function markRead(Request $request)
+    {
+        $userId = Auth::id();
+        $notificationId = $request->input('id');
+
+        if (!$userId || !$notificationId) {
+            return response()->json(['success' => false, 'message' => 'Invalid request'], 400);
+        }
+
+        $notification = Notification::where('user_id', $userId)
+            ->where('id', $notificationId)
+            ->first();
+
+        if (!$notification) {
+            return response()->json(['success' => false, 'message' => 'Notification not found'], 404);
+        }
+
+        $notification->update(['read_at' => now()]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Notification marked as read.',
+        ]);
+    }
 }

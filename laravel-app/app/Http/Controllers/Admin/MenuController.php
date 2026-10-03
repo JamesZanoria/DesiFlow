@@ -6,11 +6,11 @@ use App\Http\Controllers\Admin\Concerns\ClampsPaginationPage;
 use App\Http\Controllers\Admin\Concerns\HandlesProtectedImageUploads;
 use App\Http\Controllers\Controller;
 use App\Models\MenuItem;
+use App\Models\Ingredient;
 use App\Services\InputValidationService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-
 
 class MenuController extends Controller{
     use ClampsPaginationPage;
@@ -45,34 +45,19 @@ class MenuController extends Controller{
             }
 
             return $query->orderByDesc('menu_item_id');
-        }, $request, 7);
+        }, $request, 10);
 
-        // Distinct list of categories currently in use, to populate the filter dropdown
-        // and the Add/Edit modal's category suggestions.
         $categories = MenuItem::query()->select('category')->distinct()->orderBy('category')->pluck('category');
-
-        // Full, unpaginated list of item names for the search box's suggestions
-        // dropdown, deliberately separate from $menuItems (which is only the
-        // current page of up to 8 results) since suggestions need to cover
-        // every item, not just whichever page happens to be showing.
         $allItemNames = MenuItem::query()->orderBy('item_name')->pluck('item_name');
+        $ingredients = Ingredient::orderBy('ingredient_name')->get();
 
-        // AJAX refresh: after the modal creates/updates/deletes an item, or when the
-        // admin clicks a Prev/Next pagination link, the frontend re-requests this same
-        // endpoint asking for JSON instead of a full page. This returns just the
-        // table + pagination fragment (see admin.menu._table) so the page can be kept
-        // in sync with the real, server-computed pagination state without a manual
-        // browser reload.
-
-        // categoryOptionsHtml and itemSuggestionsHtml ride along in the same response
-        // for the same reason: without them, a category or item name introduced (or
-        // removed) by the change that just happened wouldn't show up in the Category
-        // filter or the search suggestions until a real page reload, since both were
-        // previously only ever rendered/fetched once, on initial page load.
         if ($request->wantsJson()) {
             return response()->json([
                 'html' => view('admin.menu._table', [
                     'menuItems' => $menuItems,
+                    'ingredients' => $ingredients,
+                    'categories' => $categories,
+                    'allItemNames' => $allItemNames,
                 ])->render(),
                 'categoryOptionsHtml' => view('admin.partials._filter_select_popover', [
                     'name' => 'category',
@@ -90,23 +75,71 @@ class MenuController extends Controller{
             'menuItems' => $menuItems,
             'categories' => $categories,
             'allItemNames' => $allItemNames,
+            'ingredients' => $ingredients,
         ]);
     }
 
-    // Kept for direct-link / no-JS access
-    // Add Menu Item now opens as a popup on the index page instead.
     public function create(){
-        return view('admin.menu.create');
+        $categories = MenuItem::query()->select('category')->distinct()->orderBy('category')->pluck('category');
+        $ingredients = Ingredient::withCurrentStock()->withLastDeliveryAt()->orderBy('ingredient_name')->get();
+        $draft = session('menu_item_draft');
+
+        return view('admin.menu.create', [
+            'categories' => $categories,
+            'ingredients' => $ingredients,
+            'draft' => $draft,
+        ]);
     }
 
-    // Description is no longer used in the current system requirements.
+    public function saveDraft(Request $request){
+        if ($request->has('clear')) {
+            session()->forget('menu_item_draft');
+            return response()->json(['success' => true]);
+        }
+
+        $data = $request->all();
+
+        // Extract item_name regardless of whether it's at the top level or inside 'inputs'
+        $itemName = $request->input('item_name') ?? $request->input('inputs.item_name');
+        $menuItemId = $request->input('menu_item_id') ?? $request->input('inputs.menu_item_id');
+
+        // Run duplicate name check even for drafts to provide immediate feedback in Studio
+        if ($itemName) {
+            $name = trim($itemName);
+            $exists = MenuItem::whereRaw('LOWER(TRIM(item_name)) = ?', [strtolower($name)])
+                ->when($menuItemId, fn ($query) => $query->where('menu_item_id', '!=', $menuItemId))
+                ->exists();
+
+            if ($exists) {
+                // We still save the draft so the user doesn't lose other progress,
+                // but we return the error for the UI to highlight.
+                if (!$menuItemId) {
+                    session(['menu_item_draft' => $data]);
+                } else {
+                    session(["menu_item_edit_draft_{$menuItemId}" => $data]);
+                }
+                return response()->json([
+                    'success' => true,
+                    'errors' => ['item_name' => ['This item already exists in the menu.']]
+                ], 200);
+            }
+        }
+
+        // Save the draft to the session.
+        // Use a specific key for edits to prevent leaking into the "Create New" flow.
+        if (!$menuItemId) {
+            session(['menu_item_draft' => $data]);
+        } else {
+            session(["menu_item_edit_draft_{$menuItemId}" => $data]);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
     private function descriptionRule(): array{
         return [];
     }
 
-    // Rejects placeholder/test-style values in a free-text field: exact
-    // matches against a known junk list, a single character repeated
-    // ("aaaa"), or a value with no letters at all.
     private function notPlaceholderRule(): \Closure{
         return function (string $attribute, mixed $value, \Closure $fail) {
             $normalized = strtolower(trim((string) $value));
@@ -127,22 +160,16 @@ class MenuController extends Controller{
         };
     }
 
-    // Human-readable messages for validation rules that need a friendlier
-    // message than Laravel's generic default.
     private function validationMessages(): array{
         return [
             'image.mimes' => 'Please upload a JPG, JPEG, or PNG image.',
         ];
     }
 
-    // Rejects a menu item name that already exists (case-insensitive, whitespace-
-    // trimmed), so the same dish can't accidentally be added twice under slightly
-    // different casing/spacing. $ignoreId excludes the record currently being
-    // edited from the check.
     private function duplicateNameRule(?int $ignoreId = null): \Closure{
         return function (string $attribute, mixed $value, \Closure $fail) use ($ignoreId) {
             $exists = MenuItem::whereRaw('LOWER(TRIM(item_name)) = ?', [strtolower(trim($value))])
-                ->when($ignoreId, fn ($query) => $query->where('menu_item_id', '!=', $ignoreId))
+                ->when($ignoreId, fn ($query) => $query->where('menu_item_id', '!=', (int)$ignoreId))
                 ->exists();
 
             if ($exists) {
@@ -151,21 +178,11 @@ class MenuController extends Controller{
         };
     }
 
-    // Postgres unique_violation is SQLSTATE 23505. This is the last line of
-    // defense: the application-level duplicateNameRule() above should already
-    // catch a duplicate before this is ever reached, but this exists so that a
-    // duplicate can NEVER actually be written to the table, not if the two
-    // checks ever fall out of sync, not under a race between two simultaneous
-    // submissions, and not if this validation is ever bypassed some other way.
     private function isDuplicateNameViolation(QueryException $e): bool{
         return $e->getCode() === '23505'
             && str_contains($e->getMessage(), 'menu_items_item_name_unique');
     }
 
-    // Same JSON shape (and same message) as duplicateNameRule()'s $fail() above,
-    // so the frontend's onValidationError handler treats this identically to a
-    // normal validation failure, still a 422, still lands in the modal with the
-    // icon + red-outlined field, never a success toast, never closes the modal.
     private function duplicateNameResponse(Request $request){
         $message = 'This item already exists in the menu. Please check the name or edit the existing item.';
 
@@ -179,30 +196,18 @@ class MenuController extends Controller{
         return redirect()->back()->withInput()->withErrors(['item_name' => $message]);
     }
 
-    // Formats a failed validation attempt ourselves rather than letting it fall
-    // through to Laravel's automatic ValidationException handling. That
-    // automatic path decides redirect-vs-422 using $request->expectsJson(), which,
-    // in this app, was returning false even when the request's Accept header
-    // was confirmed to be 'application/json', causing every validation failure
-    // (including a caught duplicate name) to silently redirect back to the index
-    // page instead of returning 422 JSON. The AJAX request then auto-follows
-    // that redirect, lands on a real 200 JSON response with no error info, and
-    // the frontend, seeing a 200, reports it as a success even though nothing
-    // was actually saved. Handling this explicitly with $request->wantsJson()
-    // (the same simpler Accept-header check already used successfully elsewhere
-    // in this controller) guarantees a duplicate can never be misreported as
-    // "saved successfully" again.
     private function validationFailedResponse(Request $request, $validator){
         if ($request->wantsJson()) {
             return response()->json([
-                'errors' => $validator->errors(),
+                'errors' => $validator instanceof \Illuminate\Contracts\Validation\Validator
+                    ? $validator->errors()
+                    : $validator->errors,
             ], 422);
         }
 
         return redirect()->back()->withErrors($validator)->withInput();
     }
 
-    // Return detailed information for a single menu item, including its recipe.
     public function show(MenuItem $menuItem){
         return response()->json([
             'id' => $menuItem->menu_item_id,
@@ -224,10 +229,7 @@ class MenuController extends Controller{
         ]);
     }
 
-    // Store a newly created menu item. Accepts an optional uploaded image file
-    // (stored on the public disk) instead of a raw image URL.
     public function store(Request $request){
-        // Guardrail: Validate input strings via Ollama to prevent gibberish/malicious data.
         $guard = app(InputValidationService::class);
         $inputToValidate = trim($request->input('item_name', '') . ' ' . $request->input('category', ''));
 
@@ -244,46 +246,44 @@ class MenuController extends Controller{
             'category' => ['required', 'string', 'max:50', $this->notPlaceholderRule()],
             'item_name' => ['required', 'string', 'max:100', $this->duplicateNameRule(), $this->notPlaceholderRule()],
             'price' => 'required|numeric|min:0',
+            'description' => 'nullable|string|max:1000',
             'is_available' => 'nullable|in:0,1',
             'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'recipe' => 'nullable|array',
-            'recipe.*.ingredient_id' => 'required|integer|exists:ingredients,ingredient_id',
-            'recipe.*.qty_consumed' => 'required|numeric|min:0.001',
+            'recipe.*.ingredient_id' => 'nullable|integer|exists:ingredients,ingredient_id',
+            'recipe.*.qty_consumed' => 'nullable|numeric|min:0.001',
         ], $this->validationMessages());
-
 
         if ($validator->fails()) {
             return $this->validationFailedResponse($request, $validator);
         }
 
         $validated = $validator->validated();
-
-        $validated['is_available'] = (bool) $validated['is_available'];
+        $validated['is_available'] = (bool) ($validated['is_available'] ?? 1);
         $validated['item_name'] = trim($validated['item_name']);
         $validated['category'] = trim($validated['category']);
 
         if ($request->hasFile('image')) {
             $validated['image_url'] = $this->storeProtectedImage($request->file('image'), 'menu-items');
         }
-        // 'image' isn't a real column, it was only used above to derive image_url.
         unset($validated['image']);
 
         try {
             $menuItem = MenuItem::create($validated);
 
-            // Sync Recipe
-            if ($request->has('recipe')) {
+            if ($request->has('recipe') && is_array($request->input('recipe'))) {
                 foreach ($request->input('recipe') as $line) {
-                    \App\Models\RecipeIngredient::updateOrCreate(
-                        ['menu_item_id' => $menuItem->menu_item_id, 'ingredient_id' => $line['ingredient_id']],
-                        ['qty_consumed' => $line['qty_consumed'], 'is_active' => true]
-                    );
+                    if (!empty($line['ingredient_id'])) {
+                        \App\Models\RecipeIngredient::updateOrCreate(
+                            ['menu_item_id' => $menuItem->menu_item_id, 'ingredient_id' => $line['ingredient_id']],
+                            ['qty_consumed' => $line['qty_consumed'] ?? 0, 'is_active' => true]
+                        );
+                    }
                 }
             }
             $isAvailable = $menuItem->syncAvailabilityStatus();
             $this->notificationService->notifyMenuAvailability($menuItem, $isAvailable);
         } catch (QueryException $e) {
-
             if ($this->isDuplicateNameViolation($e)) {
                 return $this->duplicateNameResponse($request);
             }
@@ -303,19 +303,45 @@ class MenuController extends Controller{
             ->with('success', 'Menu item added successfully.');
     }
 
-    // Kept for direct-link / no-JS access
-    // Edit now opens as a popup pre-filled from the row's data attributes.
     public function edit(MenuItem $menuItem){
-        return view('admin.menu.edit', [
-            'menuItem' => $menuItem,
+        $categories = MenuItem::query()->select('category')->distinct()->orderBy('category')->pluck('category');
+        $ingredients = Ingredient::withCurrentStock()->withLastDeliveryAt()->orderBy('ingredient_name')->get();
+
+        // Priority: 1. Session Edit Draft -> 2. Actual DB Item Data
+        $draft = session("menu_item_edit_draft_{$menuItem->menu_item_id}");
+
+        if (!$draft) {
+            // Prepare the item data in the format the Studio expects
+            $draft = [
+                'item_name' => $menuItem->item_name,
+                'category' => $menuItem->category,
+                'price' => $menuItem->price,
+                'description' => $menuItem->description,
+                'is_available' => $menuItem->is_available ? '1' : '0',
+                'imagePreview' => $menuItem->image_url,
+                'recipe' => $menuItem->recipeIngredients()
+                    ->where('is_active', true)
+                    ->with('ingredient')
+                    ->get()
+                    ->map(fn($ri) => [
+                        'id' => $ri->ingredient_id,
+                        'name' => $ri->ingredient->ingredient_name ?? 'Unknown',
+                        'unit' => $ri->ingredient->unit_of_measurement ?? '',
+                        'cost' => $ri->ingredient->unit_cost ?? 0,
+                        'qty' => $ri->qty_consumed,
+                    ])->toArray()
+            ];
+        }
+
+        return view('admin.menu.create', [
+            'categories' => $categories,
+            'ingredients' => $ingredients,
+            'draft' => $draft, // Pass item data (or draft) to pre-populate the studio
+            'editingItem' => $menuItem, // Pass the model to identify we are in edit mode
         ]);
     }
 
-    // Update an existing menu item. Also used by the Status dropdown quick-action,
-    // which doesn't know about description/image, so those are only overwritten
-    // when actually present in the request, never silently wiped to null/blank.
     public function update(Request $request, MenuItem $menuItem){
-        // Guardrail: Validate input strings via Ollama to prevent gibberish/malicious data.
         $guard = app(InputValidationService::class);
         $inputToValidate = trim($request->input('item_name', '') . ' ' . $request->input('category', ''));
 
@@ -332,21 +358,20 @@ class MenuController extends Controller{
             'category' => ['required', 'string', 'max:50', $this->notPlaceholderRule()],
             'item_name' => ['required', 'string', 'max:100', $this->duplicateNameRule($menuItem->menu_item_id), $this->notPlaceholderRule()],
             'price' => 'required|numeric|min:0',
-            'is_available' => 'required|in:0,1',
+            'description' => 'nullable|string|max:1000',
+            'is_available' => 'nullable|in:0,1',
             'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'recipe' => 'nullable|array',
-            'recipe.*.ingredient_id' => 'required|integer|exists:ingredients,ingredient_id',
-            'recipe.*.qty_consumed' => 'required|numeric|min:0.001',
+            'recipe.*.ingredient_id' => 'nullable|integer|exists:ingredients,ingredient_id',
+            'recipe.*.qty_consumed' => 'nullable|numeric|min:0.001',
         ], $this->validationMessages());
-
 
         if ($validator->fails()) {
             return $this->validationFailedResponse($request, $validator);
         }
 
         $validated = $validator->validated();
-
-        $validated['is_available'] = (bool) $validated['is_available'];
+        $validated['is_available'] = (bool) ($validated['is_available'] ?? 1);
         $validated['item_name'] = trim($validated['item_name']);
         $validated['category'] = trim($validated['category']);
 
@@ -362,17 +387,17 @@ class MenuController extends Controller{
             $oldAvailability = $menuItem->is_available;
             $menuItem->update($validated);
 
-            // Sync Recipe
-            if ($request->has('recipe')) {
-                // Deactivate all current recipe ingredients first
+            if ($request->has('recipe') && is_array($request->input('recipe'))) {
                 \App\Models\RecipeIngredient::where('menu_item_id', $menuItem->menu_item_id)
                     ->update(['is_active' => false]);
 
                 foreach ($request->input('recipe') as $line) {
-                    \App\Models\RecipeIngredient::updateOrCreate(
-                        ['menu_item_id' => $menuItem->menu_item_id, 'ingredient_id' => $line['ingredient_id']],
-                        ['qty_consumed' => $line['qty_consumed'], 'is_active' => true]
-                    );
+                    if (!empty($line['ingredient_id'])) {
+                        \App\Models\RecipeIngredient::updateOrCreate(
+                            ['menu_item_id' => $menuItem->menu_item_id, 'ingredient_id' => $line['ingredient_id']],
+                            ['qty_consumed' => $line['qty_consumed'] ?? 0, 'is_active' => true]
+                        );
+                    }
                 }
             }
             $newAvailability = $menuItem->syncAvailabilityStatus();
@@ -381,7 +406,6 @@ class MenuController extends Controller{
                 $this->notificationService->notifyMenuAvailability($menuItem, $newAvailability);
             }
         } catch (QueryException $e) {
-
             if ($this->isDuplicateNameViolation($e)) {
                 return $this->duplicateNameResponse($request);
             }
@@ -396,13 +420,17 @@ class MenuController extends Controller{
             ]);
         }
 
+        session()->forget("menu_item_edit_draft_{$menuItem->menu_item_id}");
+
         return redirect()
             ->route('admin.menu.index')
             ->with('success', 'Menu item updated successfully.');
     }
 
-    // Permanently remove a menu item.
     public function destroy(Request $request, MenuItem $menuItem){
+        // Delete associated recipe ingredients first to avoid foreign key violation
+        \App\Models\RecipeIngredient::where('menu_item_id', $menuItem->menu_item_id)->delete();
+
         $menuItem->delete();
 
         if ($request->wantsJson()) {

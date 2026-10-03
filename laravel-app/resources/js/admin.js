@@ -12,6 +12,14 @@
 import Chart from 'chart.js/auto';
 window.Chart = Chart;
 
+/**
+ * Device detection helper to return 'mobile' or 'desktop' based on screen width.
+ */
+function getDeviceType() {
+    return window.innerWidth < 768 ? 'mobile' : 'desktop';
+}
+window.getDeviceType = getDeviceType;
+
 // Escapes text before it's ever interpolated into an innerHTML template
 // literal. This exists because several places in this app build a message
 // server-side that embeds a user-submitted value verbatim, e.g.
@@ -28,6 +36,18 @@ function escapeHtml(value) {
     return div.innerHTML;
 }
 window.escapeHtml = escapeHtml;
+
+/**
+ * Renders a string that may contain HTML tags (like <b>) into a DOM element's textContent.
+ * This prevents HTML tags from being displayed as literal text while remaining safe.
+ */
+function renderHtmlContent(element, htmlString) {
+    if (!element) return;
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlString;
+    element.innerHTML = tempDiv.innerHTML;
+}
+window.renderHtmlContent = renderHtmlContent;
 
 // Icon presets: each action gets a color + icon combination so the toast communicates
 // *what* happened at a glance, not just whether it succeeded. Callers pass a `kind`
@@ -123,7 +143,8 @@ function submitAjaxForm({ form, url, method = 'POST', errorBox, toastKind, onUpl
         errorBox.innerHTML = '';
     }
 
-    const formData = new FormData(form);
+    // FIX: Handle both HTMLFormElement and pre-constructed FormData
+    const formData = form instanceof FormData ? form : new FormData(form);
     if (method !== 'POST') {
         formData.append('_method', method);
     }
@@ -136,8 +157,12 @@ function submitAjaxForm({ form, url, method = 'POST', errorBox, toastKind, onUpl
         if (!errorBox) return;
         if (data && data.errors && typeof data.errors === 'object') {
             errorBox.classList.remove('hidden');
+            const errors = Array.isArray(data.errors)
+                ? data.errors
+                : Object.values(data.errors).flat();
+
             errorBox.innerHTML = '<ul class="list-disc list-inside">' +
-                Object.values(data.errors).flat().map((m) => `<li>${escapeHtml(m)}</li>`).join('') + '</ul>';
+                errors.map((m) => `<li>${escapeHtml(m)}</li>`).join('') + '</ul>';
         } else {
             errorBox.classList.add('hidden');
             errorBox.innerHTML = '';
@@ -149,6 +174,7 @@ function submitAjaxForm({ form, url, method = 'POST', errorBox, toastKind, onUpl
         xhr.open('POST', url);
         xhr.setRequestHeader('X-CSRF-TOKEN', getCsrfToken());
         xhr.setRequestHeader('Accept', 'application/json');
+        xhr.setRequestHeader('X-Device-Type', getDeviceType());
 
         if (onUploadProgress) {
             xhr.upload.addEventListener('progress', (e) => {
@@ -224,7 +250,10 @@ function confirmAction({ title = 'Confirm Action', message = '', actionLabel = '
         }
 
         document.getElementById('confirmation-modal-title').textContent = title;
-        document.getElementById('confirmation-modal-message').textContent = message;
+        const messageEl = document.getElementById('confirmation-modal-message');
+        if (messageEl) {
+            renderHtmlContent(messageEl, message);
+        }
         const confirmBtn = document.getElementById('confirmation-modal-confirm');
         confirmBtn.textContent = actionLabel;
 
@@ -248,6 +277,11 @@ function confirmAction({ title = 'Confirm Action', message = '', actionLabel = '
                 hover: 'hover:bg-blue-700',
                 iconPath: TOAST_ICON_PATHS.check
             },
+            discard: {
+                bg: 'bg-slate-600',
+                hover: 'hover:bg-slate-700',
+                iconPath: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
+            }
         };
         const config = typeConfigs[type] || typeConfigs.info;
 
@@ -298,6 +332,7 @@ function confirmAction({ title = 'Confirm Action', message = '', actionLabel = '
             document.removeEventListener('keydown', handleEscape);
         };
 
+
         const cancelBtn = document.getElementById('confirmation-modal-cancel');
         cancelBtn.addEventListener('click', handleCancel);
         confirmBtn.addEventListener('click', handleConfirm);
@@ -343,7 +378,11 @@ async function submitAjaxAction({ url, method = 'DELETE', confirmMessage = null,
     try {
         const response = await fetch(url, {
             method: 'POST',
-            headers: { 'X-CSRF-TOKEN': getCsrfToken(), 'Accept': 'application/json' },
+            headers: {
+                'X-CSRF-TOKEN': getCsrfToken(),
+                'Accept': 'application/json',
+                'X-Device-Type': getDeviceType()
+            },
             body: formData,
         });
 
@@ -485,8 +524,11 @@ document.addEventListener('keydown', (e) => {
  */
 // ... (existing code before line 486)
 function setComboSelectValue(container, value, label) {
+    if (!container) return;
     const hidden = container.querySelector('input[type="hidden"]');
     const trigger = container.querySelector('.combo-select-value');
+    if (!hidden || !trigger) return;
+
     hidden.value = value;
     hidden.dispatchEvent(new Event('change', { bubbles: true })); // keeps existing 'change' listeners working
     const displayLabel = label ?? value;

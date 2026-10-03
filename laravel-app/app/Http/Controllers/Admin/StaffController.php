@@ -202,7 +202,9 @@ class StaffController extends Controller{
     private function validationFailedResponse(Request $request, $validator){
         if ($request->wantsJson()) {
             return response()->json([
-                'errors' => $validator->errors(),
+                'errors' => $validator instanceof \Illuminate\Contracts\Validation\Validator
+                    ? $validator->errors()
+                    : $validator->errors,
             ], 422);
         }
 
