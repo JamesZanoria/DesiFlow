@@ -381,6 +381,8 @@ class MenuController extends Controller{
         } elseif ($request->boolean('remove_image')) {
             $this->deleteProtectedImage($menuItem->image_url, 'menu-items');
             $validated['image_url'] = null;
+        } else {
+            unset($validated['image_url']);
         }
         unset($validated['image']);
 

@@ -12,7 +12,10 @@ use App\Http\Controllers\Admin\NotificationsController;
 use App\Http\Controllers\Admin\ProtectedFileController;
 
 Route::get('/', function () {
-    return redirect()->route('login');
+    if(auth()->check()){
+        return redirect('/admin/dashboard'); // Sends logged-in users to the dashboard
+    }
+    return redirect()->route('login'); // Sends guests to login
 });
 
 // Guest-only: an already-logged-in admin hitting /login gets redirected
