@@ -218,7 +218,9 @@ function submitAjaxForm({ form, url, method = 'POST', errorBox, toastKind, onUpl
                 return;
             }
 
-            showToast((data && data.message) ?? 'Saved successfully.', toastKind ?? 'success');
+            if (toastKind !== null) {
+                showToast((data && data.message) ?? 'Saved successfully.', toastKind ?? 'success');
+            }
             onSuccess?.(data);
             resolve();
         };
