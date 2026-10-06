@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>DesiFlow - Cart & Current Order</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'desi-yellow': '#F4B41A',
+                        'desi-blue': '#2D4A77'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <!-- Mobile Device Simulator Container -->
+    <div class="bg-white w-full max-w-sm h-screen sm:h-[800px] sm:rounded-3xl sm:shadow-2xl relative flex flex-col overflow-hidden">
+
+        <!-- Top Header Bar -->
+        <div class="bg-desi-yellow p-4 flex items-center justify-between shadow-sm">
+            <button onclick="window.location.href='dashboard.html'" class="bg-white px-3 py-1.5 rounded text-xs font-bold text-desi-blue shadow hover:bg-gray-50 transition">
+                &lt; Back
+            </button>
+            <h1 class="font-bold text-white text-sm tracking-wide uppercase">My Cart</h1>
+            <div id="table-indicator" class="bg-white px-2.5 py-1 rounded-full text-[10px] font-bold text-desi-blue shadow-inner">
+                Table ?
+            </div>
+        </div>
+
+        <!-- Scrollable Body Content -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-4 pb-28">
+            <h2 class="text-xs font-bold text-gray-400 tracking-wider uppercase">Review Order Items</h2>
+            
+            <!-- Cart Items Container -->
+            <div id="cart-items-container" class="space-y-3">
+                <!-- Dynamically populated via JavaScript -->
+            </div>
+        </div>
+
+        <!-- Sticky Footer / Bill Summary Panel -->
+        <div class="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg space-y-3">
+            <div class="flex justify-between items-center text-sm">
+                <span class="text-gray-500 font-medium">Subtotal</span>
+                <span id="cart-subtotal" class="font-bold text-gray-800">₱ 0.00</span>
+            </div>
+            <div class="flex justify-between items-center text-base border-t border-gray-100 pt-2">
+                <span class="font-bold text-desi-blue">Total Amount</span>
+                <span id="cart-total" class="font-bold text-desi-blue text-lg">₱ 0.00</span>
+            </div>
+            <button onclick="placeOrder()" class="w-full bg-desi-yellow text-white font-bold py-3 rounded-lg shadow hover:bg-yellow-500 transition uppercase tracking-wide text-sm">
+                Place Order to Kitchen
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Cart Logic Script -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const activeTable = sessionStorage.getItem('active_table') || '1';
+            document.getElementById('table-indicator').innerText = `Table ${activeTable}`;
+            
+            loadCartItems();
+        });
+
+        // Load items stored in session cart
+        function loadCartItems() {
+            const container = document.getElementById('cart-items-container');
+            
+            // Mock cart data for testing if empty, otherwise pull from sessionStorage
+            let cart = JSON.parse(sessionStorage.getItem('cart_items')) || [
+                { id: 1, name: 'Chicken Biryani', price: 350.00, quantity: 1, category: 'Main Course' },
+                { id: 2, name: 'Potato Samosa', price: 150.00, quantity: 2, category: 'Snacks' }
+            ];
+
+            // Save back mock data if none existed so view populates correctly
+            if (!sessionStorage.getItem('cart_items')) {
+                sessionStorage.setItem('cart_items', JSON.stringify(cart));
+            }
+
+            container.innerHTML = '';
+
+            if (cart.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 space-y-3">
+                        <p class="text-gray-400 text-sm">Your cart is currently empty.</p>
+                        <button onclick="window.location.href='menu.html'" class="bg-desi-blue text-white text-xs font-bold px-4 py-2 rounded shadow">
+                            Browse Menu
+                        </button>
+                    </div>
+                `;
+                updateTotals(cart);
+                return;
+            }
+
+            cart.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'bg-white border border-gray-200 rounded-lg p-3 flex items-center justify-between shadow-sm';
+                card.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="w-14 h-14 bg-gray-100 border border-dashed border-gray-400 rounded flex items-center justify-center text-[10px] text-gray-500 font-bold">[IMG]</div>
+                        <div>
+                            <h4 class="font-bold text-gray-800 text-sm">${item.name}</h4>
+                            <p class="text-xs text-gray-500">${item.category}</p>
+                            <p class="font-semibold text-desi-blue text-xs mt-1">₱ ${item.price.toFixed(2)} each</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="updateQuantity(${index}, -1)" class="w-7 h-7 bg-gray-100 hover:bg-gray-200 rounded text-gray-700 font-bold flex items-center justify-center">-</button>
+                        <span class="text-sm font-bold w-5 text-center">${item.quantity}</span>
+                        <button onclick="updateQuantity(${index}, 1)" class="w-7 h-7 bg-gray-100 hover:bg-gray-200 rounded text-gray-700 font-bold flex items-center justify-center">+</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            updateTotals(cart);
+        }
+
+        function updateQuantity(index, change) {
+            let cart = JSON.parse(sessionStorage.getItem('cart_items')) || [];
+            if (cart[index]) {
+                cart[index].quantity += change;
+                if (cart[index].quantity <= 0) {
+                    cart.splice(index, 1);
+                }
+                sessionStorage.setItem('cart_items', JSON.stringify(cart));
+                loadCartItems();
+            }
+        }
+
+        function updateTotals(cart) {
+            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            document.getElementById('cart-subtotal').innerText = `₱ ${subtotal.toFixed(2)}`;
+            document.getElementById('cart-total').innerText = `₱ ${subtotal.toFixed(2)}`;
+        }
+
+        function placeOrder() {
+            let cart = JSON.parse(sessionStorage.getItem('cart_items')) || [];
+            if (cart.length === 0) {
+                alert("Your cart is empty!");
+                return;
+            }
+
+            // Move items to order history / active tab session storage
+            let history = JSON.parse(sessionStorage.getItem('order_history')) || [];
+            const newOrder = {
+                orderId: 'ORD-' + Math.floor(1000 + Math.random() * 9000),
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                items: cart,
+                status: 'Sent to Kitchen'
+            };
+            history.push(newOrder);
+
+            sessionStorage.setItem('order_history', JSON.stringify(history));
+            sessionStorage.removeItem('cart_items'); // Clear cart after placing order
+
+            alert("Order successfully placed to the kitchen!");
+            window.location.href = 'history.html';
+        }
+    </script>
+</body>
+</html>
