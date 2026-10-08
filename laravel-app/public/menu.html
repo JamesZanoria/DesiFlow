@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>DesiFlow - Menu Catalog</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex justify-center items-center min-h-screen">
+
+    <!-- Mobile Frame Container -->
+    <div class="w-full max-w-md bg-white min-h-screen shadow-2xl flex flex-col relative overflow-hidden">
+        
+        <!-- Top Navigation Bar -->
+        <header class="bg-amber-500 px-4 py-3 flex items-center justify-between text-white shadow-md">
+            <button onclick="goBack()" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded text-sm font-semibold transition">
+                &lt; Back
+            </button>
+            <div class="flex items-center space-x-3">
+                <!-- Order History Icon -->
+                <button onclick="openHistory()" class="p-2 bg-amber-600 hover:bg-amber-700 rounded-full transition relative">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </button>
+                <!-- Cart Icon with Badge -->
+                <button onclick="openCart()" class="p-2 bg-amber-600 hover:bg-amber-700 rounded-full transition relative">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <span id="cart-badge" class="absolute -top-1 -right-1 bg-red-600 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center font-bold">0</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Category Tabs -->
+        <nav class="bg-white border-b border-gray-200 overflow-x-auto whitespace-nowrap px-2 py-2 flex space-x-2 shadow-sm">
+            <button onclick="filterCategory('all')" id="tab-all" class="category-tab px-4 py-1.5 rounded text-xs font-bold uppercase transition bg-amber-500 text-white">All</button>
+            <button onclick="filterCategory('main course')" id="tab-main" class="category-tab px-4 py-1.5 rounded text-xs font-bold uppercase transition bg-gray-200 text-gray-700 hover:bg-gray-300">Main Course</button>
+            <button onclick="filterCategory('snacks')" id="tab-snacks" class="category-tab px-4 py-1.5 rounded text-xs font-bold uppercase transition bg-gray-200 text-gray-700 hover:bg-gray-300">Snacks</button>
+            <button onclick="filterCategory('drinks')" id="tab-drinks" class="category-tab px-4 py-1.5 rounded text-xs font-bold uppercase transition bg-gray-200 text-gray-700 hover:bg-gray-300">Drinks</button>
+            <button onclick="filterCategory('desserts')" id="tab-desserts" class="category-tab px-4 py-1.5 rounded text-xs font-bold uppercase transition bg-gray-200 text-gray-700 hover:bg-gray-300">Desserts</button>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
+            <h2 id="category-title" class="text-xs font-bold text-gray-500 uppercase tracking-wider">Full Menu Catalog</h2>
+            
+            <!-- Menu Items List Container -->
+            <div id="menu-container" class="space-y-3">
+                <!-- Dynamically populated item cards will render here -->
+            </div>
+        </main>
+
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // Catalog data containing strictly the actual current items
+        const menuItems = [
+            {
+                id: 1,
+                name: "Chicken Biryani",
+                category: "main course",
+                price: 350.00,
+                status: "available"
+            },
+            {
+                id: 2,
+                name: "Potato Samosa",
+                category: "snacks",
+                price: 150.00,
+                status: "available"
+            }
+        ];
+
+        function renderMenu(filter = 'all') {
+            const container = document.getElementById('menu-container');
+            const titleElem = document.getElementById('category-title');
+            container.innerHTML = '';
+
+            // Update section title dynamically
+            titleElem.innerText = filter === 'all' ? 'Full Menu Catalog' : `${filter.toUpperCase()} CATEGORY`;
+
+            const filtered = filter === 'all' 
+                ? menuItems 
+                : menuItems.filter(item => item.category === filter);
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<p class="text-center text-gray-400 text-sm py-8">No items available in this category.</p>`;
+                return;
+            }
+
+            filtered.forEach(item => {
+                const isSoldOut = item.status === 'sold out';
+                
+                const card = document.createElement('div');
+                card.className = `flex items-center justify-between border border-gray-200 rounded-lg p-3 bg-white shadow-sm transition ${isSoldOut ? 'opacity-50 bg-gray-50' : 'hover:border-amber-400'}`;
+                
+                card.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="w-16 h-16 bg-gray-200 border border-dashed border-gray-400 rounded flex items-center justify-center text-gray-500 text-xs font-semibold">
+                            [IMG]
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-800 text-sm">${item.name}</h3>
+                            <p class="text-xs text-gray-500 capitalize">${item.category}</p>
+                            ${isSoldOut 
+                                ? '<span class="text-red-600 text-xs font-bold block mt-1">Sold Out</span>' 
+                                : `<p class="text-xs font-bold text-gray-900 mt-1">₱ ${item.price.toFixed(2)}</p>`
+                            }
+                        </div>
+                    </div>
+                    <div>
+                        ${isSoldOut 
+                            ? `<button disabled class="bg-gray-400 text-white text-xs font-bold px-4 py-1.5 rounded cursor-not-allowed">Choose</button>`
+                            : `<button onclick="chooseItem(${item.id})" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-4 py-1.5 rounded transition shadow-sm">Choose</button>`
+                        }
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function filterCategory(category) {
+            // Update active styles on tabs
+            document.querySelectorAll('.category-tab').forEach(tab => {
+                tab.classList.remove('bg-amber-500', 'text-white');
+                tab.classList.add('bg-gray-200', 'text-gray-700');
+            });
+
+            const activeTabId = category === 'all' ? 'tab-all' : `tab-${category.split(' ')[0]}`;
+            const targetTab = document.getElementById(activeTabId);
+            if (targetTab) {
+                targetTab.classList.remove('bg-gray-200', 'text-gray-700');
+                targetTab.classList.add('bg-amber-500', 'text-white');
+            }
+
+            renderMenu(category);
+        }
+
+        function goBack() {
+            window.location.href = 'dashboard.html';
+        }
+
+        function openHistory() {
+            window.location.href = 'history.html';
+        }
+
+        function openCart() {
+            window.location.href = 'cart.html';
+        }
+
+        function chooseItem(itemId) {
+            sessionStorage.setItem('selected_item_id', itemId);
+            alert(`Opening item detail overlay for Item ID: ${itemId}`);
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            renderMenu('all');
+            
+            // Sync cart badge counter from sessionStorage if available
+            const cart = JSON.parse(sessionStorage.getItem('cart_items') || '[]');
+            const totalQty = cart.reduce((sum, item) => sum + item.quantity, 0);
+            document.getElementById('cart-badge').innerText = totalQty;
+        });
+    </script>
+</body>
+</html>

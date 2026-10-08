@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- ensures no QR scanning issues (won't save cache of old states) -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <title>Desi Zaika - Welcome</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom Tailwind Configuration to match wireframe colors -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'desi-yellow': '#F4B41A',
+                        'desi-blue': '#2D4A77'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <!-- Mobile Device Simulator Container -->
+    <div class="bg-white w-full max-w-sm h-screen sm:h-[800px] sm:rounded-3xl sm:shadow-2xl relative flex flex-col items-center justify-center overflow-hidden">
+
+        <!-- Logo Area -->
+        <div class="w-32 h-32 bg-desi-yellow rounded-full flex items-center justify-center mb-6 shadow-sm">
+            <span class="text-white font-bold text-sm tracking-widest">[LOGO]</span>
+        </div>
+
+        <!-- Typography -->
+        <h1 class="text-3xl font-bold text-desi-blue mb-1">Desi Zaika</h1>
+        <h1 class="text-3xl font-bold text-desi-blue mb-1">Snack Haus</h1>
+
+        <!-- Dynamic Table Number Display -->
+        <div id="table-badge" class="mt-4 px-4 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-semibold hidden transition-all duration-300">
+            <!-- Populated via JavaScript -->
+        </div>
+
+        <!-- Action Button -->
+        <div class="absolute bottom-0 w-full p-6">
+            <button onclick="enterOrderingSystem()" class="w-full bg-desi-yellow text-white font-extrabold text-lg py-4 rounded shadow-md hover:bg-yellow-500 active:scale-95 transition-all duration-200 uppercase tracking-wide">
+                Order Now!
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // Extract the table number from the URL (e.g., ?table=3)
+        document.addEventListener("DOMContentLoaded", () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const tableNumber = urlParams.get('table');
+
+            if (tableNumber) {
+                // Display the table number on the UI
+                const tableBadge = document.getElementById('table-badge');
+                tableBadge.innerText = `Table ${tableNumber}`;
+                tableBadge.classList.remove('hidden');
+
+                // Store the table number in sessionStorage for the Dashboard and Cart to utilize
+                sessionStorage.setItem('active_table', tableNumber);
+                console.log(`Session initialized for Table ${tableNumber}`);
+            } else {
+                console.warn("No table number detected in the URL. Customer may have navigated directly without a QR code.");
+            }
+        });
+
+        // Route to the dashboard
+        function enterOrderingSystem() {
+            // Check if a table is registered before allowing entry
+            if (!sessionStorage.getItem('active_table')) {
+                alert("Error: No table detected. Please scan the QR code on your table to order.");
+                return;
+            }
+            window.location.href = 'dashboard.html';
+        }
+    </script>
+</body>
+</html>
