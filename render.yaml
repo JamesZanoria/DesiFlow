@@ -1,0 +1,26 @@
+services:
+  # FastAPI Analytics Service
+  - type: web
+    name: desiflow-analytics
+    env: php
+    buildCommand: pip install -r fastapi_analytics/requirements.txt
+    startCommand: uvicorn fastapi_analytics.app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: DAILY_RUN_HOUR
+        value: "2"
+      - key: DAILY_RUN_MINUTE
+        value: "0"
+
+  # Laravel Reverb WebSocket Server
+  - type: worker
+    name: desiflow-reverb
+    env: php
+    buildCommand: composer install --no-dev
+    startCommand: php artisan reverb:start --host 0.0.0.0 --port 8080
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: REVERB_SERVER_HOST
+        sync: false
