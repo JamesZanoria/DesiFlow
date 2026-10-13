@@ -64,11 +64,7 @@ class AuthController extends Controller{
     // Authenticate a staff account. Requires a valid
     // email + password, denies access and shows an error on any failure.
 
-    // Deliberately restricted to role === 'admin' beyond just checking the
-    // password: Cashier and Kitchen Staff accounts can already be created in
-    // Staff Management, but their modules (POS, KDS) don't exist as views
-    // yet, so letting them log in here would land them in an admin panel
-    // they have no business.
+    // Staff roles are redirected to their own modules after authentication.
     public function login(Request $request){
         $validated = $request->validate([
             'email' => 'required|string|email',
@@ -87,7 +83,7 @@ class AuthController extends Controller{
             ]);
         }
 
-        if (Auth::user()->role !== 'admin') {
+        if (! in_array(Auth::user()->role, ['admin', 'cashier', 'kitchen'], true)) {
             Auth::logout();
 
             throw ValidationException::withMessages([
@@ -98,8 +94,13 @@ class AuthController extends Controller{
         RateLimiter::clear($this->throttleKey($request));
         $request->session()->regenerate();
 
-        // Default landing page for Admin.
-        return redirect()->intended(route('admin.dashboard.index'));
+        $landingRoute = match (Auth::user()->role) {
+            'cashier' => 'cashier.index',
+            'kitchen' => 'kds.index',
+            default => 'admin.dashboard.index',
+        };
+
+        return redirect()->route($landingRoute);
     }
 
     public function logout(Request $request){

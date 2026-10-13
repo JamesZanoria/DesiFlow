@@ -10,13 +10,34 @@ use App\Http\Controllers\Admin\OrderMonitorController;
 use App\Http\Controllers\Admin\SmartAssistantController;
 use App\Http\Controllers\Admin\NotificationsController;
 use App\Http\Controllers\Admin\ProtectedFileController;
+use App\Http\Controllers\CustomerOrderingController;
+use App\Http\Controllers\CashierController;
+use App\Http\Controllers\KdsController;
+use App\Http\Controllers\OrderWorkflowController;
+use App\Http\Controllers\PublicMenuImageController;
 
 Route::get('/', function () {
-    if(auth()->check()){
-        return redirect('/admin/dashboard'); // Sends logged-in users to the dashboard
-    }
-    return redirect()->route('login'); // Sends guests to login
+    return redirect()->route('customer.menu');
 });
+
+// Public self-ordering / pickup-code status tracking.
+Route::get('/menu', [CustomerOrderingController::class, 'menu'])->name('customer.menu');
+Route::get('/api/products', [CustomerOrderingController::class, 'products'])->name('products.get');
+Route::get('/api/cart', [CustomerOrderingController::class, 'cart'])->name('cart.get');
+Route::post('/api/cart/add', [CustomerOrderingController::class, 'addToCart'])->name('cart.add');
+Route::post('/api/cart/remove', [CustomerOrderingController::class, 'removeFromCart'])->name('cart.remove');
+Route::post('/api/cart/update', [CustomerOrderingController::class, 'updateCart'])->name('cart.update');
+Route::post('/api/orders/submit', [CustomerOrderingController::class, 'submit'])->name('orders.submit');
+Route::post('/api/orders/details', [CustomerOrderingController::class, 'details'])->name('orders.details');
+Route::get('/api/orders/{orderNumber}/status', [CustomerOrderingController::class, 'status'])->name('orders.status');
+Route::get('/menu-images/{filename}', [PublicMenuImageController::class, 'show'])
+    ->where('filename', '[A-Za-z0-9_-]+\.(jpg|jpeg|png)')
+    ->name('customer.menu-image');
+
+// The pickup-code screen is intended for a shared restaurant display; it
+// exposes active codes/status only, not customer details or order contents.
+Route::get('/kitchen-display/board', [OrderWorkflowController::class, 'display'])->name('display.board');
+Route::get('/api/display/orders', [OrderWorkflowController::class, 'displayOrders'])->name('display.orders');
 
 // Guest-only: an already-logged-in admin hitting /login gets redirected
 // forward instead of seeing the form again. There is no registration route,
@@ -43,11 +64,23 @@ Route::middleware('auth')->group(function () {
         ->where('filename', '[A-Za-z0-9_-]+\.(jpg|jpeg|png)');
 });
 
-// 'role:admin', see App\Http\Middleware\EnsureUserHasRole. Cashier and
-// Kitchen Staff accounts exist in the users table (Staff Management already
-// supports creating them) but have no module of their own yet, so this whole
-// prefix is admin-only for now; a future POS/KDS route group would use
-// role:cashier / role:kitchen the same way.
+Route::prefix('cashier')->name('cashier.')->middleware(['auth', 'role:cashier'])->group(function () {
+    Route::get('/', [CashierController::class, 'index'])->name('index');
+    Route::post('/orders/approve-by-code', [CashierController::class, 'approveByCode'])->name('orders.approve-code');
+    Route::post('/orders/{order}/reject', [CashierController::class, 'reject'])->name('orders.reject');
+});
+
+Route::prefix('kds')->name('kds.')->middleware(['auth', 'role:kitchen'])->group(function () {
+    Route::get('/', [KdsController::class, 'index'])->name('index');
+    Route::patch('/orders/{order}/status', [KdsController::class, 'updateStatus'])->name('orders.status');
+});
+
+Route::prefix('manager')->name('manager.')->middleware(['auth', 'role:admin'])->group(function () {
+    Route::get('/orders', [OrderWorkflowController::class, 'managerIndex'])->name('orders.index');
+    Route::patch('/orders/{order}/status', [OrderWorkflowController::class, 'managerUpdateStatus'])->name('orders.status');
+});
+
+// Admin-only management and reporting modules.
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function () {
 
     Route::get('/', function() {
