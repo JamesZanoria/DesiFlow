@@ -17,7 +17,7 @@ use App\Http\Controllers\OrderWorkflowController;
 use App\Http\Controllers\PublicMenuImageController;
 
 Route::get('/', function () {
-    return redirect()->route('customer.menu');
+    return redirect()->route('login');
 });
 
 // Public self-ordering / pickup-code status tracking.

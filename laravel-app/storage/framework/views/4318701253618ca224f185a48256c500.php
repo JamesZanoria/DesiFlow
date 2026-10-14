@@ -9,6 +9,7 @@
     <style>
         .no-transition { transition: none !important; }
         .sidebar-transition { transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar-text-transition { transition: opacity 0.2s ease-in-out; }
     </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-900">
@@ -41,6 +42,11 @@
                             class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 <?php echo e(request()->routeIs('admin.orders.*') ? 'bg-amber-500 text-white shadow-md shadow-amber-900/20 font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'); ?>">
                             <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 3v1.5M15.75 3v1.5M3 15h18M4.5 6h15A1.5 1.5 0 0121 7.5v10.5a1.5 1.5 0 01-1.5 1.5h-15A1.5 1.5 0 013 18V7.5A1.5 1.5 0 014.5 6z" /></svg>
                             <span class="sidebar-text transition-opacity duration-200 <?php echo e(request()->cookie('sidebar_collapsed') ? 'opacity-0 hidden' : ''); ?>">Real-Time Orders</span>
+                        </a>
+                        <a href="<?php echo e(route('manager.orders.index')); ?>"
+                            class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 <?php echo e(request()->routeIs('manager.orders.*') ? 'bg-amber-500 text-white shadow-md shadow-amber-900/20 font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'); ?>">
+                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5.25h6m-6 3h6m-9 3h12m-12 3h8m-9 4.5h14a1.5 1.5 0 001.5-1.5v-15A1.5 1.5 0 0019 3.75H5A1.5 1.5 0 003.5 5.25v15A1.5 1.5 0 005 21.75z" /></svg>
+                            <span class="sidebar-text transition-opacity duration-200 <?php echo e(request()->cookie('sidebar_collapsed') ? 'opacity-0 hidden' : ''); ?>">Order Workflow</span>
                         </a>
                         <a href="<?php echo e(route('admin.menu.index')); ?>"
                             class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 <?php echo e(request()->routeIs('admin.menu.*') ? 'bg-amber-500 text-white shadow-md shadow-amber-900/20 font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'); ?>">
@@ -92,8 +98,8 @@
             </div>
 
             <!-- Collapse Trigger -->
-            <button id="sidebar-collapse-btn" class="absolute -right-3 bottom-20 w-6 h-6 bg-slate-800 text-white rounded-full border-2 border-slate-700 flex items-center justify-center z-30 hover:bg-amber-500 transition-all duration-200">
-                <svg id="collapse-icon" class="w-3 h-3 transition-transform duration-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+            <button id="sidebar-collapse-btn" class="absolute -right-3 bottom-20 w-7 h-7 bg-slate-800 text-white rounded-full border-2 border-slate-700 flex items-center justify-center z-30 hover:bg-amber-500 transition-all duration-300 shadow-lg shadow-black/40 active:scale-90 ring-2 ring-slate-900">
+                <svg id="collapse-icon" class="w-3.5 h-3.5 transition-transform duration-300" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
             </button>
         </aside>
 
@@ -231,7 +237,7 @@
                     if (isCollapsed) {
                         // COLLAPSE: Hide text instantly, then shrink width
                         document.querySelectorAll('.sidebar-text').forEach(el => {
-                            el.classList.add('opacity-0', 'hidden');
+                            el.classList.add('opacity-0', 'pointer-events-none');
                         });
                         sidebar.classList.replace('w-64', 'w-20');
                         collapseIcon.classList.add('rotate-180');
@@ -241,13 +247,14 @@
                         collapseIcon.classList.remove('rotate-180');
 
                         document.querySelectorAll('.sidebar-text').forEach(el => {
-                            el.classList.remove('hidden');
+                            el.classList.remove('pointer-events-none');
                             setTimeout(() => {
                                 el.classList.remove('opacity-0');
                             }, 100);
                         });
                     }
                 });
+
 
                 // --- Notifications Logic ---
                 function initNotifications() {
