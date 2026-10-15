@@ -6,6 +6,7 @@ use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
 
 class CashierController extends Controller
 {
@@ -16,7 +17,7 @@ class CashierController extends Controller
             ->orderBy('created_at')
             ->get();
 
-        return view('cashier.index', [
+        return Inertia::render('Cashier/Index', [
             'unapprovedOrders' => $orders->where('status', 'unapproved')->values(),
             'pendingOrders' => $orders->where('status', 'pending')->values(),
         ]);

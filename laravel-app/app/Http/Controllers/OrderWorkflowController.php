@@ -6,12 +6,13 @@ use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
 
 class OrderWorkflowController extends Controller
 {
     public function display()
     {
-        return view('orders.display');
+        return Inertia::render('Orders/Display');
     }
 
     public function displayOrders()
@@ -37,7 +38,7 @@ class OrderWorkflowController extends Controller
             ->limit(100)
             ->get();
 
-        return view('manager.orders', ['orders' => $orders]);
+        return Inertia::render('Manager/Orders', ['orders' => $orders]);
     }
 
     public function managerUpdateStatus(Request $request, Order $order)

@@ -6,6 +6,7 @@ use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
 
 class KdsController extends Controller
 {
@@ -22,13 +23,7 @@ class KdsController extends Controller
             $status => $orders->where('status', $status)->values(),
         ]);
 
-        if ($request->wantsJson()) {
-            return response()->json([
-                'html' => view('kds._board', ['columns' => $columns])->render(),
-            ]);
-        }
-
-        return view('kds.index', ['columns' => $columns]);
+        return Inertia::render('Kds/Index', ['columns' => $columns]);
     }
 
     public function updateStatus(Request $request, Order $order)

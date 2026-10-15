@@ -3,9 +3,9 @@
 @section('title', 'Staff Studio')
 
 @section('content')
-    <div class="h-screen overflow-hidden flex flex-col p-6 bg-slate-50/50">
+    <div class="h-screen overflow-hidden flex flex-col p-6 bg-slate-50/50 font-sans">
         {{-- Breadcrumb Navigation --}}
-        <nav class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400 mb-6">
+        <nav class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400 mb-6 shrink-0">
             <a href="{{ route('admin.staff.index') }}" class="hover:text-amber-600 transition-colors flex items-center gap-1">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
                 Staff Management
@@ -17,21 +17,21 @@
         </nav>
 
         <div class="flex-1 min-h-0 overflow-hidden flex items-center justify-center">
-            <div class="w-full max-w-3xl bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-8 md:p-12 relative flex flex-col h-full max-h-full overflow-hidden">
+            <div class="w-full max-w-6xl bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col h-full max-h-full relative">
 
-                <div class="flex-1 min-h-0 overflow-y-auto relative custom-scrollbar pr-4 pb-12">
-                    <form id="staff-studio-form" action="{{ route('admin.staff.update', $staffMember->user_id) }}" method="POST" class="h-full space-y-12">
+                {{-- Studio Body: Now Non-Scrollable --}}
+                <div class="flex-1 overflow-hidden p-12 bg-white">
+                    <form id="staff-studio-form" class="h-full flex flex-col justify-center space-y-16" action="{{ route('admin.staff.update', $staffMember->user_id) }}" method="POST">
                         @csrf
                         @method('PUT')
 
                         {{-- Section 1: Account Identity --}}
-                        <div class="space-y-6">
-                            <div class="space-y-2">
-                                <h3 class="text-2xl font-black text-slate-900 tracking-tight">Account Identity</h3>
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                            <div class="lg:col-span-1 space-y-2">
+                                <h3 class="text-xl font-black text-slate-900 tracking-tight">Account Identity</h3>
                                 <p class="text-sm text-slate-500">Update the professional details for this staff member.</p>
                             </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div class="group">
                                     <label class="block text-[11px] font-black text-slate-400 mb-2 uppercase tracking-widest group-focus-within:text-amber-600 transition-colors">
                                         Full Name <span class="text-red-400">*</span>
@@ -56,98 +56,100 @@
                         </div>
 
                         {{-- Section 2: Role & Permissions --}}
-                        <div class="space-y-6">
-                            <div class="space-y-2">
-                                <h3 class="text-2xl font-black text-slate-900 tracking-tight">Role & Permissions</h3>
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                            <div class="lg:col-span-1 space-y-2">
+                                <h3 class="text-xl font-black text-slate-900 tracking-tight">Role & Permissions</h3>
                                 <p class="text-sm text-slate-500">Adjust the operational role and access levels.</p>
                             </div>
-
-                            <div class="max-w-md group relative">
-                                <label class="block text-[11px] font-black text-slate-400 mb-2 uppercase tracking-widest group-focus-within:text-amber-600 transition-colors">
-                                    Assigned Role <span class="text-red-400">*</span>
-                                </label>
-                                <div class="relative">
-                                    <select name="role" required
-                                        class="w-full appearance-none rounded-xl border border-slate-200 px-4 py-3 text-sm focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 outline-none transition-all bg-white hover:border-slate-300 cursor-pointer {{ $staffMember->role === 'admin' ? 'bg-slate-50 cursor-not-allowed' : '' }}"
-                                        {{ $staffMember->role === 'admin' ? 'disabled' : '' }}>
-                                        <option value="cashier" {{ old('role', $staffMember->role) === 'cashier' ? 'selected' : '' }}>Cashier</option>
-                                        <option value="kitchen" {{ old('role', $staffMember->role) === 'kitchen' ? 'selected' : '' }}>Kitchen Staff</option>
-                                        @if($staffMember->role === 'admin')
-                                            <option value="admin" selected>Admin / Manager</option>
-                                        @endif
-                                    </select>
-                                    <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                            <div class="lg:col-span-2">
+                                <div class="max-w-md group relative">
+                                    <label class="block text-[11px] font-black text-slate-400 mb-2 uppercase tracking-widest group-focus-within:text-amber-600 transition-colors">
+                                        Assigned Role <span class="text-red-400">*</span>
+                                    </label>
+                                    <div class="relative">
+                                        <select name="role" required
+                                            class="w-full appearance-none rounded-xl border border-slate-200 px-4 py-3 text-sm focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 outline-none transition-all bg-white hover:border-slate-300 cursor-pointer {{ $staffMember->role === 'admin' ? 'bg-slate-50 cursor-not-allowed' : '' }}"
+                                            {{ $staffMember->role === 'admin' ? 'disabled' : '' }}>
+                                            <option value="cashier" {{ old('role', $staffMember->role) === 'cashier' ? 'selected' : '' }}>Cashier</option>
+                                            <option value="kitchen" {{ old('role', $staffMember->role) === 'kitchen' ? 'selected' : '' }}>Kitchen Staff</option>
+                                            @if($staffMember->role === 'admin')
+                                                <option value="admin" selected>Admin / Manager</option>
+                                            @endif
+                                        </select>
+                                        <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                                        </div>
                                     </div>
+                                    <p class="error-text hidden text-[10px] font-bold text-red-500 mt-1.5 ml-1"></p>
                                 </div>
-                                <p class="error-text hidden text-[10px] font-bold text-red-500 mt-1.5 ml-1"></p>
                             </div>
                         </div>
 
                         {{-- Section 3: Security --}}
-                        <div class="space-y-6">
-                            <div class="space-y-2">
-                                <h3 class="text-2xl font-black text-slate-900 tracking-tight">Security Controls</h3>
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                            <div class="lg:col-span-1 space-y-2">
+                                <h3 class="text-xl font-black text-slate-900 tracking-tight">Security Controls</h3>
                                 <p class="text-sm text-slate-500">Update credentials to maintain account security.</p>
                             </div>
-
-                            <div class="bg-slate-50 rounded-3xl p-8 border border-slate-100 space-y-8">
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    <div class="group relative">
-                                        <div class="flex items-center justify-between mb-2">
-                                            <label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest group-focus-within:text-amber-600 transition-colors">
-                                                Password
+                            <div class="lg:col-span-2">
+                                <div class="bg-slate-50 rounded-3xl p-8 border border-slate-100 space-y-8">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div class="group relative">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest group-focus-within:text-amber-600 transition-colors">
+                                                    Password
+                                                </label>
+                                                <span class="text-[10px] font-medium text-slate-400 italic">Optional: leave blank to keep current</span>
+                                            </div>
+                                            <div class="relative">
+                                                <input type="password" name="password" id="password"
+                                                    class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 outline-none transition-all bg-white hover:border-slate-300 placeholder:text-slate-300"
+                                                    placeholder="Enter new password">
+                                                <button type="button" class="password-toggle absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" data-target="password">
+                                                    <svg class="w-4 h-4 eye-open" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0,010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                                    <svg class="w-4 h-4 eye-closed hidden" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
+                                                </button>
+                                            </div>
+                                            <p class="error-text hidden text-[10px] font-bold text-red-500 mt-1.5 ml-1"></p>
+                                        </div>
+                                        <div class="group relative">
+                                            <label class="block text-[11px] font-black text-slate-400 mb-2 uppercase tracking-widest group-focus-within:text-amber-600 transition-colors">
+                                                Confirm Password
                                             </label>
-                                            <span class="text-[10px] font-medium text-slate-400 italic">Optional: leave blank to keep current</span>
+                                            <div class="relative">
+                                                <input type="password" name="password_confirmation" id="password_confirmation"
+                                                    class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 outline-none transition-all bg-white hover:border-slate-300 placeholder:text-slate-300"
+                                                    placeholder="Re-enter password">
+                                                <button type="button" class="password-toggle absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" data-target="password_confirmation">
+                                                    <svg class="w-4 h-4 eye-open" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0,010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                                    <svg class="w-4 h-4 eye-closed hidden" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
+                                                </button>
+                                            </div>
+                                            <p class="error-text hidden text-[10px] font-bold text-red-500 mt-1.5 ml-1"></p>
                                         </div>
-                                        <div class="relative">
-                                            <input type="password" name="password" id="password"
-                                                class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 outline-none transition-all bg-white hover:border-slate-300 placeholder:text-slate-300"
-                                                placeholder="Enter new password">
-                                            <button type="button" class="password-toggle absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" data-target="password">
-                                                <svg class="w-4 h-4 eye-open" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0,010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                                <svg class="w-4 h-4 eye-closed hidden" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
-                                            </button>
-                                        </div>
-                                        <p class="error-text hidden text-[10px] font-bold text-red-500 mt-1.5 ml-1"></p>
                                     </div>
-                                    <div class="group relative">
-                                        <label class="block text-[11px] font-black text-slate-400 mb-2 uppercase tracking-widest group-focus-within:text-amber-600 transition-colors">
-                                            Confirm Password
-                                        </label>
-                                        <div class="relative">
-                                            <input type="password" name="password_confirmation" id="password_confirmation"
-                                                class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 outline-none transition-all bg-white hover:border-slate-300 placeholder:text-slate-300"
-                                                placeholder="Re-enter password">
-                                            <button type="button" class="password-toggle absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" data-target="password_confirmation">
-                                                <svg class="w-4 h-4 eye-open" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0,010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                                <svg class="w-4 h-4 eye-closed hidden" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
-                                            </button>
-                                        </div>
-                                        <p class="error-text hidden text-[10px] font-bold text-red-500 mt-1.5 ml-1"></p>
-                                    </div>
-                                </div>
 
-                                <div class="pt-6 border-t border-slate-200/60">
-                                    <div class="flex items-center justify-between mb-3">
-                                        <span class="text-xs font-black text-slate-400 uppercase tracking-widest">Password Strength</span>
-                                        <span id="strength-label" class="text-xs font-bold uppercase tracking-wider text-slate-400">Not entered</span>
+                                    <div class="pt-6 border-t border-slate-200/60">
+                                        <div class="flex items-center justify-between mb-3">
+                                            <span class="text-xs font-black text-slate-400 uppercase tracking-widest">Password Strength</span>
+                                            <span id="strength-label" class="text-xs font-bold uppercase tracking-wider text-slate-400">Not entered</span>
+                                        </div>
+                                        <div class="flex gap-1.5 h-1.5">
+                                            <div class="strength-segment flex-1 rounded-full bg-slate-200 transition-colors duration-300"></div>
+                                            <div class="strength-segment flex-1 rounded-full bg-slate-200 transition-colors duration-300"></div>
+                                            <div class="strength-segment flex-1 rounded-full bg-slate-200 transition-colors duration-300"></div>
+                                            <div class="strength-segment flex-1 rounded-full bg-slate-200 transition-colors duration-300"></div>
+                                        </div>
+                                        <p id="strength-hint" class="hidden text-xs text-slate-500 mt-3 italic"></p>
                                     </div>
-                                    <div class="flex gap-1.5 h-1.5">
-                                        <div class="strength-segment flex-1 rounded-full bg-slate-200 transition-colors duration-300"></div>
-                                        <div class="strength-segment flex-1 rounded-full bg-slate-200 transition-colors duration-300"></div>
-                                        <div class="strength-segment flex-1 rounded-full bg-slate-200 transition-colors duration-300"></div>
-                                        <div class="strength-segment flex-1 rounded-full bg-slate-200 transition-colors duration-300"></div>
-                                    </div>
-                                    <p id="strength-hint" class="hidden text-xs text-slate-500 mt-3 italic"></p>
                                 </div>
                             </div>
                         </div>
                     </form>
                 </div>
 
-                {{-- Footer Actions --}}
-                <div class="mt-12 pt-8 border-t border-slate-100 flex items-center justify-end gap-3 flex-none">
+                {{-- Sticky Action Bar: Locked at bottom --}}
+                <div class="px-12 py-6 border-t border-slate-100 flex items-center justify-end gap-3 bg-white shrink-0 z-10">
                     <button type="button" id="discard-btn"
                         class="px-6 py-3 text-sm font-bold text-slate-400 hover:text-slate-600 hover:bg-slate-50 border border-transparent hover:border-slate-200 rounded-xl transition-all text-center">
                         Discard
@@ -161,19 +163,19 @@
         </div>
 
         {{-- Confirmation Modal --}}
-        <div id="confirm-modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
-                <div class="p-6 text-center">
-                    <div class="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+        <div id="confirm-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200">
+                <div class="p-8 text-center">
+                    <div class="w-16 h-16 bg-red-600 text-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-red-500/20">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                     </div>
-                    <h3 class="text-lg font-bold text-slate-800 mb-2">Discard Changes?</h3>
-                    <p class="text-sm text-slate-500 mb-6">Any unsaved edits will be permanently lost.</p>
+                    <h3 class="text-xl font-black text-slate-900 mb-2 tracking-tight">Discard Changes?</h3>
+                    <p class="text-sm text-slate-500 mb-8">Any unsaved edits will be permanently lost. This action cannot be undone.</p>
                     <div class="flex gap-3">
-                        <button type="button" id="confirm-cancel" class="flex-1 px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors">
+                        <button type="button" id="confirm-cancel" class="flex-1 px-4 py-3 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-100 transition-colors">
                             Keep Editing
                         </button>
-                        <button type="button" id="confirm-discard" class="flex-1 px-4 py-2 rounded-lg text-sm font-bold text-white bg-red-500 hover:bg-red-600 transition-colors">
+                        <button type="button" id="confirm-discard" class="flex-1 px-4 py-3 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 shadow-lg shadow-red-500/20 transition-all active:scale-95">
                             Discard
                         </button>
                     </div>
@@ -208,7 +210,7 @@
 
                 const levels = [
                     { min: 0, label: 'Too Weak', color: 'bg-red-500', text: 'text-red-600' },
-                    { min: 1, label: 'Weak', color: 'bg-red-400', text: 'text-red-500' },
+                    { min: 1, label: 'Weak', color: 'bg-red-400', text: 'text-red-500', },
                     { min: 2, label: 'Fair', color: 'bg-amber-400', text: 'text-amber-600' },
                     { min: 3, label: 'Good', color: 'bg-yellow-400', text: 'text-yellow-600' },
                     { min: 4, label: 'Strong', color: 'bg-green-500', text: 'text-green-600' },
@@ -292,7 +294,6 @@
                     window.location.href = "{{ route('admin.staff.index') }}";
                 });
 
-                // Persistence logic
                 const formFields = ['name', 'email', 'role'];
                 formFields.forEach(field => {
                     const input = form.elements[field];
@@ -309,7 +310,6 @@
                     formFields.forEach(field => localStorage.removeItem('staff_edit_draft_' + field));
                 });
 
-                // Initial state
                 validateForm();
             })();
         </script>
