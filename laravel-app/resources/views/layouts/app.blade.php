@@ -43,16 +43,6 @@
                             <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 3v1.5M15.75 3v1.5M3 15h18M4.5 6h15A1.5 1.5 0 0121 7.5v10.5a1.5 1.5 0 01-1.5 1.5h-15A1.5 1.5 0 013 18V7.5A1.5 1.5 0 014.5 6z" /></svg>
                             <span class="sidebar-text transition-opacity duration-200 {{ request()->cookie('sidebar_collapsed') ? 'opacity-0 hidden' : '' }}">Real-Time Orders</span>
                         </a>
-                        <a href="{{ route('manager.orders.index') }}"
-                            class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('manager.orders.*') ? 'bg-amber-500 text-white shadow-md shadow-amber-900/20 font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' }}">
-                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5.25h6m-6 3h6m-9 3h12m-12 3h8m-9 4.5h14a1.5 1.5 0 001.5-1.5v-15A1.5 1.5 0 0019 3.75H5A1.5 1.5 0 003.5 5.25v15A1.5 1.5 0 005 21.75z" /></svg>
-                            <span class="sidebar-text transition-opacity duration-200 {{ request()->cookie('sidebar_collapsed') ? 'opacity-0 hidden' : '' }}">Order Workflow</span>
-                        </a>
-                        <a href="{{ route('admin.transaction-requests.index') }}"
-                            class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('admin.transaction-requests.*') ? 'bg-amber-500 text-white shadow-md shadow-amber-900/20 font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' }}">
-                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75l2.25 2.25L15 9.75M3.75 12a8.25 8.25 0 1116.5 0 8.25 8.25 0 01-16.5 0z" /></svg>
-                            <span class="sidebar-text transition-opacity duration-200 {{ request()->cookie('sidebar_collapsed') ? 'opacity-0 hidden' : '' }}">Transaction Requests</span>
-                        </a>
                         <a href="{{ route('admin.menu.index') }}"
                             class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('admin.menu.*') ? 'bg-amber-500 text-white shadow-md shadow-amber-900/20 font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' }}">
                             <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>

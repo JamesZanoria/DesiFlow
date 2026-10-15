@@ -15,7 +15,7 @@ use App\Http\Controllers\Admin\TransactionRequestController;
 use App\Http\Controllers\CashierController;
 use App\Http\Controllers\CashierPaymentController;
 use App\Http\Controllers\KdsController;
-use App\Http\Controllers\OrderWorkflowController;
+use App\Http\Controllers\PublicMenuImageController;
 
 Route::get('/', function (Request $request) {
     $user = $request->user();
@@ -34,16 +34,27 @@ Route::get('/', function (Request $request) {
     return redirect()->route($landingRoute);
 });
 
-// The pickup-code screen is intended for a shared restaurant display; it
-// exposes active codes/status only, not customer details or order contents.
-Route::get('/kitchen-display/board', [OrderWorkflowController::class, 'display'])->name('display.board');
-Route::get('/api/display/orders', [OrderWorkflowController::class, 'displayOrders'])->name('display.orders');
+// Public self-ordering / pickup-code status tracking.
+Route::get('/menu', [CustomerOrderingController::class, 'menu'])->name('customer.menu');
+Route::get('/api/products', [CustomerOrderingController::class, 'products'])->name('products.get');
+Route::get('/api/cart', [CustomerOrderingController::class, 'cart'])->name('cart.get');
+Route::post('/api/cart/add', [CustomerOrderingController::class, 'addToCart'])->name('cart.add');
+Route::post('/api/cart/remove', [CustomerOrderingController::class, 'removeFromCart'])->name('cart.remove');
+Route::post('/api/cart/update', [CustomerOrderingController::class, 'updateCart'])->name('cart.update');
+Route::post('/api/orders/submit', [CustomerOrderingController::class, 'submit'])->name('orders.submit');
+Route::post('/api/orders/details', [CustomerOrderingController::class, 'details'])->name('orders.details');
+Route::get('/api/orders/{orderNumber}/status', [CustomerOrderingController::class, 'status'])->name('orders.status');
+Route::get('/menu-images/{filename}', [PublicMenuImageController::class, 'show'])
+    ->where('filename', '[A-Za-z0-9_-]+\.(jpg|jpeg|png)')
+    ->name('customer.menu-image');
 
 // Guest-only: an already-logged-in admin hitting /login gets redirected
 // forward instead of seeing the form again. There is no registration route,
 // every staff account is created by an admin through Staff Management.
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
+    Route::get('/login/cashier', [AuthController::class, 'showLoginForm'])->name('login.cashier');
+    Route::get('/login/kitchen', [AuthController::class, 'showLoginForm'])->name('login.kitchen');
     Route::post('/login', [AuthController::class, 'login']);
 
     // Password Reset Flow
@@ -85,11 +96,6 @@ Route::prefix('cashier')->name('cashier.')->middleware(['auth', 'role:cashier'])
 Route::prefix('kds')->name('kds.')->middleware(['auth', 'role:kitchen'])->group(function () {
     Route::get('/', [KdsController::class, 'index'])->name('index');
     Route::patch('/orders/{order}/status', [KdsController::class, 'updateStatus'])->name('orders.status');
-});
-
-Route::prefix('manager')->name('manager.')->middleware(['auth', 'role:admin'])->group(function () {
-    Route::get('/orders', [OrderWorkflowController::class, 'managerIndex'])->name('orders.index');
-    Route::patch('/orders/{order}/status', [OrderWorkflowController::class, 'managerUpdateStatus'])->name('orders.status');
 });
 
 // Admin-only management and reporting modules.

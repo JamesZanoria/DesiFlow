@@ -11,10 +11,15 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller{
-    // Show the login form. There is no registration route
-    // Every account is created by an admin through Staff Management instead.
-    public function showLoginForm(){
-        return view('auth.login');
+    // Show the login form.
+    public function showLoginForm(Request $request){
+        $portal = $request->query('portal', 'admin');
+
+        return response()
+            ->view('auth.login', ['portal' => $portal])
+            ->header('Cache-Control', 'no-cache, no-store, max-age=0, must-revalidate')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', 'Sun, 02 Jan 1990 00:00:00 GMT');
     }
 
     // Password Reset Logic
@@ -61,10 +66,7 @@ class AuthController extends Controller{
         return redirect()->route('login')->with('status', 'Your password has been reset successfully.');
     }
 
-    // Authenticate a staff account. Requires a valid
-    // email + password, denies access and shows an error on any failure.
-
-    // Staff roles are redirected to their own modules after authentication.
+    // Authenticate a staff account.
     public function login(Request $request){
         $validated = $request->validate([
             'email' => 'required|string|email',
@@ -75,6 +77,9 @@ class AuthController extends Controller{
 
         $email = strtolower(trim($validated['email']));
 
+        // Capture the portal from hidden input, query string, or default to 'admin'
+        $portal = $request->input('portal') ?: $request->query('portal', 'admin');
+
         if (! Auth::attempt(['email' => $email, 'password' => $validated['password']], $request->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey($request));
 
@@ -83,21 +88,48 @@ class AuthController extends Controller{
             ]);
         }
 
-        if (! in_array(Auth::user()->role, ['admin', 'cashier', 'kitchen'], true)) {
-            Auth::logout();
+        $user = Auth::user();
 
-            throw ValidationException::withMessages([
-                'email' => "Your account doesn't have access to this portal.",
-            ]);
+        // RBAC: Administrator is a Super-User and bypasses all portal restrictions.
+        if ($user->role !== 'admin') {
+            $isAllowed = match ($portal) {
+                'cashier' => in_array($user->role, ['cashier', 'kitchen'], true),
+                'kitchen' => in_array($user->role, ['cashier', 'kitchen'], true),
+                default   => false, // Non-admins cannot access the administration portal
+            };
+
+            if (!$isAllowed) {
+                Auth::logout();
+
+                $roleNames = [
+                    'admin' => 'Administrator',
+                    'cashier' => 'Cashier',
+                    'kitchen' => 'Kitchen Staff',
+                ];
+                $userRole = $roleNames[$user->role] ?? 'Unknown';
+
+                throw ValidationException::withMessages([
+                    'email' => "Your account is registered as {$userRole}. You are not authorized to access this portal.",
+                ]);
+            }
         }
 
         RateLimiter::clear($this->throttleKey($request));
         $request->session()->regenerate();
 
-        $landingRoute = match (Auth::user()->role) {
+        // PORTAL LOCK: Bind the session to the specific portal used for login.
+        session(['active_portal' => $portal]);
+
+        // DYNAMIC REDIRECTION:
+        // Redirect based on the portal they used to log in.
+        $landingRoute = match ($portal) {
             'cashier' => 'cashier.index',
             'kitchen' => 'kds.index',
-            default => 'admin.dashboard.index',
+            default => match ($user->role) {
+                'cashier' => 'cashier.index',
+                'kitchen' => 'kds.index',
+                default => 'admin.dashboard.index',
+            },
         };
 
         return redirect()->route($landingRoute);
@@ -111,10 +143,6 @@ class AuthController extends Controller{
         return redirect()->route('login');
     }
 
-    // 5 attempts per minute, keyed by email + IP together, keyed on so
-    // one attacker can't lock a real admin out just by repeatedly guessing
-    // their email from a different device, and so the same IP trying many
-    // different emails doesn't get an unfairly high combined budget.
     private function ensureIsNotRateLimited(Request $request): void{
         if (! RateLimiter::tooManyAttempts($this->throttleKey($request), 5)) {
             return;

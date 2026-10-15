@@ -4,41 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
-    <title>Log In | DesiFlow Admin</title>
+    <title>Log In | DesiFlow</title>
     <?php echo app('Illuminate\Foundation\Vite')(['resources/css/app.css']); ?>
     <style>
         .login-bg {
-            background: linear-gradient(to bottom right, #020617, #0f172a); /* from-slate-950 to-slate-900 */
+            background: radial-gradient(circle at top left, #f8fafc, #f1f5f9);
         }
-        .brand-accent {
-            color: #d97706; /* amber-600 */
-        }
-        .btn-primary {
-            background-color: #d97706; /* amber-600 */
+        .btn-transition {
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .btn-primary:hover {
-            background-color: #b45309; /* amber-700 */
-            transform: translateY(-1px);
-            box-shadow: 0 10px 15px -3px rgba(217, 119, 6, 0.3);
-        }
-        .btn-primary:active {
-            background-color: #92400e; /* amber-800 */
-            transform: scale(0.98);
-        }
-        .btn-primary:disabled {
-            background-color: #f59e0b;
-            opacity: 0.7;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
         }
         .spinner {
             border: 2px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
             border-top: 2px solid #fff;
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
             animation: spin 0.8s linear infinite;
             display: inline-block;
             margin-right: 8px;
@@ -48,8 +28,6 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-
-        /* Custom Checkbox Animation */
         .custom-checkbox {
             appearance: none;
             -webkit-appearance: none;
@@ -65,19 +43,16 @@
             place-content: center;
         }
         .custom-checkbox:checked {
-            background-color: #d97706;
-            border-color: #d97706;
+            background-color: var(--accent-color, #d97706);
+            border-color: var(--accent-color, #d97706);
         }
         .custom-checkbox:checked::before {
             content: "";
-            width: 0.65rem;
-            height: 0.65rem;
+            width: 0.6rem;
+            height: 0.6rem;
             background-color: white;
             border-radius: 50%;
             animation: scale-in 0.15s ease-out;
-        }
-        .custom-checkbox:focus {
-            box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.15);
         }
         @keyframes scale-in {
             0% { transform: scale(0); opacity: 0; }
@@ -85,54 +60,102 @@
         }
     </style>
 </head>
-<body class="login-bg min-h-screen flex items-center justify-center p-4 font-sans">
+<body class="login-bg min-h-screen flex items-center justify-center p-4 font-sans relative">
+    <?php
+        $portal = request('portal', 'admin');
+        $accentColor = 'amber-600';
+        $accentBg = 'bg-amber-600';
+        $accentRing = 'focus:ring-amber-500/20 focus:border-amber-600';
+        $roleIdentity = 'ADMINISTRATION';
+        $roleLabel = 'Administrator';
+        $roleDesc = 'Management Portal';
 
-    <div class="w-full max-w-md mx-auto px-4 flex flex-col">
+        if ($portal === 'cashier') {
+            $accentColor = 'emerald-600';
+            $accentBg = 'bg-emerald-600';
+            $accentRing = 'focus:ring-emerald-500/20 focus:border-emerald-600';
+            $roleIdentity = 'CASHIER POS';
+            $roleLabel = 'Cashier';
+            $roleDesc = 'Point of Sale Terminal';
+        } elseif ($portal === 'kitchen') {
+            $accentColor = 'indigo-600';
+            $accentBg = 'bg-indigo-600';
+            $accentRing = 'focus:ring-indigo-500/20 focus:border-indigo-600';
+            $roleIdentity = 'KITCHEN KDS';
+            $roleLabel = 'Kitchen Staff';
+            $roleDesc = 'Kitchen Display System';
+        }
+    ?>
+
+    
+    <div class="absolute top-6 right-6 flex items-center gap-2 bg-white/80 backdrop-blur-sm p-1.5 rounded-full border border-slate-200 shadow-sm">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3">Portal:</span>
+        <a href="<?php echo e(route('login', ['portal' => 'admin'])); ?>"
+           class="px-3 py-1 rounded-full text-[11px] font-bold transition-all <?php echo e($portal === 'admin' ? 'bg-amber-100 text-amber-700 ring-1 ring-amber-200' : 'text-slate-500 hover:bg-slate-100'); ?>">
+           Admin
+        </a>
+        <a href="<?php echo e(route('login', ['portal' => 'cashier'])); ?>"
+           class="px-3 py-1 rounded-full text-[11px] font-bold transition-all <?php echo e($portal === 'cashier' ? 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200' : 'text-slate-500 hover:bg-slate-100'); ?>">
+           Cashier
+        </a>
+        <a href="<?php echo e(route('login', ['portal' => 'kitchen'])); ?>"
+           class="px-3 py-1 rounded-full text-[11px] font-bold transition-all <?php echo e($portal === 'kitchen' ? 'bg-indigo-100 text-indigo-700 ring-1 ring-indigo-200' : 'text-slate-500 hover:bg-slate-100'); ?>">
+           Kitchen
+        </a>
+    </div>
+
+    <div class="w-full max-w-md">
         <!-- Brand Header -->
         <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-600 text-white mb-4 shadow-xl shadow-amber-600/30 ring-4 ring-amber-600/10 transition-transform hover:scale-110 duration-300">
-                <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5s3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18s-3.332.477-4.5 1.253" />
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-3xl <?php echo e($accentBg); ?> text-white mb-4 shadow-xl shadow-<?php echo e($accentColor); ?>/20 ring-4 ring-white">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
             </div>
-            <p class="text-3xl font-bold brand-accent tracking-tight">Desi Zaika</p>
-            <p class="text-xs text-slate-400 font-semibold uppercase tracking-[0.2em] mt-1">DesiFlow Restaurant Admin</p>
-
-            <!-- Admin Context Badge -->
-            <div class="mt-3 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-[10px] font-bold text-slate-300 uppercase tracking-wider">
-                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                Administrator Portal
-            </div>
+            <h1 class="text-3xl font-bold text-slate-900 tracking-tight">DesiFlow</h1>
+            <p class="text-sm text-slate-500 mt-1 font-medium"><?php echo e($roleDesc); ?></p>
         </div>
 
         <!-- Login Card -->
-        <div class="bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden transition-all duration-300">
+        <div class="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+            
+            <div class="<?php echo e($accentBg); ?> py-3 px-6 text-center">
+                <span class="text-[10px] font-black text-white uppercase tracking-[0.2em]">
+                    <?php echo e($roleIdentity); ?>
+
+                </span>
+            </div>
+
             <div class="p-8 md:p-10">
-                <div class="mb-8 text-center md:text-left">
-                    <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Welcome Back</h1>
-                    <p class="text-sm text-slate-500 mt-1.5">Sign in to your administrator account.</p>
+                <div class="mb-8 text-center">
+                    <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Welcome Back</h2>
+                    <p class="text-sm text-slate-500 mt-1">Please sign in to your <?php echo e($roleLabel); ?> account.</p>
                 </div>
 
+                
                 <?php if($errors->any()): ?>
-                    <div class="mb-6 flex items-start gap-3 text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-4 py-3 animate-in fade-in slide-in-from-top-2">
-                        <svg class="w-5 h-5 flex-shrink-0 mt-0.5 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+                    <div class="mb-6 flex items-center gap-3 text-sm text-red-600 bg-red-50 border border-red-100 rounded-2xl px-4 py-3 animate-in fade-in slide-in-from-top-2">
+                        <svg class="w-4 h-4 flex-shrink-0 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
                         <p class="font-medium"><?php echo e($errors->first()); ?></p>
                     </div>
                 <?php endif; ?>
 
-                <form method="POST" action="<?php echo e(route('login')); ?>" id="loginForm" class="space-y-6">
+                <form method="POST" action="<?php echo e(route('login')); ?>" id="loginForm" class="space-y-5">
                     <?php echo csrf_field(); ?>
+                    <input type="hidden" name="portal" value="<?php echo e($portal); ?>">
 
-                    <div class="space-y-5">
+                    <div class="space-y-4">
                         <div class="group">
-                            <label class="block text-sm font-semibold text-slate-700 mb-1.5 transition-colors group-focus-within:text-amber-600">Email Address</label>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Email Address</label>
                             <div class="relative">
-                                <div class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-600 transition-colors duration-200 pointer-events-none">
+                                <div class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-<?php echo e($accentColor); ?> transition-colors pointer-events-none">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                                 </div>
                                 <input type="email" name="email" id="email-input" value="<?php echo e(old('email')); ?>" required autofocus autocomplete="username"
-                                    class="w-full border border-slate-200 rounded-lg pl-10 pr-10 py-3 text-sm transition-all outline-none placeholder:text-slate-400
-                                    focus:ring-4 focus:ring-amber-500/15 focus:border-amber-500 <?php echo e($errors->has('email') ? 'border-red-400 ring-red-500/10' : ''); ?>"
+                                    class="w-full border border-slate-200 rounded-xl pl-10 pr-10 py-3 text-sm transition-all outline-none placeholder:text-slate-400
+                                    <?php echo e($accentRing); ?> <?php echo e($errors->has('email') ? 'border-red-400 ring-red-500/10' : ''); ?>"
                                     placeholder="name@example.com">
                                 <button type="button" id="clear-email" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-full hover:bg-slate-100 hidden">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -141,14 +164,20 @@
                         </div>
 
                         <div class="group">
-                            <label class="block text-sm font-semibold text-slate-700 mb-1.5 transition-colors group-focus-within:text-amber-600">Password</label>
+                            <div class="flex justify-between items-center mb-1.5 ml-1">
+                                <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Password</label>
+                                <a href="<?php echo e(route('password.request')); ?>" class="text-xs font-bold text-<?php echo e($accentColor); ?> hover:text-<?php echo e($accentColor); ?>-700 transition-colors flex items-center gap-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572l12.732-12.732z" /></svg>
+                                    Reset Password
+                                </a>
+                            </div>
                             <div class="relative">
-                                <div class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-600 transition-colors duration-200 pointer-events-none">
+                                <div class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-<?php echo e($accentColor); ?> transition-colors pointer-events-none">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                                 </div>
                                 <input type="password" name="password" required autocomplete="current-password" id="login-password"
-                                    class="w-full border border-slate-200 rounded-lg pl-10 pr-11 py-3 text-sm transition-all outline-none placeholder:text-slate-400
-                                    focus:ring-4 focus:ring-amber-500/15 focus:border-amber-500 <?php echo e($errors->has('password') ? 'border-red-400 ring-red-500/10' : ''); ?>"
+                                    class="w-full border border-slate-200 rounded-xl pl-10 pr-11 py-3 text-sm transition-all outline-none placeholder:text-slate-400
+                                    <?php echo e($accentRing); ?> <?php echo e($errors->has('password') ? 'border-red-400 ring-red-500/10' : ''); ?>"
                                     placeholder="••••••••">
                                 <button type="button" id="login-password-toggle" tabindex="-1"
                                     class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1.5 rounded-full hover:bg-slate-100">
@@ -165,37 +194,34 @@
 
                     <div class="flex items-center justify-between">
                         <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer group transition-colors hover:text-slate-900">
-                            <input type="checkbox" name="remember" class="custom-checkbox">
+                            <input type="checkbox" name="remember" class="custom-checkbox" style="--accent-color: #<?php echo e($accentColor === 'amber-600' ? 'd97706' : ($accentColor === 'emerald-600' ? '059669' : '4f46e5')); ?>">
                             <span class="group-hover:text-slate-900 transition-colors">Remember me</span>
                         </label>
-                        <a href="<?php echo e(route('password.request')); ?>" class="text-sm font-semibold text-amber-600 hover:text-amber-700 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 rounded px-1">
-                            Forgot password?
-                        </a>
                     </div>
 
-                    <button type="submit" id="submitButton" class="w-full btn-primary text-white py-3 rounded-lg text-base font-semibold shadow-md focus:ring-4 focus:ring-amber-500/30 outline-none">
-                        <span id="btnText">Log In</span>
+                    <button type="submit" id="submitButton" class="w-full <?php echo e($accentBg); ?> text-white py-3.5 rounded-xl text-base font-bold shadow-lg shadow-<?php echo e($accentColor); ?>/20 btn-transition hover:opacity-90 active:scale-[0.98] focus:ring-4 focus:ring-<?php echo e($accentColor); ?>/30 outline-none">
+                        <span id="btnText">Sign In</span>
                     </button>
                 </form>
-
-                <div class="mt-8 text-center">
-                    <p class="text-sm text-slate-500 hover:text-amber-600 transition-colors">
-                        Having trouble logging in? <a href="mailto:admin-support@desiflow.com" class="font-semibold text-amber-600 hover:text-amber-700 underline underline-offset-4">Contact Support</a>
-                    </p>
-                </div>
             </div>
         </div>
 
-        <!-- Minimalist Footer Links -->
-        <div class="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-[11px] font-medium text-slate-500 uppercase tracking-wider">
-            <a href="#" class="hover:text-slate-300 transition-colors">Privacy Policy</a>
-            <a href="#" class="hover:text-slate-300 transition-colors">Terms of Service</a>
-            <a href="#" class="hover:text-slate-300 transition-colors">System Status</a>
+        <div class="mt-8 text-center">
+            <p class="text-sm text-slate-500">
+                Need help accessing your account? <a href="mailto:support@desiflow.com" class="font-semibold text-<?php echo e($accentColor); ?> hover:text-<?php echo e($accentColor); ?>-700 transition-colors">Contact Support</a>
+            </p>
         </div>
     </div>
 
     <script>
-        // Password Visibility Toggle
+        // Force a page reload if the user lands here via the back button
+        // This prevents the browser from showing a cached version of the login page
+        window.onpageshow = function(event) {
+            if (event.persisted) {
+                window.location.reload();
+            }
+        };
+
         document.getElementById('login-password-toggle').addEventListener('click', function () {
             const field = document.getElementById('login-password');
             const isHidden = field.type === 'password';
@@ -204,14 +230,11 @@
             this.querySelector('.eye-closed').classList.toggle('hidden', !isHidden);
         });
 
-        // Clear Email Input
         const emailInput = document.getElementById('email-input');
         const clearEmailBtn = document.getElementById('clear-email');
-
         const updateClearButton = () => {
             clearEmailBtn.classList.toggle('hidden', emailInput.value === '');
         };
-
         emailInput.addEventListener('input', updateClearButton);
         clearEmailBtn.addEventListener('click', () => {
             emailInput.value = '';
@@ -220,33 +243,28 @@
         });
         updateClearButton();
 
-        // Caps Lock Detection
         const passwordField = document.getElementById('login-password');
         const capsWarning = document.getElementById('caps-lock-warning');
-
         passwordField.addEventListener('keydown', async (e) => {
-            if (e.getModifierState('CapsLock')) {
+            if (e.getModifierState && e.getModifierState('CapsLock')) {
                 capsWarning.classList.remove('hidden');
             } else {
                 capsWarning.classList.add('hidden');
             }
         });
-
         passwordField.addEventListener('focus', (e) => {
-            if (e.getModifierState('CapsLock')) {
+            if (e.getModifierState && e.getModifierState('CapsLock')) {
                 capsWarning.classList.remove('hidden');
             } else {
                 capsWarning.classList.add('hidden');
             }
         });
 
-        // Loading state on submit
         document.getElementById('loginForm').addEventListener('submit', function() {
             const btn = document.getElementById('submitButton');
             const text = document.getElementById('btnText');
-
             btn.disabled = true;
-            text.innerHTML = '<span class="spinner"></span> Signing in...';
+            text.innerHTML = '<span class="spinner"></span> Authenticating...';
         });
     </script>
 </body>
