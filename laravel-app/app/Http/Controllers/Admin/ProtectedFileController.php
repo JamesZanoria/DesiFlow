@@ -46,7 +46,8 @@ class ProtectedFileController extends Controller{
         $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
         $path = "{$type}/{$filename}";
 
-        abort_unless(Storage::disk('local')->exists($path), 404);
+        $disk = config('filesystems.default') === 's3' ? 's3' : 'local';
+        abort_unless(Storage::disk($disk)->exists($path), 404);
 
         // The Content-Type served back is decided from the fixed map above,
         // driven only by the filename's own extension, never from
@@ -54,7 +55,7 @@ class ProtectedFileController extends Controller{
         // what stops a content-type-confusion attempt from ever being
         // served back as anything other than a plain image, even if a
         // bypassed validation somehow let something else get this far.
-        return Storage::disk('local')->response($path, null, [
+        return Storage::disk($disk)->response($path, null, [
             'Content-Type' => self::CONTENT_TYPES[$extension],
             'Content-Disposition' => 'inline',
             'Cache-Control' => 'private, max-age=86400',

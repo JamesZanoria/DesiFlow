@@ -5,3 +5,5 @@ __pycache__/
 *.class
 .pytest_cache/
 .ipynb_checkpoints/
+
+requirements.txt
