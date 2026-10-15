@@ -41,7 +41,10 @@
                             </td>
                             <td class="px-4 py-4 align-top text-gray-600">
                                 @foreach ($order->orderItems as $item)
-                                    <p>{{ $item->quantity }} × {{ $item->menuItem?->item_name ?? 'Item' }}</p>
+                                    <p>{{ $item->quantity }} × {{ $item->item_name_snapshot ?: $item->menuItem?->item_name ?: 'Item' }}</p>
+                                    @foreach ($item->addOns as $addOn)
+                                        <p class="pl-4 text-xs text-gray-500">+ {{ $addOn->add_on_name_snapshot }}</p>
+                                    @endforeach
                                 @endforeach
                             </td>
                             <td class="px-4 py-4 align-top font-medium">₱{{ number_format($order->total_amount, 2) }}</td>

@@ -46,7 +46,7 @@
 
                         <div class="mt-2 text-xs text-gray-600 space-y-0.5">
                             @foreach ($order->orderItems->take(3) as $item)
-                                <p class="truncate">{{ $item->quantity }}&times; {{ $item->menuItem->item_name ?? 'Item' }}</p>
+                                <p class="truncate">{{ $item->quantity }}&times; {{ $item->item_name_snapshot ?: $item->menuItem?->item_name ?: 'Item' }}</p>
                             @endforeach
                             @if ($order->orderItems->count() > 3)
                                 <p class="text-gray-400">+{{ $order->orderItems->count() - 3 }} more item{{ $order->orderItems->count() - 3 === 1 ? '' : 's' }}</p>

@@ -31,7 +31,7 @@ class OrderWorkflowController extends Controller
 
     public function managerIndex()
     {
-        $orders = Order::with(['orderItems.menuItem', 'cashier'])
+        $orders = Order::with(['orderItems.menuItem', 'orderItems.addOns', 'cashier'])
             ->whereIn('status', ['pending', 'ready', 'picked_up', 'dropped'])
             ->orderByDesc('created_at')
             ->limit(100)
@@ -42,8 +42,12 @@ class OrderWorkflowController extends Controller
 
     public function managerUpdateStatus(Request $request, Order $order)
     {
+        $request->merge([
+            'status' => strtolower(trim((string) $request->input('status', ''))),
+        ]);
+
         $validated = $request->validate([
-            'status' => ['required', 'in:ready,picked_up,dropped'],
+            'status' => ['required', 'string', 'filled', 'in:ready,picked_up,dropped'],
         ]);
 
         $allowedTransitions = [

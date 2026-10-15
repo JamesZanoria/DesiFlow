@@ -13,7 +13,7 @@ class KdsController extends Controller
 
     public function index(Request $request)
     {
-        $orders = Order::with('orderItems.menuItem')
+        $orders = Order::with(['orderItems.menuItem', 'orderItems.addOns'])
             ->whereIn('status', self::ACTIVE_STATUSES)
             ->orderBy('created_at')
             ->get();
@@ -33,8 +33,12 @@ class KdsController extends Controller
 
     public function updateStatus(Request $request, Order $order)
     {
+        $request->merge([
+            'status' => strtolower(trim((string) $request->input('status', ''))),
+        ]);
+
         $validated = $request->validate([
-            'status' => ['required', 'in:pending,preparing,ready'],
+            'status' => ['required', 'string', 'filled', 'in:pending,preparing,ready'],
         ]);
 
         $allowedTransitions = [

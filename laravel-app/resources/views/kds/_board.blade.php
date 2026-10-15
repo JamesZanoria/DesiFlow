@@ -38,7 +38,12 @@
                         </div>
                         <ul class="mt-3 space-y-1 border-t border-gray-100 pt-2 text-sm">
                             @foreach ($order->orderItems as $item)
-                                <li>{{ $item->quantity }} × {{ $item->menuItem?->item_name ?? 'Item' }}</li>
+                                <li>
+                                    {{ $item->quantity }} × {{ $item->item_name_snapshot ?: $item->menuItem?->item_name ?: 'Item' }}
+                                    @foreach ($item->addOns as $addOn)
+                                        <span class="block pl-4 text-xs text-gray-500">+ {{ $addOn->add_on_name_snapshot }}</span>
+                                    @endforeach
+                                </li>
                             @endforeach
                         </ul>
                         <button type="button" data-next-status="{{ $nextStatus }}"

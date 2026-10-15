@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\InventoryController;
@@ -10,29 +11,28 @@ use App\Http\Controllers\Admin\OrderMonitorController;
 use App\Http\Controllers\Admin\SmartAssistantController;
 use App\Http\Controllers\Admin\NotificationsController;
 use App\Http\Controllers\Admin\ProtectedFileController;
-use App\Http\Controllers\CustomerOrderingController;
+use App\Http\Controllers\Admin\TransactionRequestController;
 use App\Http\Controllers\CashierController;
+use App\Http\Controllers\CashierPaymentController;
 use App\Http\Controllers\KdsController;
 use App\Http\Controllers\OrderWorkflowController;
-use App\Http\Controllers\PublicMenuImageController;
 
-Route::get('/', function () {
-    return redirect()->route('customer.menu');
+Route::get('/', function (Request $request) {
+    $user = $request->user();
+
+    if (! $user) {
+        return redirect()->route('login');
+    }
+
+    $landingRoute = match ($user->role) {
+        'admin' => 'admin.dashboard.index',
+        'cashier' => 'cashier.index',
+        'kitchen' => 'kds.index',
+        default => abort(403),
+    };
+
+    return redirect()->route($landingRoute);
 });
-
-// Public self-ordering / pickup-code status tracking.
-Route::get('/menu', [CustomerOrderingController::class, 'menu'])->name('customer.menu');
-Route::get('/api/products', [CustomerOrderingController::class, 'products'])->name('products.get');
-Route::get('/api/cart', [CustomerOrderingController::class, 'cart'])->name('cart.get');
-Route::post('/api/cart/add', [CustomerOrderingController::class, 'addToCart'])->name('cart.add');
-Route::post('/api/cart/remove', [CustomerOrderingController::class, 'removeFromCart'])->name('cart.remove');
-Route::post('/api/cart/update', [CustomerOrderingController::class, 'updateCart'])->name('cart.update');
-Route::post('/api/orders/submit', [CustomerOrderingController::class, 'submit'])->name('orders.submit');
-Route::post('/api/orders/details', [CustomerOrderingController::class, 'details'])->name('orders.details');
-Route::get('/api/orders/{orderNumber}/status', [CustomerOrderingController::class, 'status'])->name('orders.status');
-Route::get('/menu-images/{filename}', [PublicMenuImageController::class, 'show'])
-    ->where('filename', '[A-Za-z0-9_-]+\.(jpg|jpeg|png)')
-    ->name('customer.menu-image');
 
 // The pickup-code screen is intended for a shared restaurant display; it
 // exposes active codes/status only, not customer details or order contents.
@@ -66,8 +66,20 @@ Route::middleware('auth')->group(function () {
 
 Route::prefix('cashier')->name('cashier.')->middleware(['auth', 'role:cashier'])->group(function () {
     Route::get('/', [CashierController::class, 'index'])->name('index');
-    Route::post('/orders/approve-by-code', [CashierController::class, 'approveByCode'])->name('orders.approve-code');
-    Route::post('/orders/{order}/reject', [CashierController::class, 'reject'])->name('orders.reject');
+    Route::get('/dashboard/orders/{area}', [CashierController::class, 'dashboardOrders'])->name('dashboard.orders');
+    Route::get('/orders', [CashierController::class, 'activeOrders'])->name('orders.index');
+    Route::get('/orders/{order}/quick-view', [CashierController::class, 'quickView'])->name('orders.quick-view');
+    Route::get('/menu', [CashierController::class, 'menu'])->name('menu');
+    Route::get('/cart', [CashierController::class, 'cart'])->name('cart');
+    Route::post('/cart/add', [CashierController::class, 'addToCart'])->name('cart.add');
+    Route::post('/cart/update', [CashierController::class, 'updateCart'])->name('cart.update');
+    Route::post('/orders', [CashierController::class, 'storeOrder'])->name('orders.store');
+    Route::get('/orders/{order}/payment', [CashierPaymentController::class, 'create'])->name('orders.payment');
+    Route::post('/orders/{order}/payment', [CashierPaymentController::class, 'store'])->name('orders.payment.store');
+    Route::get('/orders/{order}/receipt', [CashierPaymentController::class, 'receipt'])->name('receipts.show');
+    Route::get('/transactions', [CashierPaymentController::class, 'history'])->name('transactions.index');
+    Route::get('/transactions/{payment}', [CashierPaymentController::class, 'showTransaction'])->name('transactions.show');
+    Route::post('/transactions/{payment}/requests', [CashierPaymentController::class, 'requestTransactionAction'])->name('transactions.requests.store');
 });
 
 Route::prefix('kds')->name('kds.')->middleware(['auth', 'role:kitchen'])->group(function () {
@@ -125,6 +137,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     // Real-Time Order Monitoring
     Route::get('/orders', [OrderMonitorController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [OrderMonitorController::class, 'show'])->name('orders.show');
+
+    // Void and refund approval audit trail
+    Route::get('/transaction-requests', [TransactionRequestController::class, 'index'])->name('transaction-requests.index');
+    Route::post('/transaction-requests/{transactionRequest}/review', [TransactionRequestController::class, 'review'])->name('transaction-requests.review');
 
     // Analytics
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');

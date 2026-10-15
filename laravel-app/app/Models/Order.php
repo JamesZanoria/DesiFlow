@@ -24,6 +24,7 @@ class Order extends Model{
         'status',
         'total_amount',
         'notes',
+        'customer_name',
         'created_at',
     ];
 
