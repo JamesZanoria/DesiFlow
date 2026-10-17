@@ -18,6 +18,7 @@ class CashierController extends Controller
 
     private const ACTIVE_STATUSES = ['pending', 'preparing', 'ready'];
 
+    
     public function index(Request $request)
     {
         $cashierId = $request->user()->user_id;
@@ -54,7 +55,18 @@ class CashierController extends Controller
             ->limit(8)
             ->get();
 
+        $orders = Order::query()
+            ->where('cashier_id', $cashierId)
+            ->whereIn('status', ['unapproved', 'pending'])
+            ->orderBy('created_at')
+            ->get();
+
         return Inertia::render('Cashier/Index', [
+            'processedToday' => $processedToday,
+            'activeOrders' => $activeOrders,
+            'pendingOrderCount' => $pendingOrderCount,
+            'awaitingPaymentCount' => $awaitingPaymentCount,
+            'unpaidOrders' => $unpaidOrders,
             'unapprovedOrders' => $orders->where('status', 'unapproved')->values(),
             'pendingOrders' => $orders->where('status', 'pending')->values(),
         ]);
