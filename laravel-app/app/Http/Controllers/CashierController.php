@@ -35,7 +35,11 @@ class CashierController extends Controller
         $activeOrders = Order::query()
             ->where('cashier_id', $cashierId)
             ->whereIn('status', self::ACTIVE_STATUSES)
-            ->count();
+            ->with(['orderItems.menuItem', 'orderItems.addOns', 'payment'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        $activeOrderCount = $activeOrders->count();
 
         $pendingOrderCount = Order::query()
             ->where('cashier_id', $cashierId)
@@ -61,9 +65,10 @@ class CashierController extends Controller
             ->orderBy('created_at')
             ->get();
 
-        return Inertia::render('Cashier/Index', [
+        return view('cashier.index', [
             'processedToday' => $processedToday,
             'activeOrders' => $activeOrders,
+            'activeOrderCount' => $activeOrderCount,
             'pendingOrderCount' => $pendingOrderCount,
             'awaitingPaymentCount' => $awaitingPaymentCount,
             'unpaidOrders' => $unpaidOrders,
