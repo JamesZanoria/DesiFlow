@@ -10,7 +10,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use Inertia\Inertia;
 
 class CashierController extends Controller
 {
@@ -31,7 +30,7 @@ class CashierController extends Controller
                 ->whereBetween('created_at', [$startOfDay, $endOfDay]))
             ->count();
 
-        $activeOrders = Order::query()
+        $activeOrderCount = Order::query()
             ->where('cashier_id', $cashierId)
             ->whereIn('status', self::ACTIVE_STATUSES)
             ->count();
@@ -54,9 +53,12 @@ class CashierController extends Controller
             ->limit(8)
             ->get();
 
-        return Inertia::render('Cashier/Index', [
-            'unapprovedOrders' => $orders->where('status', 'unapproved')->values(),
-            'pendingOrders' => $orders->where('status', 'pending')->values(),
+        return view('cashier.index', [
+            'processedToday' => $processedToday,
+            'activeOrderCount' => $activeOrderCount,
+            'pendingOrderCount' => $pendingOrderCount,
+            'awaitingPaymentCount' => $awaitingPaymentCount,
+            'unpaidOrders' => $unpaidOrders,
         ]);
     }
 
