@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
 
 class CashierController extends Controller
 {
@@ -31,10 +32,14 @@ class CashierController extends Controller
                 ->whereBetween('created_at', [$startOfDay, $endOfDay]))
             ->count();
 
-        $activeOrderCount = Order::query()
+        $activeOrders = Order::query()
             ->where('cashier_id', $cashierId)
             ->whereIn('status', self::ACTIVE_STATUSES)
-            ->count();
+            ->with(['orderItems.menuItem', 'orderItems.addOns', 'payment'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        $activeOrderCount = $activeOrders->count();
 
         $pendingOrderCount = Order::query()
             ->where('cashier_id', $cashierId)
@@ -54,29 +59,21 @@ class CashierController extends Controller
             ->limit(8)
             ->get();
 
-<<<<<<< HEAD
-        return view('cashier.index', [
-            'processedToday' => $processedToday,
-            'activeOrderCount' => $activeOrderCount,
-            'pendingOrderCount' => $pendingOrderCount,
-            'awaitingPaymentCount' => $awaitingPaymentCount,
-            'unpaidOrders' => $unpaidOrders,
-=======
         $orders = Order::query()
             ->where('cashier_id', $cashierId)
             ->whereIn('status', ['unapproved', 'pending'])
             ->orderBy('created_at')
             ->get();
 
-        return Inertia::render('Cashier/Index', [
+        return view('cashier.index', [
             'processedToday' => $processedToday,
             'activeOrders' => $activeOrders,
+            'activeOrderCount' => $activeOrderCount,
             'pendingOrderCount' => $pendingOrderCount,
             'awaitingPaymentCount' => $awaitingPaymentCount,
             'unpaidOrders' => $unpaidOrders,
             'unapprovedOrders' => $orders->where('status', 'unapproved')->values(),
             'pendingOrders' => $orders->where('status', 'pending')->values(),
->>>>>>> eda5337b817a274bea8215e705e0f427f0a6bdd6
         ]);
     }
 

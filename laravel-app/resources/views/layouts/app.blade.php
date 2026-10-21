@@ -5,11 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Desi Zaika') | DesiFlow</title>
-<<<<<<< HEAD
-    @vite(['resources/css/app.css'])
-=======
     @vite(['resources/css/app.css', 'resources/js/app.jsx'])
->>>>>>> eda5337b817a274bea8215e705e0f427f0a6bdd6
     <style>
         .no-transition { transition: none !important; }
         .sidebar-transition { transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }

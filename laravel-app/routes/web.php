@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\TransactionRequestController;
 use App\Http\Controllers\CashierController;
 use App\Http\Controllers\CashierPaymentController;
 use App\Http\Controllers\KdsController;
+use App\Http\Controllers\OrderWorkflowController;
 use App\Http\Controllers\PublicMenuImageController;
 
 Route::get('/', function (Request $request) {
@@ -33,20 +34,6 @@ Route::get('/', function (Request $request) {
 
     return redirect()->route($landingRoute);
 });
-
-// Public self-ordering / pickup-code status tracking.
-Route::get('/menu', [CustomerOrderingController::class, 'menu'])->name('customer.menu');
-Route::get('/api/products', [CustomerOrderingController::class, 'products'])->name('products.get');
-Route::get('/api/cart', [CustomerOrderingController::class, 'cart'])->name('cart.get');
-Route::post('/api/cart/add', [CustomerOrderingController::class, 'addToCart'])->name('cart.add');
-Route::post('/api/cart/remove', [CustomerOrderingController::class, 'removeFromCart'])->name('cart.remove');
-Route::post('/api/cart/update', [CustomerOrderingController::class, 'updateCart'])->name('cart.update');
-Route::post('/api/orders/submit', [CustomerOrderingController::class, 'submit'])->name('orders.submit');
-Route::post('/api/orders/details', [CustomerOrderingController::class, 'details'])->name('orders.details');
-Route::get('/api/orders/{orderNumber}/status', [CustomerOrderingController::class, 'status'])->name('orders.status');
-Route::get('/menu-images/{filename}', [PublicMenuImageController::class, 'show'])
-    ->where('filename', '[A-Za-z0-9_-]+\.(jpg|jpeg|png)')
-    ->name('customer.menu-image');
 
 // Guest-only: an already-logged-in admin hitting /login gets redirected
 // forward instead of seeing the form again. There is no registration route,
@@ -97,6 +84,13 @@ Route::prefix('kds')->name('kds.')->middleware(['auth', 'role:kitchen'])->group(
     Route::get('/', [KdsController::class, 'index'])->name('index');
     Route::patch('/orders/{order}/status', [KdsController::class, 'updateStatus'])->name('orders.status');
 });
+
+Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::get('/manager/orders', [OrderWorkflowController::class, 'managerIndex'])->name('manager.orders.index');
+    Route::patch('/manager/orders/{order}/status', [OrderWorkflowController::class, 'managerUpdateStatus'])->name('manager.orders.status');
+});
+
+Route::get('/display/orders', [OrderWorkflowController::class, 'displayOrders'])->name('display.orders');
 
 // Admin-only management and reporting modules.
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function () {
