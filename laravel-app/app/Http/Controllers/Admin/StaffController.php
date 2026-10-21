@@ -44,7 +44,8 @@ class StaffController extends Controller{
             }
 
             if ($request->filled('role')) {
-                $query->where('role', $request->input('role'));
+                $role = trim($request->input('role'));
+                $query->where('role', 'ILIKE', $role);
             }
 
             return $query->orderByDesc('user_id');

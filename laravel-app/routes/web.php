@@ -121,10 +121,14 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::get('/inventory/export', [InventoryController::class, 'export'])->name('inventory.export');
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
     Route::get('/inventory/create', [InventoryController::class, 'create'])->name('inventory.create');
+    Route::post('/inventory/save-draft', [InventoryController::class, 'saveDraft'])->name('inventory.saveDraft');
+    Route::post('/inventory/clear-draft', [InventoryController::class, 'clearDraft'])->name('inventory.clearDraft');
     Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
     Route::get('/inventory/ledger', [InventoryController::class, 'ledgerIndex'])->name('inventory.ledger');
     Route::get('/inventory/{ingredient}/edit', [InventoryController::class, 'edit'])->name('inventory.edit');
     Route::put('/inventory/{ingredient}', [InventoryController::class, 'update'])->name('inventory.update');
+    Route::post('/inventory/{ingredient}/save-draft', [InventoryController::class, 'saveEditDraft'])->name('inventory.saveEditDraft');
+    Route::post('/inventory/{ingredient}/clear-draft', [InventoryController::class, 'clearEditDraft'])->name('inventory.clearEditDraft');
     Route::delete('/inventory/{ingredient}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
     Route::post('/inventory/{ingredient}/movement', [InventoryController::class, 'recordMovement'])->name('inventory.movement');
     Route::get('/inventory/{ingredient}/has-opening-balance', [InventoryController::class, 'hasOpeningBalance'])->name('inventory.hasOpeningBalance');

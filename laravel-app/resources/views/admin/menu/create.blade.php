@@ -250,8 +250,9 @@
                             <button type="button" id="studio-next-btn" class="px-8 py-3 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl shadow-lg shadow-amber-500/20 transition-all active:scale-95">
                                 Next Step
                             </button>
-                            <button type="submit" id="menu-modal-save" form="menu-form" class="hidden px-8 py-3 bg-slate-900 hover:bg-black text-white text-sm font-bold rounded-xl shadow-lg shadow-slate-900/20 transition-all active:scale-95">
+                            <button type="submit" id="menu-modal-save" form="menu-form" class="hidden px-8 py-3 bg-slate-900 hover:bg-black text-white text-sm font-bold rounded-xl shadow-lg shadow-slate-900/20 transition-all active:scale-95 flex items-center justify-center gap-2">
                                 {{ isset($editingItem) ? 'Update Item' : 'Save Item' }}
+                                <span id="save-spinner" class="hidden w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
                             </button>
                         </div>
                     </div>
@@ -302,54 +303,22 @@
         </div>
     </div>
 
-    {{-- IMAGE ADJUSTMENT MODAL --}}
-    <div id="image-adjustment-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
-        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-300">
-            <div class="p-6 border-b border-slate-100 flex items-center justify-between">
-                <h3 class="text-lg font-black text-slate-900">Adjust Photo</h3>
-                <button type="button" id="modal-close-btn" class="p-2 text-slate-400 hover:text-slate-600 transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-            </div>
-            <div class="p-8 flex flex-col md:flex-row gap-8 items-center">
-                {{-- Adjustment Area --}}
-                <div class="relative w-full max-w-[400px] aspect-square bg-slate-100 rounded-2xl overflow-hidden border-4 border-slate-200 shadow-inner">
-                    <div id="modal-crop-container" class="relative w-full h-full overflow-hidden cursor-move">
-                        <img id="modal-image-preview" src="" class="absolute" style="max-width: none; max-height: none;" alt="Adjustment Preview">
-                        <div id="modal-crop-overlay" class="absolute inset-0 pointer-events-none border-[20px] border-black/50 flex items-center justify-center">
-                            <div class="w-full h-full border-2 border-white shadow-lg"></div>
-                        </div>
-                    </div>
+    {{-- Confirmation Modal --}}
+    <div id="confirm-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200">
+            <div class="p-8 text-center">
+                <div class="w-16 h-16 bg-red-600 text-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-red-500/20">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                 </div>
-                {{-- Controls Area --}}
-                <div class="flex-1 space-y-6 w-full">
-                    <div class="space-y-4">
-                        <label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest">Instructions</label>
-                        <ul class="text-sm text-slate-600 space-y-3">
-                            <li class="flex items-center gap-3">
-                                <span class="w-5 h-5 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-[10px] font-bold">1</span>
-                                Drag the image to center the focus.
-                            </li>
-                            <li class="flex items-center gap-3">
-                                <span class="w-5 h-5 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-[10px] font-bold">2</span>
-                                Use mouse wheel to zoom in/out.
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="flex flex-col gap-3 pt-4">
-                        <div class="flex gap-3">
-                            <button type="button" id="modal-cancel-btn" class="flex-1 px-6 py-3 text-sm font-bold text-slate-500 hover:bg-slate-50 rounded-xl transition-all border border-slate-200">
-                                Cancel
-                            </button>
-                            <button type="button" id="modal-save-btn" class="flex-1 px-6 py-3 text-sm font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-xl shadow-lg shadow-amber-500/20 transition-all active:scale-95">
-                                Save Changes
-                            </button>
-                        </div>
-                        <button type="button" id="modal-change-photo-btn" class="w-full px-6 py-3 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-all flex items-center justify-center gap-2 border border-slate-200">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.582m0 0a8.003 8.001 0 00-15.356-2m0 0H15" /></svg>
-                            Change Photo
-                        </button>
-                    </div>
+                <h3 class="text-xl font-black text-slate-900 mb-2 tracking-tight">Discard Changes?</h3>
+                <p class="text-sm text-slate-500 mb-8">All unsaved data in this form will be permanently lost. This action cannot be undone.</p>
+                <div class="flex gap-3">
+                    <button type="button" id="confirm-cancel" class="flex-1 px-4 py-3 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-100 transition-colors">
+                        Keep Editing
+                    </button>
+                    <button type="button" id="confirm-discard" class="flex-1 px-4 py-3 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 shadow-lg shadow-red-500/20 transition-all active:scale-95">
+                        Discard
+                    </button>
                 </div>
             </div>
         </div>
@@ -507,9 +476,11 @@
                         });
                     }
 
-                    // Ensure we reset to step 1 if this is a fresh edit (no draft actually present in current session)
-                    // The controller might pass the DB item as the 'draft', but that shouldn't force the user to step 4
-                    if (!draft.currentStep) {
+                    if (!draft.currentStep && !isEditMode) {
+                        currentStep = 1;
+                    } else if (draft.currentStep) {
+                        currentStep = draft.currentStep;
+                    } else {
                         currentStep = 1;
                     }
 
@@ -634,18 +605,19 @@
                     }
                 }
 
-                if (currentStep === 3) {
-                    const imagePreview = document.getElementById('menu-image-preview');
-                    const imageSrc = imagePreview ? imagePreview.getAttribute('src') : '';
-                    if (!imageSrc || imageSrc === '' || imageSrc.includes('placehold.co')) {
-                        allFilled = false;
-                    } else {
+                    if (currentStep === 3) {
+                        const imagePreview = document.getElementById('menu-image-preview');
+                        const imageSrc = imagePreview ? imagePreview.getAttribute('src') : '';
                         const removeImageValue = document.getElementById('menu-remove-image')?.value;
-                        if (removeImageValue === '1') {
+
+                        // In Edit mode, we only block if they explicitly removed the image AND haven't added a new one
+                        // Otherwise, if there's an existing image (not placeholder), it's valid.
+                        const hasValidImage = imageSrc && !imageSrc.includes('placehold.co') && removeImageValue !== '1';
+
+                        if (!hasValidImage) {
                             allFilled = false;
                         }
                     }
-                }
 
                 nextBtn.disabled = !allFilled;
             }
@@ -666,7 +638,9 @@
                 const prevPriceVal = document.getElementById('preview-card-price-val');
                 if (prevPriceVal) prevPriceVal.textContent = `₱${price.toFixed(2)}`;
 
-                prevMargin.textContent = '0.0';
+                const grossProfit = price - studioState.totalCost;
+                const margin = price > 0 ? (grossProfit / price) * 100 : 0;
+                prevMargin.textContent = `${margin.toFixed(1)}%`;
 
                 validateCurrentStep();
 
@@ -703,6 +677,7 @@
                 });
                 studioState.totalCost = total;
                 updateLivePreview();
+                updateReviewSummary();
             }
 
             const recipeLinesContainer = document.getElementById('recipe-lines-container');
@@ -1050,84 +1025,34 @@
             const modalImg = document.getElementById('modal-image-preview');
             const modalCropContainer = document.getElementById('modal-crop-container');
             const modalSaveBtn = document.getElementById('modal-save-btn');
-            const modalCancelBtn = document.getElementById('modal-cancel-btn');
+            const modalKeepEditingBtn = document.getElementById('modal-cancel-btn');
             const modalCloseBtn = document.getElementById('modal-close-btn');
             const modalChangeBtn = document.getElementById('modal-change-photo-btn');
 
-            let modalIsDragging = false;
-            let modalStartX, modalStartY, modalInitialLeft, modalInitialTop;
-
-            function openAdjustmentModal() {
-                const currentImg = document.getElementById('menu-image-preview');
-                if (!currentImg || !currentImg.src) return;
-
-                modalImg.src = currentImg.src;
-                modalImg.style.left = currentImg.style.left;
-                modalImg.style.top = currentImg.style.top;
-                modalImg.style.width = currentImg.style.width;
-                modalImg.style.height = currentImg.style.height;
-
-                modal.classList.remove('hidden');
+            if (modal) {
+                const closeModal = () => modal.classList.add('hidden');
+                if (modalKeepEditingBtn) modalKeepEditingBtn.addEventListener('click', closeModal);
+                if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeModal);
+                if (modalChangeBtn) {
+                    modalChangeBtn.addEventListener('click', () => {
+                        closeModal();
+                        if (fileInput) fileInput.click();
+                    });
+                }
+                if (modalSaveBtn) {
+                    modalSaveBtn.addEventListener('click', () => {
+                        const mainImg = document.getElementById('menu-image-preview');
+                        if (mainImg && modalImg) {
+                            mainImg.style.left = modalImg.style.left;
+                            mainImg.style.top = modalImg.style.top;
+                            mainImg.style.width = modalImg.style.width;
+                            mainImg.style.height = modalImg.style.height;
+                        }
+                        modal.classList.add('hidden');
+                        saveDraftToServer();
+                    });
+                }
             }
-
-            modalImg.addEventListener('mousedown', (e) => {
-                modalIsDragging = true;
-                modalStartX = e.clientX;
-                modalStartY = e.clientY;
-                modalInitialLeft = parseInt(modalImg.style.left) || 0;
-                modalInitialTop = parseInt(modalImg.style.top) || 0;
-                modalImg.style.cursor = 'grabbing';
-            });
-
-            window.addEventListener('mousemove', (e) => {
-                if (!modalIsDragging) return;
-                const dx = e.clientX - modalStartX;
-                const dy = e.clientY - modalStartY;
-                modalImg.style.left = (modalInitialLeft + dx) + 'px';
-                modalImg.style.top = (modalInitialTop + dy) + 'px';
-            });
-
-            window.addEventListener('mouseup', () => {
-                modalIsDragging = false;
-                if (modalImg) modalImg.style.cursor = 'move';
-            });
-
-            modalCropContainer.addEventListener('wheel', (e) => {
-                e.preventDefault();
-                const zoomSpeed = 0.1;
-                const currentWidth = parseFloat(modalImg.style.width) || 200;
-                const currentHeight = parseFloat(modalImg.style.height) || 200;
-                const scale = e.deltaY > 0 ? (1 - zoomSpeed) : (1 + zoomSpeed);
-
-                const newWidth = currentWidth * scale;
-                const newHeight = currentHeight * scale;
-
-                if (newWidth < modalCropContainer.offsetWidth || newHeight < modalCropContainer.offsetHeight) return;
-                if (newWidth > modalCropContainer.offsetWidth * 5) return;
-
-                modalImg.style.width = newWidth + 'px';
-                modalImg.style.height = newHeight + 'px';
-            }, { passive: false });
-
-            modalSaveBtn.addEventListener('click', () => {
-                const mainImg = document.getElementById('menu-image-preview');
-                mainImg.style.left = modalImg.style.left;
-                mainImg.style.top = modalImg.style.top;
-                mainImg.style.width = modalImg.style.width;
-                mainImg.style.height = modalImg.style.height;
-
-                modal.classList.add('hidden');
-                saveDraftToServer();
-            });
-
-            const closeModal = () => modal.classList.add('hidden');
-            modalCancelBtn.addEventListener('click', closeModal);
-            modalCloseBtn.addEventListener('click', closeModal);
-
-            modalChangeBtn.addEventListener('click', () => {
-                closeModal();
-                fileInput.click();
-            });
 
             const previewImg = document.getElementById('menu-image-preview');
             if (previewImg) {
@@ -1160,8 +1085,10 @@
             async function submitForm(e) {
                 e.preventDefault();
                 const saveBtn = document.getElementById('menu-modal-save');
+                const spinner = document.getElementById('save-spinner');
                 saveBtn.disabled = true;
-                saveBtn.textContent = 'Saving...';
+                if (spinner) spinner.classList.remove('hidden');
+                saveBtn.classList.add('opacity-80', 'cursor-not-allowed');
 
                 // Log payload for debugging 422 errors
                 const formData = new FormData(form);
@@ -1225,25 +1152,24 @@
                 });
             }
 
-            document.getElementById('studio-discard-btn').addEventListener('click', async () => {
-                const confirmed = await window.confirmAction({
-                    title: 'Discard Changes?',
-                    message: 'Are you sure you want to discard all your progress? This action cannot be undone.',
-                    actionLabel: 'Discard',
-                    type: 'discard'
-                });
+            document.getElementById('studio-discard-btn').addEventListener('click', () => {
+                document.getElementById('confirm-modal').classList.remove('hidden');
+            });
 
-                if (confirmed) {
-                    await fetch(saveDraftUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                        },
-                        body: JSON.stringify({ clear: true })
-                    });
-                    window.location.href = '{{ route('admin.menu.index') }}';
-                }
+            document.getElementById('confirm-cancel').addEventListener('click', () => {
+                document.getElementById('confirm-modal').classList.add('hidden');
+            });
+
+            document.getElementById('confirm-discard').addEventListener('click', async () => {
+                await fetch(saveDraftUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ clear: true })
+                });
+                window.location.href = '{{ route('admin.menu.index') }}';
             });
             // Logic to prevent automatic discard popup when navigating back to Menu Management
             document.querySelector('nav a[href="{{ route('admin.menu.index') }}"]').addEventListener('click', async (e) => {
@@ -1252,16 +1178,7 @@
                 if (!isModified) return;
 
                 e.preventDefault();
-                const confirmed = await window.confirmAction({
-                    title: 'Discard Changes?',
-                    message: 'Are you sure you want to discard all your progress? This action cannot be undone.',
-                    actionLabel: 'Discard',
-                    type: 'discard'
-                });
-
-                if (confirmed) {
-                    window.location.href = '{{ route('admin.menu.index') }}';
-                }
+                document.getElementById('confirm-modal').classList.remove('hidden');
             });
 
             // Track if form is modified
