@@ -23,7 +23,11 @@ class KdsController extends Controller
             $status => $orders->where('status', $status)->values(),
         ]);
 
-        return Inertia::render('Kds/Index', ['columns' => $columns]);
+        return Inertia::render('Kds/Index', [
+            'columns' => $columns,
+            'logoutUrl' => route('logout'),
+            'statusUrlTemplate' => route('kds.orders.status', ['order' => '__ORDER_ID__']),
+        ]);
     }
 
     public function updateStatus(Request $request, Order $order)

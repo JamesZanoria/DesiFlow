@@ -508,7 +508,12 @@ class PosKdsWorkflowTest extends TestCase
 
         $this->actingAs($kitchen)
             ->get(route('kds.index'))
-            ->assertOk();
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Kds/Index')
+                ->has('columns.pending')
+                ->has('logoutUrl')
+                ->has('statusUrlTemplate'));
 
         $this->patchJson(route('kds.orders.status', $order), ['status' => 'preparing'])
             ->assertOk();
