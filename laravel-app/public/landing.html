@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     
     <!-- ensures no QR scanning issues (won't save cache of old states) -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -11,46 +11,53 @@
 
     <title>Desi Zaika - Welcome</title>
     
-    <!-- Tailwind CSS CDN -->
+    <!-- Instrument Sans Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Custom Tailwind Configuration to match wireframe colors -->
+    <!-- Custom Tailwind Configuration -->
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: {
-                        'desi-yellow': '#F4B41A',
-                        'desi-blue': '#2D4A77'
-                    }
+                    fontFamily: { sans: ['"Instrument Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'] }
                 }
             }
         }
     </script>
+    <style>
+        button { transition-duration: .22s !important; }
+        .card-in { animation: cardIn .5s ease-out backwards; }
+        @keyframes cardIn { from { opacity: 0; transform: translateY(15px); } }
+        @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+    </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+<body class="bg-stone-100 font-sans text-slate-900 flex items-center justify-center min-h-screen">
 
     <!-- Mobile Device Simulator Container -->
-    <div class="bg-white w-full max-w-sm h-screen sm:h-[800px] sm:rounded-3xl sm:shadow-2xl relative flex flex-col items-center justify-center overflow-hidden">
+    <div class="bg-amber-50 w-full max-w-sm h-[100dvh] sm:h-[min(800px,94dvh)] sm:rounded-3xl sm:shadow-2xl relative flex flex-col items-center justify-center overflow-hidden p-6 text-center">
 
         <!-- Logo Area -->
-        <div class="w-32 h-32 bg-desi-yellow rounded-full flex items-center justify-center mb-6 shadow-sm">
-            <span class="text-white font-bold text-sm tracking-widest">[LOGO]</span>
-        </div>
+        <img src="https://scontent.fceb3-1.fna.fbcdn.net/v/t39.30808-6/551271674_122177532248516547_4988803979557062132_n.jpg?stp=dst-jpg_tt6&cstp=mx2048x2048&ctp=s2048x2048&_nc_cat=102&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=6ee11a&_nc_eui2=AeHr6k727iSJ87Gdiinc50GqXKldvaULgvxcqV29pQuC_LkcJEjTTAObmtVyzmT2AP0-k8CGBHogBW_Uvt9lAIaF&_nc_ohc=w4ObWTq4Dj8Q7kNvwHYvb8r&_nc_oc=AdpFvVgvPntA_PNnlqqhAfVcmIXJJprsjRUJrHUkLFMXK-NC-TgpLNX_rw0ZE8_9Edw&_nc_zt=23&_nc_ht=scontent.fceb3-1.fna&_nc_gid=mM6UZFiHG-0ttkVuur0_3Q&_nc_ss=7b2a8&oh=00_AQOBEK2qmR5xWV5bz-21F-XZoat-xAPlXPfyWch6qelesg&oe=6ADFFE0A" 
+             alt="Desi Zaika Logo" 
+             class="relative z-10 w-[120px] h-[120px] rounded-3xl object-cover shadow-xl shadow-amber-900/30 mx-auto mb-8 block card-in" 
+             style="animation-delay: 50ms;">
 
         <!-- Typography -->
-        <h1 class="text-3xl font-bold text-desi-blue mb-1">Desi Zaika</h1>
-        <h1 class="text-3xl font-bold text-desi-blue mb-1">Snack Haus</h1>
+        <div class="relative z-10 card-in" style="animation-delay: 150ms;">
+            <h1 class="text-4xl font-extrabold text-slate-900 leading-tight">Desi Zaika</h1>
+            <h2 class="text-2xl font-bold text-amber-600 mt-1">Snack Haus</h2>
+        </div>
 
         <!-- Dynamic Table Number Display -->
-        <div id="table-badge" class="mt-4 px-4 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-semibold hidden transition-all duration-300">
+        <div id="table-badge" class="relative z-10 mt-6 px-5 py-2 bg-white text-slate-700 rounded-full text-sm font-bold shadow-sm border border-amber-100 hidden card-in" style="animation-delay: 250ms;">
             <!-- Populated via JavaScript -->
         </div>
 
-        <!-- Action Button -->
-        <div class="absolute bottom-0 w-full p-6">
-            <button onclick="enterOrderingSystem()" class="w-full bg-desi-yellow text-white font-extrabold text-lg py-4 rounded shadow-md hover:bg-yellow-500 active:scale-95 transition-all duration-200 uppercase tracking-wide">
-                Order Now!
+        <!-- Action Button fixed to bottom -->
+        <div class="absolute bottom-0 left-0 right-0 p-6 z-10 card-in" style="padding-bottom:max(1.5rem,env(safe-area-inset-bottom)); animation-delay: 350ms;">
+            <button onclick="enterOrderingSystem()" class="w-full h-14 bg-amber-400 hover:bg-amber-500 text-slate-900 font-extrabold text-lg rounded-2xl shadow-lg shadow-amber-900/20 active:scale-95 transition tracking-wide">
+                ORDER NOW
             </button>
         </div>
 

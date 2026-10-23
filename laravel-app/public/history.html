@@ -1,1 +1,100 @@
-//to be continued (when backend is prepped)
+<!-- prototype code, to be revised when backend is prepped -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>DesiFlow - Table Session History</title>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['"Instrument Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'] } } } }
+    </script>
+</head>
+<body class="bg-stone-100 font-sans text-slate-900 flex items-center justify-center min-h-screen">
+
+    <div class="bg-slate-50 w-full max-w-sm h-[100dvh] sm:h-[min(800px,94dvh)] sm:rounded-3xl sm:shadow-2xl relative flex flex-col overflow-hidden">
+        
+        <!-- Header -->
+        <header class="bg-amber-400 px-5 py-4 shadow-sm flex items-center gap-4" style="padding-top:max(1rem,env(safe-area-inset-top))">
+            <button onclick="location.href='dashboard.html'" class="bg-white/80 hover:bg-white text-slate-800 text-sm font-bold px-3 py-1.5 rounded-lg shadow-sm transition flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                Back
+            </button>
+            <h1 class="text-lg font-extrabold text-slate-900 flex-1 text-center pr-12">Table Session History</h1>
+        </header>
+
+        <main class="flex-1 overflow-y-auto px-5 py-6 space-y-4">
+            <p class="text-sm font-medium text-slate-500 text-center mb-6">This is your running bill for the current table session.</p>
+            
+            <div id="history-container" class="space-y-4 flex flex-col-reverse">
+                <!-- Batch cards injected here -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const historyContainer = document.getElementById('history-container');
+            const history = JSON.parse(sessionStorage.getItem('order_history') || '[]');
+
+            if (!history.length) {
+                historyContainer.innerHTML = `
+                    <div class="text-center py-10 opacity-60 flex flex-col items-center">
+                        <svg class="w-12 h-12 text-slate-400 mb-3" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        <p class="text-sm font-bold">No orders placed yet.</p>
+                    </div>`;
+                return;
+            }
+
+            historyContainer.innerHTML = history.map(order => {
+                const isActive = order.status !== 'Served';
+                const borderClass = isActive ? 'border-amber-400' : 'border-green-500';
+                const statusClass = isActive ? 'text-amber-500' : 'text-green-600';
+                
+                const cardAttributes = isActive 
+                    ? `onclick="location.href='tracking.html'" class="bg-white border border-slate-200 border-l-4 ${borderClass} rounded-r-xl rounded-l-md shadow-sm p-4 cursor-pointer hover:border-amber-500 hover:shadow-md transition relative group"`
+                    : `class="bg-white border border-slate-200 border-l-4 ${borderClass} rounded-r-xl rounded-l-md shadow-sm p-4 relative opacity-80"`;
+
+                const chevronIndicator = isActive 
+                    ? `<svg class="w-4 h-4 text-slate-300 group-hover:text-amber-500 transition ml-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>`
+                    : '';
+                    
+                const trackingText = isActive 
+                    ? `<span class="text-[10px] text-slate-400 font-medium mt-0.5 mr-2 group-hover:text-amber-500 transition">See Live Tracking</span>`
+                    : '';
+
+                const itemsList = order.items.map(item => `
+                    <li class="flex items-start gap-2 text-sm font-medium text-slate-700">
+                        <span class="w-1.5 h-1.5 rounded-full bg-slate-300 mt-1.5 shrink-0"></span>
+                        <span>${item.quantity}x ${item.name}</span>
+                    </li>
+                `).join('');
+
+                return `
+                    <div ${cardAttributes}>
+                        <!-- Changed items-center to items-start to keep the left/right text aligned properly -->
+                        <div class="flex justify-between items-start border-b border-slate-100 pb-2 mb-3">
+                            <h3 class="font-extrabold text-slate-900 mt-0.5">Batch: ${order.timestamp}</h3>
+                            
+                            <!-- Wrapped the right side in a flex-col to stack the status and the new text -->
+                            <div class="flex flex-col items-end">
+                                <div class="flex items-center">
+                                    <span class="font-bold text-sm ${statusClass}">${order.status}</span>
+                                    ${chevronIndicator}
+                                </div>
+                                ${trackingText}
+                            </div>
+                        </div>
+                        <ul class="space-y-1.5 pl-1">
+                            ${itemsList}
+                        </ul>
+                    </div>
+                `;
+            }).join('');
+
+        });
+    </script>
+</body>
+</html>

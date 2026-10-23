@@ -1,3 +1,5 @@
+<!-- prototype code, to be revised when backend is prepped -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -79,59 +81,66 @@
         </div>
 
         <!-- ITEM DETAIL OVERLAY -->
-    <div id="overlay" class="absolute inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end justify-center" onclick="if(event.target===this)closeOverlay()">
-        <div id="overlay-panel" class="bg-white w-full max-w-md rounded-t-3xl shadow-2xl max-h-[90%] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="ov-name">
-            <div class="p-5">
-                <div class="relative">
-                    <div class="h-44 rounded-2xl bg-slate-100 border border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-sm font-medium overflow-hidden">
-                        <img id="ov-img" class="hidden w-full h-full object-cover" alt="">
-                        <span id="ov-img-ph">No photo yet</span>
+        <div id="overlay" class="absolute inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end justify-center" onclick="if(event.target===this)closeOverlay()">
+            <div id="overlay-panel" class="bg-white w-full max-w-md rounded-t-3xl shadow-2xl max-h-[90%] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="ov-name">
+                <div class="p-5">
+                    <div class="relative">
+                        <div class="h-44 rounded-2xl bg-slate-100 border border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-sm font-medium overflow-hidden">
+                            <img id="ov-img" class="hidden w-full h-full object-cover" alt="">
+                            <span id="ov-img-ph">No photo yet</span>
+                        </div>
+                        <button onclick="closeOverlay()" class="absolute top-2 right-2 w-8 h-8 rounded-full bg-slate-900/80 text-white hover:bg-slate-900 flex items-center justify-center" aria-label="Close">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
                     </div>
-                    <button onclick="closeOverlay()" class="absolute top-2 right-2 w-8 h-8 rounded-full bg-slate-900/80 text-white hover:bg-slate-900 flex items-center justify-center" aria-label="Close">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    <div class="mt-4 flex items-start justify-between gap-3">
+                        <div>
+                            <h3 id="ov-name" class="text-xl font-bold text-slate-900"></h3>
+                            <p id="ov-cat" class="text-xs text-slate-400 capitalize"></p>
+                        </div>
+                        <p id="ov-price" class="text-lg font-bold text-amber-600 shrink-0"></p>
+                    </div>
+                    <p id="ov-desc" class="mt-2 text-sm text-slate-500 leading-relaxed"></p>
+
+                    <div id="ov-addons-wrap" class="mt-5">
+                        <p class="text-sm font-semibold text-slate-800 mb-2">Add-ons <span class="font-normal text-slate-400">(optional)</span></p>
+                        <div id="ov-addons" class="space-y-2"></div>
+                    </div>
+                </div>
+
+                <div class="sticky bottom-0 bg-white border-t border-slate-100 p-4 flex items-center gap-3" style="padding-bottom:max(1rem,env(safe-area-inset-bottom))">
+                    <div class="flex items-center bg-slate-100 rounded-xl">
+                        <button onclick="changeQty(-1)" class="w-10 h-10 text-lg font-bold text-slate-600 hover:text-amber-600" aria-label="Decrease">&minus;</button>
+                        <span id="ov-qty" class="w-8 text-center font-bold">1</span>
+                        <button onclick="changeQty(1)" class="w-10 h-10 text-lg font-bold text-slate-600 hover:text-amber-600" aria-label="Increase">+</button>
+                    </div>
+                    <button onclick="addToCart()" class="flex-1 h-11 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold shadow-md shadow-amber-900/20 active:scale-95 transition">
+                        Add to cart (<span id="ov-total"></span>)
                     </button>
                 </div>
-                <div class="mt-4 flex items-start justify-between gap-3">
-                    <div>
-                        <h3 id="ov-name" class="text-xl font-bold text-slate-900"></h3>
-                        <p id="ov-cat" class="text-xs text-slate-400 capitalize"></p>
-                    </div>
-                    <p id="ov-price" class="text-lg font-bold text-amber-600 shrink-0"></p>
-                </div>
-                <p id="ov-desc" class="mt-2 text-sm text-slate-500 leading-relaxed"></p>
-
-                <div id="ov-addons-wrap" class="mt-5">
-                    <p class="text-sm font-semibold text-slate-800 mb-2">Add-ons <span class="font-normal text-slate-400">(optional)</span></p>
-                    <div id="ov-addons" class="space-y-2"></div>
-                </div>
-            </div>
-
-            <div class="sticky bottom-0 bg-white border-t border-slate-100 p-4 flex items-center gap-3" style="padding-bottom:max(1rem,env(safe-area-inset-bottom))">
-                <div class="flex items-center bg-slate-100 rounded-xl">
-                    <button onclick="changeQty(-1)" class="w-10 h-10 text-lg font-bold text-slate-600 hover:text-amber-600" aria-label="Decrease">&minus;</button>
-                    <span id="ov-qty" class="w-8 text-center font-bold">1</span>
-                    <button onclick="changeQty(1)" class="w-10 h-10 text-lg font-bold text-slate-600 hover:text-amber-600" aria-label="Increase">+</button>
-                </div>
-                <button onclick="addToCart()" class="flex-1 h-11 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold shadow-md shadow-amber-900/20 active:scale-95 transition">
-                    Add to cart (<span id="ov-total"></span>)
-                </button>
             </div>
         </div>
+
+        <div id="toast" class="absolute bottom-6 left-1/2 z-[60] bg-slate-900 text-white text-sm font-medium px-4 py-2.5 rounded-xl shadow-xl"></div>
     </div>
 
-    <div id="toast" class="absolute bottom-6 left-1/2 z-[60] bg-slate-900 text-white text-sm font-medium px-4 py-2.5 rounded-xl shadow-xl"></div>
-    </div>
-
-
+    
     <script>
         // Fallback sample data, used only when /api/customer/menu is not available yet.
+        //delete when backend is available
         let menuItems = [
-            { id: 1, name: "Chicken Biryani", category: "main course", price: 350, status: "available", image: null,
+            { id: 1, name: "Chicken Biryani", category: "main course", price: 350, status: "available", image: "https://scontent.fceb3-1.fna.fbcdn.net/v/t39.30808-6/546695346_122176151468516547_2391677110194981486_n.jpg?stp=dst-jpg_tt6&cstp=mx960x1280&ctp=s960x1280&_nc_cat=105&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=833d8c&_nc_eui2=AeE8h2K_M-SS7_PCaggYiKu2JC2iYluIHCUkLaJiW4gcJQUPqxA6GO6Je0Inm5Ypx02X_RlFb2Spof5viwS_OjGx&_nc_ohc=bjJHUapqvusQ7kNvwHsmHIU&_nc_oc=Adrf5TjOXRi_PAfmVpOhhHYQJc8Z9Y_5lzKRt42I1PPPdr6hi6yBY4e-uSsUygMQRzM&_nc_zt=23&_nc_ht=scontent.fceb3-1.fna&_nc_gid=ulkpX6JMdPpVf061TT39VQ&_nc_ss=7b2a8&oh=00_AQNljsnIki9yKqpVAcv1VMpEdfvlfE9PuoVD4YopXWxRsA&oe=6ADF8062",
               description: "Basmati rice slow-cooked with spiced chicken, served with raita.",
               addons: [{ id: 1, name: "Extra Raita", price: 15 }, { id: 2, name: "Extra Rice", price: 40 }] },
-            { id: 2, name: "Potato Samosa", category: "snacks", price: 150, status: "available", image: null,
+            { id: 2, name: "Potato Samosa", category: "snacks", price: 150, status: "available", image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=600&q=80",
               description: "Spiced potato and pea filling wrapped in crispy pastry. Served with chutney.",
-              addons: [{ id: 3, name: "Mint Chutney", price: 10 }, { id: 4, name: "Extra Raita", price: 15 }] }
+              addons: [{ id: 3, name: "Mint Chutney", price: 10 }, { id: 4, name: "Extra Raita", price: 15 }] },
+            { id: 3, name: "Mango Lassi", category: "drinks", price: 170, status: "available", image: "https://www.indianhealthyrecipes.com/wp-content/uploads/2022/04/mango-lassi-recipe.jpg",
+              description: "Indian yoghurt drink made with Mangoes",
+              addons: [{ id: 5, name: "Cardamom Powder", price: 10 }, { id: 6, name: "Crushed Peanuts", price: 15 }] },
+            { id: 4, name: "Shahi Tukda", category: "desserts", price: 60, status: "available", image: "https://palatesdesire.com/wp-content/uploads/2021/05/shahi-tukda-recipe@palates-desire-1.jpg",
+              description: " Crispy ghee-fried bread soaked in saffron syrup, rabri(reduced milk) and topped with pistachios.",
+              addons: [{ id: 7, name: "Mixed Nuts", price: 10 }, { id: 8, name: "Ice cream", price: 15 }] }
         ];
 
         const peso = n => '₱ ' + Number(n).toFixed(2);
@@ -187,30 +196,58 @@
             const item = menuItems.find(i => i.id === id);
             if (!item || item.status === 'sold out') return;
             sessionStorage.setItem('selected_item_id', id);
-            state = { item, qty: 1, addons: new Set() };
+
+            // Check if we are editing an existing item from cart.html
+            const editIndex = sessionStorage.getItem('edit_cart_index');
+            const cart = getCart();
+            const editItem = (editIndex !== null && cart[parseInt(editIndex, 10)]) ? cart[parseInt(editIndex, 10)] : null;
+
+            let initialQty = 1;
+            let initialAddons = new Set();
+
+            if (editItem && editItem.id === item.id) {
+                initialQty = editItem.quantity || 1;
+                if (editItem.addons && item.addons) {
+                    editItem.addons.forEach(savedAddon => {
+                        const match = item.addons.find(a => a.name === savedAddon.name);
+                        if (match) initialAddons.add(match.id);
+                    });
+                }
+            } else {
+                sessionStorage.removeItem('edit_cart_index');
+            }
+
+            state = { item, qty: initialQty, addons: initialAddons };
+
             document.getElementById('ov-name').innerText = item.name;
             document.getElementById('ov-cat').innerText = item.category;
             document.getElementById('ov-price').innerText = peso(item.price);
             document.getElementById('ov-desc').innerText = item.description || 'No description available.';
+            
             const img = document.getElementById('ov-img'), ph = document.getElementById('ov-img-ph');
             if (item.image) { img.src = item.image; img.classList.remove('hidden'); ph.classList.add('hidden'); }
             else { img.classList.add('hidden'); ph.classList.remove('hidden'); }
 
             const addons = item.addons || [];
             document.getElementById('ov-addons-wrap').classList.toggle('hidden', !addons.length);
-            document.getElementById('ov-addons').innerHTML = addons.map(a => `
+            document.getElementById('ov-addons').innerHTML = addons.map(a => {
+                const isChecked = state.addons.has(a.id);
+                return `
                 <label class="flex items-center justify-between border border-slate-200 rounded-xl px-3 py-2.5 cursor-pointer hover:border-amber-400 has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50">
                     <span class="flex items-center gap-3 text-sm text-slate-700">
-                        <input type="checkbox" class="w-4 h-4 accent-amber-500" onchange="toggleAddon(${a.id}, this.checked)"> ${a.name}
+                        <input type="checkbox" class="w-4 h-4 accent-amber-500" ${isChecked ? 'checked' : ''} onchange="toggleAddon(${a.id}, this.checked)"> ${a.name}
                     </span>
                     <span class="text-sm font-semibold text-slate-500">+ ${peso(a.price)}</span>
-                </label>`).join('');
+                </label>`;
+            }).join('');
+
             refreshOverlay();
             document.getElementById('overlay-panel').scrollTop = 0;
             document.getElementById('overlay').classList.add('open');
         }
 
         function closeOverlay() {
+            sessionStorage.removeItem('edit_cart_index');
             document.getElementById('overlay').classList.remove('open');
         }
 
@@ -218,21 +255,50 @@
         function changeQty(d) { state.qty = Math.max(1, state.qty + d); refreshOverlay(); }
         function chosenAddons() { return (state.item.addons || []).filter(a => state.addons.has(a.id)); }
         function unitPrice() { return state.item.price + chosenAddons().reduce((s, a) => s + a.price, 0); }
+        
         function refreshOverlay() {
+            const isEdit = sessionStorage.getItem('edit_cart_index') !== null;
+            const btnLabel = isEdit ? 'Update cart' : 'Add to cart';
+
             document.getElementById('ov-qty').innerText = state.qty;
-            document.getElementById('ov-total').innerText = peso(unitPrice() * state.qty);
+
+            const btn = document.querySelector('#overlay button[onclick="addToCart()"]');
+            if (btn) {
+                btn.innerHTML = `${btnLabel} (${peso(unitPrice() * state.qty)})`;
+            }
         }
 
         function pushToCart(item, addons, qty) {
             const cart = getCart();
+            const editIndex = sessionStorage.getItem('edit_cart_index');
             const key = item.id + '|' + addons.map(a => a.id).sort().join(',');
             const unit = item.price + addons.reduce((sum, a) => sum + a.price, 0);
-            const found = cart.find(c => c.key === key);
-            if (found) found.quantity += qty;
-            else cart.push({ key, id: item.id, name: item.name, category: item.category,
-                             price: unit, quantity: qty, addons: addons.map(a => ({ name: a.name, price: a.price })) });
-            sessionStorage.setItem('cart_items', JSON.stringify(cart));
-            updateBadge();
+            
+            const updatedItem = {
+                key,
+                id: item.id,
+                name: item.name,
+                category: item.category,
+                image: item.image,
+                price: unit,
+                quantity: qty,
+                addons: addons.map(a => ({ name: a.name, price: a.price }))
+            };
+            
+            if (editIndex !== null) {
+                // Replace existing item at the edited index
+                cart[parseInt(editIndex, 10)] = updatedItem;
+                sessionStorage.removeItem('edit_cart_index');
+                sessionStorage.setItem('cart_items', JSON.stringify(cart));
+                location.href = 'cart.html'; // Return back to cart page
+            } else {
+                // Normal add-to-cart behavior
+                const found = cart.find(c => c.key === key);
+                if (found) found.quantity += qty;
+                else cart.push(updatedItem);
+                sessionStorage.setItem('cart_items', JSON.stringify(cart));
+                updateBadge();
+            }
         }
 
         function addToCart() {
@@ -343,7 +409,17 @@
         document.addEventListener('contextmenu', e => { if (e.target.closest('.drag-card')) e.preventDefault(); });
 
         document.addEventListener('keydown', e => { if (e.key === 'Escape') closeOverlay(); });
-        document.addEventListener('DOMContentLoaded', () => { loadMenu(); updateBadge(); });
+        document.addEventListener('DOMContentLoaded', () => { 
+            loadMenu(); 
+            updateBadge();
+
+            // Check if we came from cart.html to edit an item
+            const params = new URLSearchParams(window.location.search);
+            const itemId = params.get('open_item');
+            if (itemId) {
+                chooseItem(Number(itemId));
+            }
+        });
     </script>
 </body>
 </html>

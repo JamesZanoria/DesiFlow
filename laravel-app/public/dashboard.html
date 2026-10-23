@@ -1,170 +1,258 @@
+<!-- prototype code, to be revised when backend is prepped -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Desi Zaika - Dashboard</title>
     
-    <!-- Tailwind CSS CDN -->
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Custom Tailwind Configuration -->
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: {
-                        'desi-yellow': '#F4B41A',
-                        'desi-blue': '#2D4A77'
-                    }
+                    fontFamily: { sans: ['"Instrument Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'] }
                 }
             }
         }
     </script>
+    <style>
+        .no-scrollbar { scrollbar-width: none; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        button { transition-duration: .22s !important; }
+        .card-in { animation: cardIn .4s ease-out backwards; }
+        @keyframes cardIn { from { opacity: 0; transform: translateY(12px); } }
+        
+        /* Google-style Autocomplete Dropdown Animation */
+        #search-results {
+            transform-origin: top;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        #search-results.hidden {
+            opacity: 0;
+            transform: scaleY(0.95);
+            pointer-events: none;
+            display: flex !important;
+            visibility: hidden;
+        }
+        #search-results:not(.hidden) {
+            opacity: 1;
+            transform: scaleY(1);
+            visibility: visible;
+        }
+
+        @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+    </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+<body class="bg-stone-100 font-sans text-slate-900 flex items-center justify-center min-h-screen">
 
-    <!-- Mobile Device Simulator Container -->
-    <div class="bg-white w-full max-w-sm h-screen sm:h-[800px] sm:rounded-3xl sm:shadow-2xl relative flex flex-col overflow-hidden">
+    <div class="bg-amber-50 w-full max-w-sm h-[100dvh] sm:h-[min(800px,94dvh)] sm:rounded-3xl sm:shadow-2xl relative flex flex-col overflow-hidden">
 
-        <!-- Top Header Bar -->
-        <div class="bg-desi-yellow p-4 flex items-center justify-between shadow-sm">
-            <!-- Table Identifier Badge -->
-            <div id="table-indicator" class="bg-white px-3 py-1 rounded-full text-xs font-bold text-desi-blue shadow-inner">
-                [P] Table ?
+        <header class="relative bg-gradient-to-br from-amber-300 to-amber-500 px-5 pb-6 rounded-b-[2rem] shadow-lg shadow-amber-900/10" style="padding-top:max(1.25rem,env(safe-area-inset-top))">
+            <div class="flex items-center justify-between">
+                <div id="table-indicator" class="bg-white text-slate-900 text-xs font-bold pl-1.5 pr-3 py-1 rounded-full shadow flex items-center gap-1.5">
+                    <img src="https://scontent.fceb3-1.fna.fbcdn.net/v/t39.30808-6/551271674_122177532248516547_4988803979557062132_n.jpg?stp=dst-jpg_tt6&cstp=mx2048x2048&ctp=s2048x2048&_nc_cat=102&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=6ee11a&_nc_eui2=AeHr6k727iSJ87Gdiinc50GqXKldvaULgvxcqV29pQuC_LkcJEjTTAObmtVyzmT2AP0-k8CGBHogBW_Uvt9lAIaF&_nc_ohc=w4ObWTq4Dj8Q7kNvwHYvb8r&_nc_oc=AdpFvVgvPntA_PNnlqqhAfVcmIXJJprsjRUJrHUkLFMXK-NC-TgpLNX_rw0ZE8_9Edw&_nc_zt=23&_nc_ht=scontent.fceb3-1.fna&_nc_gid=mM6UZFiHG-0ttkVuur0_3Q&_nc_ss=7b2a8&oh=00_AQOBEK2qmR5xWV5bz-21F-XZoat-xAPlXPfyWch6qelesg&oe=6ADFFE0A" alt="Desi Zaika Logo" class="w-5 h-5 rounded-full object-cover border border-amber-200 shrink-0">
+                    <span id="table-label">Table ?</span>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button onclick="window.location.href='history.html'" class="w-10 h-10 rounded-full bg-white text-slate-900 shadow-md hover:bg-amber-50 flex items-center justify-center" aria-label="Table Session History">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m5-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </button>
+                    <button onclick="window.location.href='cart.html'" class="relative z-[45] w-10 h-10 rounded-full bg-white text-slate-900 shadow-md hover:bg-amber-50 flex items-center justify-center" aria-label="Cart">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.3 2.3c-.6.6-.2 1.7.7 1.7H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                        <span id="cart-badge" class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold border-2 border-white">0</span>
+                    </button>
+                </div>
+            </div>
+            <div class="mt-4">
+                <p class="text-[11px] font-bold text-amber-900/70 uppercase tracking-widest">Welcome Back</p>
+                <h1 class="text-2xl font-extrabold text-slate-900 leading-tight">How may we serve you?</h1>
+            </div>
+        </header>
+
+        <main class="flex-1 overflow-y-auto p-4 space-y-5 pb-8 relative">
+
+            <!-- Search Bar with Google-style Autocomplete Dropdown Container -->
+            <div id="search-container" class="relative card-in z-50" style="animation-delay: 50ms;">
+                <input type="text" id="search-input" placeholder="Search the menu..." autocomplete="off" class="w-full bg-white border border-amber-100 rounded-2xl px-4 py-3.5 text-sm text-slate-700 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 shadow-sm placeholder:text-slate-400 transition-all">
+                <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-slate-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+                
+                <!-- Autocomplete Dropdown List -->
+                <div id="search-results" class="hidden absolute left-0 right-0 top-full mt-2 bg-white border border-amber-100 rounded-2xl shadow-xl flex-col max-h-64 overflow-y-auto z-50 no-scrollbar">
+                    <!-- Populated dynamically via backend API -->
+                </div>
             </div>
 
-            <!-- Top Action Icons (History & Cart) -->
-            <div class="flex items-center space-x-3">
-                <!-- Order History / Running Bill Icon -->
-                <button onclick="window.location.href='history.html'" class="bg-white p-2 rounded-full shadow hover:bg-gray-50 transition" title="Table Session History">
-                    <svg class="w-5 h-5 text-desi-blue" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                </button>
-
-                <!-- Cart Icon with Live Item Count Badge -->
-                <button onclick="window.location.href='cart.html'" class="bg-white p-2 rounded-full shadow hover:bg-gray-50 transition relative" title="Cart">
-                    <svg class="w-5 h-5 text-desi-blue" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                    <span id="cart-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">0</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Scrollable Body Content -->
-        <div class="flex-1 overflow-y-auto p-4 space-y-4">
-
-            <!-- Search Bar -->
-            <div class="relative">
-                <input type="text" placeholder="What are you craving?" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-desi-blue shadow-sm">
-            </div>
-
-            <!-- See Full Menu Button -->
-            <button onclick="window.location.href='menu.html'" class="w-full bg-desi-yellow text-white font-bold py-3 rounded-lg shadow hover:bg-yellow-500 transition tracking-wide text-sm">
+            <button onclick="window.location.href='menu.html'" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold py-3.5 rounded-2xl shadow-md shadow-amber-900/20 active:scale-95 transition card-in relative z-10" style="animation-delay: 100ms;">
                 See Full Menu
             </button>
 
-            <!-- Categories Section -->
-            <div>
-                <h3 class="text-xs font-bold text-gray-400 tracking-wider uppercase mb-2">Categories</h3>
-                <div class="grid grid-cols-2 gap-2">
-                    <button onclick="filterCategory('Main Course')" class="bg-gray-100 border border-gray-200 p-4 rounded-lg text-center font-semibold text-desi-blue hover:bg-gray-200 transition text-sm shadow-sm">
+            <div class="card-in relative z-10" style="animation-delay: 150ms;">
+                <h3 class="text-sm font-semibold text-slate-500 mb-3">Go-to Categories!</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="filterCategory('Main Course')" class="bg-white border border-amber-100 py-4 rounded-2xl text-center font-bold text-slate-700 hover:bg-amber-50 hover:border-amber-300 transition text-sm shadow-sm">
                         Main Course
                     </button>
-                    <button onclick="filterCategory('Snacks')" class="bg-gray-100 border border-gray-200 p-4 rounded-lg text-center font-semibold text-desi-blue hover:bg-gray-200 transition text-sm shadow-sm">
+                    <button onclick="filterCategory('Snacks')" class="bg-white border border-amber-100 py-4 rounded-2xl text-center font-bold text-slate-700 hover:bg-amber-50 hover:border-amber-300 transition text-sm shadow-sm">
                         Snacks
                     </button>
-                    <button onclick="filterCategory('Drinks')" class="bg-gray-100 border border-gray-200 p-4 rounded-lg text-center font-semibold text-desi-blue hover:bg-gray-200 transition text-sm shadow-sm">
+                    <button onclick="filterCategory('Drinks')" class="bg-white border border-amber-100 py-4 rounded-2xl text-center font-bold text-slate-700 hover:bg-amber-50 hover:border-amber-300 transition text-sm shadow-sm">
                         Drinks
                     </button>
-                    <button onclick="filterCategory('Desserts')" class="bg-gray-100 border border-gray-200 p-4 rounded-lg text-center font-semibold text-desi-blue hover:bg-gray-200 transition text-sm shadow-sm">
+                    <button onclick="filterCategory('Desserts')" class="bg-white border border-amber-100 py-4 rounded-2xl text-center font-bold text-slate-700 hover:bg-amber-50 hover:border-amber-300 transition text-sm shadow-sm">
                         Desserts
                     </button>
                 </div>
             </div>
 
-            <!-- Recommended For You Section (Driven by Menu Matrix & Spoilage Analytics) -->
-            <div class="space-y-3">
-                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider">Recommended For You</h3>
+            <div class="card-in relative z-10" style="animation-delay: 200ms;">
+                <h3 class="text-sm font-semibold text-slate-500 mb-3">Recommended For You</h3>
                 <div id="recommended-container" class="space-y-3">
-                    <!-- Dynamically populated by recommendation engine / analytics API endpoint -->
-                     <p class="text-xs text-gray-400 italic">Loading recommendations...</p>
+                    <div class="bg-white border border-dashed border-amber-200 rounded-3xl p-6 shadow-sm flex flex-col items-center justify-center text-center animate-pulse">
+                        <div class="w-10 h-10 rounded-full bg-amber-100 mb-3 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-amber-500 opacity-70" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"></path></svg>
+                        </div>
+                        <p class="text-sm text-slate-600 font-bold">Curating recommendations...</p>
+                    </div>
                 </div>
             </div>
 
-        </div>
-
+        </main>
     </div>
 
-    <!-- Frontend Logic Script -->
     <script>
-        // Load active table session and cart count on initialization
+        let menuItems = [];
+
         document.addEventListener("DOMContentLoaded", () => {
             const activeTable = sessionStorage.getItem('active_table') || '1';
-            document.getElementById('table-indicator').innerText = `[P] Table ${activeTable}`;
+            document.getElementById('table-label').innerText = `Table ${activeTable}`;
             
             updateCartBadge();
+            fetchMenuData(); // Ready for backend endpoint implementation
             loadRecommendedDishes();
         });
 
-        // Load recommendations dynamically from backend recommendation engine / analytics API endpoint
-        async function loadRecommendedDishes() {
-            const container = document.getElementById('recommended-container');
-            container.innerHTML = '<p class="text-xs text-gray-400 italic p-2">Loading recommendations...</p>';
-
+        // Clean hook for when backend API is ready
+        async function fetchMenuData() {
             try {
-                // Future Laravel endpoint: '/api/recommendations'
-                const response = await fetch('/api/recommendations').catch(() => null);
-                
-                let recommendations = [];
-                
-                if (response && response.ok) {
-                    recommendations = await response.json();
-                } else {
-                    // Fallback simulation for local prototyping until backend endpoint is live
-                    recommendations = [
-                        { id: 101, name: 'Chicken Biryani', category: 'Main Course', price: 350.00, img: '[IMG]' },
-                        { id: 102, name: 'Potato Samosa', category: 'Snacks', price: 150.00, img: '[IMG]' }
-                    ];
+                const res = await fetch('/api/customer/menu');
+                if (res.ok) {
+                    menuItems = await res.json();
                 }
+            } catch (e) {
+                console.log("Waiting on backend menu API endpoint.");
+            }
+        }
 
-                container.innerHTML = '';
+        // Search Bar Autocomplete Logic
+        const searchInput = document.getElementById('search-input');
+        const searchResults = document.getElementById('search-results');
+        const searchContainer = document.getElementById('search-container');
 
-                if (recommendations.length === 0) {
-                    container.innerHTML = `<p class="text-xs text-gray-400 p-2">No recommendations available at this time.</p>`;
-                    return;
-                }
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            
+            if (!query) {
+                searchResults.classList.add('hidden');
+                return;
+            }
 
-                recommendations.forEach(item => {
-                    const card = document.createElement('div');
-                    card.className = 'bg-white border border-gray-200 rounded-lg p-3 flex items-center justify-between shadow-sm hover:border-desi-blue transition';
-                    card.innerHTML = `
-                        <div class="flex items-center space-x-3">
-                            <div class="w-16 h-16 bg-gray-100 border border-dashed border-gray-400 rounded flex items-center justify-center text-xs text-gray-500 font-bold">${item.img}</div>
+            const filtered = menuItems.filter(item => 
+                item.name.toLowerCase().includes(query) || 
+                item.category.toLowerCase().includes(query)
+            );
+
+            if (filtered.length > 0) {
+                searchResults.innerHTML = filtered.map(item => `
+                    <button onclick="selectSearchResult(${item.id}, '${item.category}')" class="w-full text-left px-5 py-3 hover:bg-amber-50 border-b border-slate-100 last:border-0 transition flex items-center justify-between group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 group-hover:bg-amber-200 transition">
+                                <svg class="w-4 h-4 text-slate-400 group-hover:text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            </div>
                             <div>
-                                <h4 class="font-bold text-gray-800 text-sm">${item.name}</h4>
-                                <p class="text-xs text-gray-500">${item.category}</p>
-                                <p class="font-semibold text-desi-blue text-sm mt-1">₱ ${item.price.toFixed(2)}</p>
+                                <p class="text-sm font-bold text-slate-800 transition">${highlightText(item.name, query)}</p>
+                                <p class="text-[11px] text-slate-400 capitalize">${highlightText(item.category, query)}</p>
                             </div>
                         </div>
-                        <button onclick="openItemModal(${item.id})" class="bg-desi-yellow text-white text-xs font-bold px-4 py-2 rounded shadow hover:bg-yellow-500 transition uppercase">
-                            Choose
-                        </button>
-                    `;
-                    container.appendChild(card);
-                });
+                        <span class="text-xs font-bold text-slate-300 group-hover:text-amber-500 transition whitespace-nowrap ml-2">₱ ${Number(item.price).toFixed(2)}</span>
+                    </button>
+                `).join('');
+            } else {
+                searchResults.innerHTML = `
+                    <div class="px-5 py-6 text-center">
+                        <p class="text-sm font-bold text-slate-600">No results found</p>
+                        <p class="text-xs text-slate-400 mt-1">We couldn't find anything matching "${e.target.value}"</p>
+                    </div>`;
+            }
+            
+            searchResults.classList.remove('hidden');
+        });
+
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!searchContainer.contains(e.target)) {
+                searchResults.classList.add('hidden');
+            }
+        });
+
+        function highlightText(text, query) {
+            const regex = new RegExp(`(${query})`, 'gi');
+            return text.replace(regex, '<span class="text-amber-500 font-extrabold">$1</span>');
+        }
+
+        function selectSearchResult(itemId, category) {
+            sessionStorage.setItem('selected_item_id', itemId);
+            window.location.href = `menu.html?category=${encodeURIComponent(category)}&open_item=${itemId}`;
+        }
+
+        async function loadRecommendedDishes() {
+            const container = document.getElementById('recommended-container');
+            try {
+                const response = await fetch('/api/recommendations').catch(() => null);
+                if (response && response.ok) {
+                    const recommendations = await response.json();
+                    if (recommendations.length > 0) {
+                        container.innerHTML = '';
+                        recommendations.forEach(item => {
+                            const card = document.createElement('div');
+                            card.className = 'bg-white border border-amber-100 rounded-3xl p-3 flex items-center justify-between shadow-sm hover:border-amber-300 transition card-in';
+                            card.innerHTML = `
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-16 h-16 bg-amber-50 border border-dashed border-amber-200 rounded-2xl flex items-center justify-center text-xs text-amber-700/50 font-bold overflow-hidden">
+                                        ${item.image && item.image !== '[IMG]' ? `<img src="${item.image}" class="w-full h-full object-cover">` : 'No photo'}
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-slate-900 text-sm">${item.name}</h4>
+                                        <p class="text-[11px] text-slate-400 capitalize">${item.category}</p>
+                                        <p class="font-extrabold text-slate-900 text-sm mt-1">₱ ${Number(item.price).toFixed(2)}</p>
+                                    </div>
+                                </div>
+                                <button onclick="selectSearchResult(${item.id}, '${item.category}')" class="bg-amber-400 text-slate-900 text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm hover:bg-amber-500 active:scale-95 transition">
+                                    Choose
+                                </button>
+                            `;
+                            container.appendChild(card);
+                        });
+                        return;
+                    }
+                }
+                container.innerHTML = `
+                    <div class="bg-white border border-dashed border-slate-200 rounded-3xl p-6 text-center shadow-sm">
+                        <p class="text-sm text-slate-400">Our chef is preparing new recommendations.</p>
+                    </div>`;
             } catch (error) {
-                container.innerHTML = `<p class="text-xs text-red-500 p-2">Failed to load recommendations.</p>`;
+                console.error("Analytics engine offline.");
             }
         }
 
         function filterCategory(categoryName) {
-            // Redirect to category view page matching SRS specification
             window.location.href = `menu.html?category=${encodeURIComponent(categoryName)}`;
-        }
-
-        function openItemModal(itemId) {
-            // Placeholder logic to trigger item detail overlay modal
-            sessionStorage.setItem('selected_item_id', itemId);
-            alert(`Opening item detail overlay for Item ID: ${itemId}`); // Temporary stub
         }
 
         function updateCartBadge() {
