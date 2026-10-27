@@ -17,10 +17,14 @@ class Order extends Model{
     // The attrbutes that are mass assignable.
     protected $fillable = [
         'cashier_id',
+        'order_number',
+        'code',
         'table_number',
         'order_type',
         'status',
         'total_amount',
+        'notes',
+        'customer_name',
         'created_at',
     ];
 

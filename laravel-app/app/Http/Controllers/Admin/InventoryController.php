@@ -177,7 +177,15 @@ class InventoryController extends Controller{
     }
 
     public function create(){
-        return view('admin.inventory.create');
+        $units = collect(Ingredient::UNITS)
+            ->merge(Ingredient::query()->pluck('unit_of_measurement'))
+            ->filter()->unique()->sort()->values();
+        $menuItems = MenuItem::query()->orderBy('item_name')->get(['menu_item_id', 'item_name']);
+
+        return view('admin.inventory.create', [
+            'units' => $units,
+            'menuItems' => $menuItems,
+        ]);
     }
 
     private function validationMessages(): array{
@@ -312,7 +320,16 @@ class InventoryController extends Controller{
     }
 
     public function edit(Ingredient $ingredient){
-        return view('admin.inventory.edit', ['ingredient' => $ingredient]);
+        $units = collect(Ingredient::UNITS)
+            ->merge(Ingredient::query()->pluck('unit_of_measurement'))
+            ->filter()->unique()->sort()->values();
+        $menuItems = MenuItem::query()->orderBy('item_name')->get(['menu_item_id', 'item_name']);
+
+        return view('admin.inventory.edit', [
+            'ingredient' => $ingredient,
+            'units' => $units,
+            'menuItems' => $menuItems,
+        ]);
     }
 
     public function update(Request $request, Ingredient $ingredient){

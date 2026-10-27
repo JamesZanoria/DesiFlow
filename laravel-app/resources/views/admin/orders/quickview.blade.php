@@ -39,7 +39,7 @@
         <div class="border rounded-lg divide-y">
             @foreach ($order->orderItems as $item)
                 <div class="flex items-center justify-between px-3 py-2 text-sm">
-                    <span class="text-gray-700">{{ $item->quantity }}&times; {{ $item->menuItem->item_name ?? 'Item' }}</span>
+                    <span class="text-gray-700">{{ $item->quantity }}&times; {{ $item->item_name_snapshot ?: $item->menuItem?->item_name ?: 'Item' }}</span>
                     <span class="text-gray-600">₱{{ number_format($item->total, 2) }}</span>
                 </div>
             @endforeach

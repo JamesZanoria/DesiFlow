@@ -36,6 +36,18 @@ class MenuItem extends Model{
         return $this->hasMany(RecipeIngredient::class, 'menu_item_id', 'menu_item_id');
     }
 
+    public function addOns()
+    {
+        return $this->belongsToMany(
+            AddOn::class,
+            'menu_item_add_ons',
+            'menu_item_id',
+            'add_on_id',
+            'menu_item_id',
+            'add_on_id'
+        );
+    }
+
     /**
      * Determines if the menu item is available based on current ingredient stock.
      *

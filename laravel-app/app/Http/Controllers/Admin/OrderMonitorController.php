@@ -30,7 +30,7 @@ class OrderMonitorController extends Controller{
             ? [$statusFilter]
             : self::ACTIVE_STATUSES;
 
-        $activeOrders = Order::with(['orderItems.menuItem', 'cashier'])
+        $activeOrders = Order::with(['orderItems.menuItem', 'orderItems.addOns', 'cashier'])
             ->whereIn('status', $statuses)
             ->orderByDesc('created_at')
             ->get();
@@ -64,7 +64,7 @@ class OrderMonitorController extends Controller{
     // but all actions on it still happen through POS/KDS, per
     // role-scoped privileges); a direct/no-JS visit gets a full page instead.
     public function show(Request $request, Order $order){
-        $order->load(['orderItems.menuItem', 'cashier', 'payment']);
+        $order->load(['orderItems.menuItem', 'orderItems.addOns', 'cashier', 'payment']);
 
         if ($request->wantsJson()) {
             return response()->json([

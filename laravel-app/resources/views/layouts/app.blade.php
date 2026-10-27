@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Desi Zaika') | DesiFlow</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/js/app.jsx'])
     <style>
         .no-transition { transition: none !important; }
         .sidebar-transition { transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar-text-transition { transition: opacity 0.2s ease-in-out; }
     </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-900">
@@ -92,8 +93,8 @@
             </div>
 
             <!-- Collapse Trigger -->
-            <button id="sidebar-collapse-btn" class="absolute -right-3 bottom-20 w-6 h-6 bg-slate-800 text-white rounded-full border-2 border-slate-700 flex items-center justify-center z-30 hover:bg-amber-500 transition-all duration-200">
-                <svg id="collapse-icon" class="w-3 h-3 transition-transform duration-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+            <button id="sidebar-collapse-btn" class="absolute -right-3 bottom-20 w-7 h-7 bg-slate-800 text-white rounded-full border-2 border-slate-700 flex items-center justify-center z-30 hover:bg-amber-500 transition-all duration-300 shadow-lg shadow-black/40 active:scale-90 ring-2 ring-slate-900">
+                <svg id="collapse-icon" class="w-3.5 h-3.5 transition-transform duration-300" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
             </button>
         </aside>
 
@@ -230,7 +231,7 @@
                     if (isCollapsed) {
                         // COLLAPSE: Hide text instantly, then shrink width
                         document.querySelectorAll('.sidebar-text').forEach(el => {
-                            el.classList.add('opacity-0', 'hidden');
+                            el.classList.add('opacity-0', 'pointer-events-none');
                         });
                         sidebar.classList.replace('w-64', 'w-20');
                         collapseIcon.classList.add('rotate-180');
@@ -240,13 +241,14 @@
                         collapseIcon.classList.remove('rotate-180');
 
                         document.querySelectorAll('.sidebar-text').forEach(el => {
-                            el.classList.remove('hidden');
+                            el.classList.remove('pointer-events-none');
                             setTimeout(() => {
                                 el.classList.remove('opacity-0');
                             }, 100);
                         });
                     }
                 });
+
 
                 // --- Notifications Logic ---
                 function initNotifications() {

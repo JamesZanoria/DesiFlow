@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\InventoryController;
@@ -10,9 +11,28 @@ use App\Http\Controllers\Admin\OrderMonitorController;
 use App\Http\Controllers\Admin\SmartAssistantController;
 use App\Http\Controllers\Admin\NotificationsController;
 use App\Http\Controllers\Admin\ProtectedFileController;
+use App\Http\Controllers\Admin\TransactionRequestController;
+use App\Http\Controllers\CashierController;
+use App\Http\Controllers\CashierPaymentController;
+use App\Http\Controllers\KdsController;
+use App\Http\Controllers\OrderWorkflowController;
+use App\Http\Controllers\PublicMenuImageController;
 
-Route::get('/', function () {
-    return redirect()->route('login');
+Route::get('/', function (Request $request) {
+    $user = $request->user();
+
+    if (! $user) {
+        return redirect()->route('login');
+    }
+
+    $landingRoute = match ($user->role) {
+        'admin' => 'admin.dashboard.index',
+        'cashier' => 'cashier.index',
+        'kitchen' => 'kds.index',
+        default => abort(403),
+    };
+
+    return redirect()->route($landingRoute);
 });
 
 // Guest-only: an already-logged-in admin hitting /login gets redirected
@@ -20,6 +40,8 @@ Route::get('/', function () {
 // every staff account is created by an admin through Staff Management.
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
+    Route::get('/login/cashier', [AuthController::class, 'showLoginForm'])->name('login.cashier');
+    Route::get('/login/kitchen', [AuthController::class, 'showLoginForm'])->name('login.kitchen');
     Route::post('/login', [AuthController::class, 'login']);
 
     // Password Reset Flow
@@ -40,11 +62,37 @@ Route::middleware('auth')->group(function () {
         ->where('filename', '[A-Za-z0-9_-]+\.(jpg|jpeg|png)');
 });
 
-// 'role:admin', see App\Http\Middleware\EnsureUserHasRole. Cashier and
-// Kitchen Staff accounts exist in the users table (Staff Management already
-// supports creating them) but have no module of their own yet, so this whole
-// prefix is admin-only for now; a future POS/KDS route group would use
-// role:cashier / role:kitchen the same way.
+Route::prefix('cashier')->name('cashier.')->middleware(['auth', 'role:cashier'])->group(function () {
+    Route::get('/', [CashierController::class, 'index'])->name('index');
+    Route::get('/dashboard/orders/{area}', [CashierController::class, 'dashboardOrders'])->name('dashboard.orders');
+    Route::get('/orders', [CashierController::class, 'activeOrders'])->name('orders.index');
+    Route::get('/orders/{order}/quick-view', [CashierController::class, 'quickView'])->name('orders.quick-view');
+    Route::get('/menu', [CashierController::class, 'menu'])->name('menu');
+    Route::get('/cart', [CashierController::class, 'cart'])->name('cart');
+    Route::post('/cart/add', [CashierController::class, 'addToCart'])->name('cart.add');
+    Route::post('/cart/update', [CashierController::class, 'updateCart'])->name('cart.update');
+    Route::post('/orders', [CashierController::class, 'storeOrder'])->name('orders.store');
+    Route::get('/orders/{order}/payment', [CashierPaymentController::class, 'create'])->name('orders.payment');
+    Route::post('/orders/{order}/payment', [CashierPaymentController::class, 'store'])->name('orders.payment.store');
+    Route::get('/orders/{order}/receipt', [CashierPaymentController::class, 'receipt'])->name('receipts.show');
+    Route::get('/transactions', [CashierPaymentController::class, 'history'])->name('transactions.index');
+    Route::get('/transactions/{payment}', [CashierPaymentController::class, 'showTransaction'])->name('transactions.show');
+    Route::post('/transactions/{payment}/requests', [CashierPaymentController::class, 'requestTransactionAction'])->name('transactions.requests.store');
+});
+
+Route::prefix('kds')->name('kds.')->middleware(['auth', 'role:kitchen'])->group(function () {
+    Route::get('/', [KdsController::class, 'index'])->name('index');
+    Route::patch('/orders/{order}/status', [KdsController::class, 'updateStatus'])->name('orders.status');
+});
+
+Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::get('/manager/orders', [OrderWorkflowController::class, 'managerIndex'])->name('manager.orders.index');
+    Route::patch('/manager/orders/{order}/status', [OrderWorkflowController::class, 'managerUpdateStatus'])->name('manager.orders.status');
+});
+
+Route::get('/display/orders', [OrderWorkflowController::class, 'displayOrders'])->name('display.orders');
+
+// Admin-only management and reporting modules.
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function () {
 
     Route::get('/', function() {
@@ -89,6 +137,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     // Real-Time Order Monitoring
     Route::get('/orders', [OrderMonitorController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [OrderMonitorController::class, 'show'])->name('orders.show');
+
+    // Void and refund approval audit trail
+    Route::get('/transaction-requests', [TransactionRequestController::class, 'index'])->name('transaction-requests.index');
+    Route::post('/transaction-requests/{transactionRequest}/review', [TransactionRequestController::class, 'review'])->name('transaction-requests.review');
 
     // Analytics
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');

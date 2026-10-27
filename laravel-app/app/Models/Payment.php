@@ -21,6 +21,8 @@ class Payment extends Model{
         'gcash_ref_num',
         'amount_tethered',
         'change_due',
+        'transaction_status',
+        'created_at',
     ];
 
     // The attributes that should be cast.
@@ -28,11 +30,17 @@ class Payment extends Model{
         return [
             'amount_tethered' => 'decimal:2',
             'change_due' => 'decimal:2',
+            'created_at' => 'datetime',
         ];
     }
 
     // The order this payment is for.
     public function order(){
         return $this->belongsTo(Order::class, 'order_id', 'order_id');
+    }
+
+    public function transactionRequests()
+    {
+        return $this->hasMany(TransactionRequest::class, 'payment_id', 'payment_id');
     }
 }
