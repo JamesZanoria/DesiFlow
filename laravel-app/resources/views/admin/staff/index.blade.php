@@ -34,13 +34,37 @@
             </div>
         @endif
 
-    <div id="staff-table-container" class="flex-1 overflow-hidden rounded-xl border border-slate-200">
+    <div id="staff-table-container" class="flex-1 w-full min-w-0 overflow-visible block">
         @include('admin.staff._table')
     </div>
 
     <script>
         (function () {
             function tableContainer() { return document.getElementById('staff-table-container'); }
+
+            function toggleStaffMenu(btn, menuId) {
+                const menu = document.getElementById(menuId);
+                if (!menu) return;
+
+                // Close all other open menus first
+                document.querySelectorAll('.action-menu-dropdown').forEach(m => {
+                    if (m.id !== menuId) {
+                        m.classList.add('opacity-0', 'invisible');
+                        m.classList.remove('opacity-100', 'visible');
+                    }
+                });
+
+                // Toggle current menu
+                if (menu.classList.contains('opacity-0')) {
+                    menu.classList.remove('opacity-0', 'invisible');
+                    menu.classList.add('opacity-100', 'visible');
+                } else {
+                    menu.classList.add('opacity-0', 'invisible');
+                    menu.classList.remove('opacity-100', 'visible');
+                }
+            }
+            window.toggleStaffMenu = toggleStaffMenu;
+
             async function refreshTable(url) {
                 const targetUrl = url || window.location.href;
                 try {
@@ -75,11 +99,26 @@
                                 actionLabel: 'Delete',
                                 type: 'danger'
                             },
-                            onSuccess: () => refreshTable(window.location.href),
+                            onSuccess: () => {
+                                const card = document.getElementById(`staff-card-${btn.dataset.id}`);
+                                if (card) {
+                                    card.classList.add('opacity-0', 'scale-95', 'pointer-events-none', 'transition-all', 'duration-300');
+                                    setTimeout(() => card.remove(), 300);
+                                }
+                                refreshTable(window.location.href);
+                            },
                         });
                     });
                 });
             }
+
+            // Global click listener to close menus when clicking outside
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.action-menu-dropdown').forEach(m => {
+                    m.classList.add('opacity-0', 'invisible');
+                    m.classList.remove('opacity-100', 'visible');
+                });
+            });
 
             attachRowListeners(tableContainer());
             attachPaginationListeners(tableContainer());

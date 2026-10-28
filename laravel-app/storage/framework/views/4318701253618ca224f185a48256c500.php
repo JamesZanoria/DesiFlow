@@ -93,8 +93,11 @@
             </div>
 
             <!-- Collapse Trigger -->
-            <button id="sidebar-collapse-btn" class="absolute -right-3 bottom-20 w-7 h-7 bg-slate-800 text-white rounded-full border-2 border-slate-700 flex items-center justify-center z-30 hover:bg-amber-500 transition-all duration-300 shadow-lg shadow-black/40 active:scale-90 ring-2 ring-slate-900">
-                <svg id="collapse-icon" class="w-3.5 h-3.5 transition-transform duration-300" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+            <button id="sidebar-collapse-btn" class="w-full flex items-center justify-center py-3 bg-slate-950 text-slate-400 hover:text-amber-500 hover:bg-slate-800 transition-all duration-300 border-t border-slate-800 group">
+                <div class="flex items-center gap-3">
+                    <svg id="collapse-icon" class="w-4 h-4 transition-transform duration-300 group-hover:scale-110" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                    <span class="sidebar-text text-[10px] font-bold uppercase tracking-widest transition-opacity duration-200">Collapse Menu</span>
+                </div>
             </button>
         </aside>
 

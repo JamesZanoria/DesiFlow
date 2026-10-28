@@ -1,5 +1,12 @@
 {
     "require": {
         "inertiajs/inertia-laravel": "^3.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/"
+        }
     }
 }

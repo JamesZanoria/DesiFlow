@@ -17,9 +17,9 @@
         'expired' => ['label' => 'Expired', 'badge' => 'bg-rose-200 text-rose-800'],
     ];
 @endphp
-<div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-    <div class="overflow-x-auto">
-        <table class="w-full text-sm text-left border-collapse">
+<div class="bg-white border border-gray-200 rounded-xl shadow-sm">
+    <div class="w-full">
+        <table class="w-full text-sm text-left border-collapse table-fixed">
             <thead class="bg-gray-50/80 text-gray-500 text-xs uppercase tracking-wider font-semibold border-b border-gray-200">
                 <tr class="h-10">
                     <th class="px-6 py-4 font-semibold">Ingredient</th>
@@ -37,13 +37,6 @@
                     <tr id="ingredient-row-{{ $ingredient->ingredient_id }}" class="hover:bg-gray-50 transition-colors duration-150 group">
                         <td class="px-6 py-4 cell-name">
                             <div class="flex items-center gap-3">
-                                <div class="w-9 h-9 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden flex items-center justify-center shadow-sm">
-                                    @if ($ingredient->image_url)
-                                        <img src="{{ $ingredient->image_url }}" alt="" class="w-full h-full object-cover">
-                                    @else
-                                        <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M18 10.5h.008v.008H18V10.5zm-12 9h12a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0018 4.5H6a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 006 19.5z" /></svg>
-                                    @endif
-                                </div>
                                 <span class="font-semibold text-gray-900 cell-name-text truncate">{{ $ingredient->ingredient_name }}</span>
                             </div>
                         </td>
@@ -93,35 +86,61 @@
                             </div>
                         </td>
                         <td class="px-6 py-4 text-right">
-                            <div class="flex justify-end gap-1">
+                            <div class="flex justify-end items-center gap-1">
                                 @if ($status === 'expired')
+                                    {{-- 3 Actions: Use Ellipsis Menu --}}
+                                    <div class="relative inline-block text-left">
+                                        <button type="button"
+                                            class="action-menu-btn p-2 rounded-full bg-white shadow-sm text-gray-400 hover:text-slate-600 transition-colors"
+                                            data-menu-id="menu-{{ $ingredient->ingredient_id }}">
+                                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M5 10a2 2 0 110-4 2 2 0 010 4zM10 10a2 2 0 110-4 2 2 0 010 4zM15 10a2 2 0 110-4 2 2 0 010 4z" />
+                                            </svg>
+                                        </button>
+                                        <div class="action-menu-dropdown absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-xl shadow-lg opacity-0 invisible transition-all duration-200 z-50 overflow-hidden"
+                                             id="menu-{{ $ingredient->ingredient_id }}">
+                                            <div class="p-1 space-y-1">
+                                                <button type="button"
+                                                    class="mark-waste-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-gray-600 hover:bg-rose-50 hover:text-rose-700 transition-colors"
+                                                    title="Mark expired stock as waste"
+                                                    data-id="{{ $ingredient->ingredient_id }}"
+                                                    data-name="{{ $ingredient->ingredient_name }}"
+                                                    data-current-stock="{{ $ingredient->current_stock ?? 0 }}"
+                                                    data-unit="{{ $ingredient->unit_of_measurement }}">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                    Mark as Waste
+                                                </button>
+                                                <button type="button"
+                                                    class="edit-ingredient-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-gray-600 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                                                    title="Edit"
+                                                    data-id="{{ $ingredient->ingredient_id }}"
+                                                    onclick="window.location.href='{{ route('admin.inventory.edit', $ingredient->ingredient_id) }}'">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
+                                                    Edit Ingredient
+                                                </button>
+                                                <button type="button"
+                                                    class="delete-ingredient-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-gray-600 hover:bg-red-50 hover:text-red-700 transition-colors"
+                                                    title="Delete" data-id="{{ $ingredient->ingredient_id }}" data-name="{{ $ingredient->ingredient_name }}">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165" /></svg>
+                                                    Delete Ingredient
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @else
+                                    {{-- 2 Actions: Show buttons directly in a row --}}
                                     <button type="button"
-                                        class="mark-waste-btn p-2 rounded-lg text-gray-400 hover:text-rose-700 hover:bg-rose-50 transition-colors"
-                                        title="Mark expired stock as waste"
-                                        data-id="{{ $ingredient->ingredient_id }}"
-                                        data-name="{{ $ingredient->ingredient_name }}"
-                                        data-current-stock="{{ $ingredient->current_stock ?? 0 }}"
-                                        data-unit="{{ $ingredient->unit_of_measurement }}">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        class="edit-ingredient-btn p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                        title="Edit"
+                                        onclick="window.location.href='{{ route('admin.inventory.edit', $ingredient->ingredient_id) }}'">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
+                                    </button>
+                                    <button type="button"
+                                        class="delete-ingredient-btn p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                        title="Delete" data-id="{{ $ingredient->ingredient_id }}" data-name="{{ $ingredient->ingredient_name }}">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165" /></svg>
                                     </button>
                                 @endif
-                                <button type="button"
-                                    class="edit-ingredient-btn p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                                    title="Edit"
-                                    data-id="{{ $ingredient->ingredient_id }}"
-                                    data-name="{{ $ingredient->ingredient_name }}"
-                                    data-unit="{{ $ingredient->unit_of_measurement }}"
-                                    data-cost="{{ $ingredient->unit_cost }}"
-                                    data-threshold="{{ $ingredient->restock_threshold }}"
-                                    data-current-stock="{{ $ingredient->current_stock ?? 0 }}"
-                                    data-linked-item-ids="{{ $ingredient->recipeIngredients()->where('is_active', true)->pluck('menu_item_id')->implode(',') }}">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
-                                </button>
-                                <button type="button"
-                                    class="delete-ingredient-btn p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                                    title="Delete" data-id="{{ $ingredient->ingredient_id }}" data-name="{{ $ingredient->ingredient_name }}">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165" /></svg>
-                                </button>
                             </div>
                         </td>
                     </tr>
