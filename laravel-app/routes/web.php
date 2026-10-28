@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\OrderMonitorController;
 use App\Http\Controllers\Admin\SmartAssistantController;
 use App\Http\Controllers\Admin\NotificationsController;
 use App\Http\Controllers\Admin\ProtectedFileController;
+use App\Http\Controllers\Customer\MenuController as CustomerMenuController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -102,3 +103,5 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::post('/notifications/mark-read', [NotificationsController::class, 'markAllAsRead'])->name('notifications.markRead');
 
 });
+
+Route::get('/api/customer/menu', [CustomerMenuController::class, 'index']);

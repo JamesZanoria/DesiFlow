@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
-    <title>DesiFlow - Cart & Current Order (new look)</title>
+    <title>DesiFlow - Cart & Current Order</title>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -85,61 +85,44 @@
         });
 
         function loadCartItems() {
-    const box = document.getElementById('cart-items-container');
-    const cart = getCart();
-    document.getElementById('place-btn').disabled = cart.length === 0;
+            const box = document.getElementById('cart-items-container');
+            const cart = getCart();
+            document.getElementById('place-btn').disabled = cart.length === 0;
 
-    if (!cart.length) {
-        box.innerHTML = `
-            <div class="text-center py-16 space-y-3">
-                <p class="text-slate-400 text-sm">Your cart is empty. Pick something from the menu to get started.</p>
-                <button onclick="location.href='menu.html'" class="bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow">Browse menu</button>
-            </div>`;
-        updateTotals(cart); return;
-    }
+            if (!cart.length) {
+                box.innerHTML = `
+                    <div class="text-center py-16 space-y-3">
+                        <p class="text-slate-400 text-sm">Your cart is empty. Pick something from the menu to get started.</p>
+                        <button onclick="location.href='menu.html'" class="bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow">Browse menu</button>
+                    </div>`;
+                updateTotals(cart); return;
+            }
 
-    box.innerHTML = cart.map((item, i) => `
-        <div class="bg-white border border-amber-100 rounded-3xl p-3.5 shadow-sm card-in flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3 min-w-0">
-                <div class="w-16 h-16 shrink-0 rounded-2xl bg-amber-100 flex items-center justify-center text-[10px] text-amber-700/60 overflow-hidden">
-                    ${item.image ? `<img src="${item.image}" class="w-full h-full object-cover" alt="">` : 'No photo'}
-                </div>
-                <div class="min-w-0">
-                    <h4 class="font-bold text-sm text-slate-900 truncate">${item.name}</h4>
-                    ${(item.addons && item.addons.length) ? `<p class="text-xs text-slate-400 truncate">+ ${item.addons.map(a => a.name).join(', ')}</p>` : `<p class="text-xs text-slate-400 capitalize">${item.category}</p>`}
-                    <p class="text-sm font-extrabold text-slate-900 mt-1">${peso(item.price)} each</p>
-                </div>
-            </div>
-            <div class="flex flex-col items-end gap-2 shrink-0">
-                <div class="flex items-center gap-1">
-                    <button onclick="editCartItem(${i})" class="w-8 h-8 rounded-xl text-slate-400 hover:text-amber-500 hover:bg-amber-50 flex items-center justify-center transition" aria-label="Edit ${item.name}">
-                        <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
-                    </button>
-                    <button onclick="askRemove(${i})" class="w-8 h-8 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center transition" aria-label="Remove ${item.name}">
-                        <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.35 9m-4.78 0L9.26 9m9.97-3.21c.34.05.68.11 1.02.17m-1.02-.17L18.16 19.67a2.25 2.25 0 01-2.24 2.08H8.08a2.25 2.25 0 01-2.24-2.08L4.77 5.79m14.46 0a48.1 48.1 0 00-3.48-.4m-12 .57c.34-.06.68-.12 1.02-.17m0 0a48.1 48.1 0 013.48-.4m7.5 0v-.92c0-1.18-.91-2.16-2.09-2.2a51.96 51.96 0 00-3.32 0c-1.18.04-2.09 1.02-2.09 2.2v.92m7.5 0a48.67 48.67 0 00-7.5 0"/></svg>
-                    </button>
-                </div>
-                <div class="flex items-center bg-amber-100 rounded-xl">
-                    <button onclick="updateQuantity(${i}, -1)" class="w-8 h-8 font-bold text-slate-600 hover:text-amber-600" aria-label="Decrease">&minus;</button>
-                    <span class="w-6 text-center text-sm font-bold">${item.quantity}</span>
-                    <button onclick="updateQuantity(${i}, 1)" class="w-8 h-8 font-bold text-slate-600 hover:text-amber-600" aria-label="Increase">+</button>
-                </div>
-            </div>
-        </div>`).join('');
-    updateTotals(cart);
-}
-   
-        function editCartItem(i) {
-    const cart = getCart();
-    const item = cart[i];
-    if (!item) return;
-    
-    // Save which cart index we are editing
-    sessionStorage.setItem('edit_cart_index', i);
-    
-    // Redirect to menu page with the dish ID in the URL
-    location.href = `menu.html?open_item=${item.id}`;
-}
+            box.innerHTML = cart.map((item, i) => `
+                <div class="bg-white border border-amber-100 rounded-3xl p-3.5 shadow-sm card-in flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-16 h-16 shrink-0 rounded-2xl bg-amber-100 flex items-center justify-center text-[10px] text-amber-700/60 overflow-hidden">
+                            ${item.image ? `<img src="${item.image}" class="w-full h-full object-cover" alt="">` : 'No photo'}
+                        </div>
+                        <div class="min-w-0">
+                            <h4 class="font-bold text-sm text-slate-900 truncate">${item.name}</h4>
+                            <p class="text-xs text-slate-400 capitalize">${item.category}</p>
+                            <p class="text-sm font-extrabold text-slate-900 mt-1">${peso(item.price)} each</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end gap-2 shrink-0">
+                        <button onclick="askRemove(${i})" class="w-8 h-8 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center transition" aria-label="Remove ${item.name}">
+                            <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.35 9m-4.78 0L9.26 9m9.97-3.21c.34.05.68.11 1.02.17m-1.02-.17L18.16 19.67a2.25 2.25 0 01-2.24 2.08H8.08a2.25 2.25 0 01-2.24-2.08L4.77 5.79m14.46 0a48.1 48.1 0 00-3.48-.4m-12 .57c.34-.06.68-.12 1.02-.17m0 0a48.1 48.1 0 013.48-.4m7.5 0v-.92c0-1.18-.91-2.16-2.09-2.2a51.96 51.96 0 00-3.32 0c-1.18.04-2.09 1.02-2.09 2.2v.92m7.5 0a48.67 48.67 0 00-7.5 0"/></svg>
+                        </button>
+                        <div class="flex items-center bg-amber-100 rounded-xl">
+                            <button onclick="updateQuantity(${i}, -1)" class="w-8 h-8 font-bold text-slate-600 hover:text-amber-600" aria-label="Decrease">&minus;</button>
+                            <span class="w-6 text-center text-sm font-bold">${item.quantity}</span>
+                            <button onclick="updateQuantity(${i}, 1)" class="w-8 h-8 font-bold text-slate-600 hover:text-amber-600" aria-label="Increase">+</button>
+                        </div>
+                    </div>
+                </div>`).join('');
+            updateTotals(cart);
+        }
 
         function updateQuantity(i, change) {
             const cart = getCart();
