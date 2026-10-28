@@ -64,7 +64,6 @@ window.Chart = Chart;
 
 
 
-
 /**
  * Device detection helper to return 'mobile' or 'desktop' based on screen width.
  */
@@ -181,12 +180,12 @@ function getCsrfToken() {
  * for PUT/PATCH/DELETE (avoids the multipart-body parsing issues real HTTP PUT/DELETE
  * requests have in PHP). Renders 422 validation errors into `errorBox` if provided,
  * shows a toast on both success and failure, and hands the parsed JSON to `onSuccess`.
- 
+ *
  * Uses XMLHttpRequest rather than fetch() specifically so upload progress can be
  * reported via the optional `onUploadProgress(percent, loadedBytes, totalBytes)`
  * callback, fetch has no cross-browser way to observe request-body upload progress,
  * only response-download progress, which is useless for file uploads.
- 
+ *
  * Any failure, a validation error aside, always produces a visible toast/error
  * message, so a request can never fail completely silently.
  */
@@ -387,7 +386,6 @@ function confirmAction({ title = 'Confirm Action', message = '', actionLabel = '
             document.removeEventListener('keydown', handleEscape);
         };
 
-
         const cancelBtn = document.getElementById('confirmation-modal-cancel');
         cancelBtn.addEventListener('click', handleCancel);
         confirmBtn.addEventListener('click', handleConfirm);
@@ -453,17 +451,11 @@ async function submitAjaxAction({ url, method = 'DELETE', confirmMessage = null,
         }
 
         if (!response.ok) {
-            // Surface the server's actual message when available (e.g. a foreign-key
-            // constraint explanation), instead of always showing a generic failure,
-            // this matters for cases like "can't delete, it's still in use."
             showToast((data && data.message) || 'Something went wrong. Please try again.', 'error');
             onError?.(data);
             return;
         }
 
-        // toastMessage lets a call site override the backend's generic message
-        // (e.g. "Menu item updated successfully.") with something more specific
-        // to what the user actually did (e.g. "Marked unavailable.").
         showToast(toastMessage ?? data?.message ?? 'Done.', toastKind ?? 'success');
         onSuccess?.(data);
     } catch (err) {
@@ -483,15 +475,9 @@ window.submitAjaxAction = submitAjaxAction;
  * Filter-chip clear ("x") buttons, shared by every admin filter/search bar
  * (Menu's Category chip, Staff's Role chip, and the search box on all three
  * pages: Menu, Inventory, Staff). Registered once here via event delegation
- * rather than per-page, since the button only ever does one thing regardless
+ * instead of per-page, since the button only ever does one thing regardless
  * of which page or field it's attached to: blank out its own field and
  * resubmit the surrounding GET filter form.
- 
- * Resubmitting the whole form (rather than just navigating to a hand-built
- * URL) is what lets clearing one filter leave any other active filter in the
- * same form untouched, e.g. clearing Category on Menu Management preserves
- * an active Search term, and vice versa, instead of a single "Clear" link
- * wiping every filter at once.
  */
 document.addEventListener('click', (e) => {
     const btn = e.target.closest('.filter-chip-clear');
@@ -512,11 +498,6 @@ document.addEventListener('click', (e) => {
  * anywhere without its own <script> block.
  */
 document.addEventListener('click', (e) => {
-    // Close every popover whose trigger/content wasn't part of this click,
-    // before handling what the click actually landed on. A container whose
-    // own trigger was clicked is deliberately left alone here, its
-    // open/closed state is decided explicitly in the trigger branch below,
-    // not by this "click was outside" sweep.
     document.querySelectorAll('[data-filter-select]').forEach((container) => {
         if (!container.contains(e.target)) {
             container.querySelector('.filter-select-popover')?.classList.add('hidden');
@@ -542,42 +523,95 @@ document.addEventListener('click', (e) => {
         }
         return;
     }
+
+    const filterOption = e.target.closest('.filter-select-option');
+    if (filterOption) {
+        const container = filterOption.closest('[data-filter-select]');
+        const hiddenInput = container.querySelector('input[type="hidden"]');
+        const value = filterOption.dataset.optionValue;
+        const label = filterOption.dataset.optionLabel;
+
+        hiddenInput.value = value;
+
+        const trigger = container.querySelector('.filter-select-trigger');
+        const triggerValue = trigger?.querySelector('.min-w-0');
+        if (triggerValue) {
+            const labelText = triggerValue.querySelector('.text-gray-500')?.innerText || '';
+            triggerValue.innerHTML = `<span class="text-gray-500">${labelText}</span> <span class="text-gray-800 font-medium">${label}</span>`;
+        }
+
+        const form = container.closest('form');
+        if (form) form.submit();
+        return;
+    }
+
+    const triggerCombo = e.target.closest('.combo-select-trigger');
+    if (triggerCombo) {
+        const container = triggerCombo.closest('[data-combo-select]');
+        const popover = container.querySelector('.combo-select-popover');
+        const wasOpen = !popover.classList.contains('hidden');
+        popover.classList.toggle('hidden');
+        if (!wasOpen) {
+            const search = container.querySelector('.combo-select-search');
+            if (search) { search.value = ''; search.focus(); }
+            filterComboSelectOptions(container);
+        }
+        return;
+    }
+
+    const option = e.target.closest('.combo-select-option');
+    if (option) {
+        const container = option.closest('[data-combo-select]');
+        setComboSelectValue(container, option.dataset.value, option.dataset.label || option.dataset.value);
+        closeComboSelectPopover(container);
+        return;
+    }
+
+    const useTyped = e.target.closest('.combo-select-use-typed');
+    if (useTyped) {
+        const container = useTyped.closest('[data-combo-select]');
+        const typed = container.querySelector('.combo-select-typed-value').textContent.trim();
+        if (typed) { setComboSelectValue(container, typed); closeComboSelectPopover(container); }
+        return;
+    }
 });
 
-// Live search-as-you-type filtering within an open popover's option list.
 document.addEventListener('input', (e) => {
-    if (!e.target.matches('.filter-select-search')) return;
+    if (!e.target.matches('.combo-select-search')) return;
+    filterComboSelectOptions(e.target.closest('[data-combo-select]'));
+});
 
-    const query = e.target.value.trim().toLowerCase();
-    const list = e.target.closest('[data-filter-select]').querySelector('.filter-select-list');
+function closeComboSelectPopover(container) {
+    container.querySelector('.combo-select-popover')?.classList.add('hidden');
+}
+
+function filterComboSelectOptions(container) {
+    const allowCustom = container.dataset.allowCustom !== 'false';
+    const search = container.querySelector('.combo-select-search');
+    const query = (search?.value || '').trim().toLowerCase();
+    const useTypedBtn = container.querySelector('.combo-select-use-typed');
+    const typedValueEl = container.querySelector('.combo-select-typed-value');
+    const emptyMsg = container.querySelector('.combo-select-empty');
     let anyVisible = false;
+    let exactMatch = false;
 
-    list.querySelectorAll('.filter-select-option').forEach((option) => {
-        const matches = (option.dataset.optionLabel || '').includes(query);
-        option.classList.toggle('hidden', !matches);
+    container.querySelectorAll('.combo-select-option').forEach((opt) => {
+        const label = (opt.dataset.label || opt.dataset.value).toLowerCase();
+        const matches = !query || label.includes(query);
+        opt.classList.toggle('hidden', !matches);
         if (matches) anyVisible = true;
+        if (query && label === query) exactMatch = true;
     });
 
-    list.querySelector('.filter-select-empty')?.classList.toggle('hidden', anyVisible);
-});
+    if (allowCustom && query && !exactMatch) {
+        if (typedValueEl) typedValueEl.textContent = search.value.trim();
+        useTypedBtn?.classList.remove('hidden');
+    } else {
+        useTypedBtn?.classList.add('hidden');
+    }
+    if (emptyMsg) emptyMsg.classList.toggle('hidden', anyVisible || (allowCustom && !!query));
+}
 
-// Escape closes any open popover regardless of where focus currently is.
-document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape') return;
-    document.querySelectorAll('.filter-select-popover:not(.hidden)').forEach((popover) => {
-        popover.classList.add('hidden');
-        popover.closest('[data-filter-select]')?.querySelector('.filter-select-trigger')?.setAttribute('aria-expanded', 'false');
-    });
-});
-
-/**
- * Category / Unit of Measurement combo-select ("pick from list or type
- * new") used by Inventory's Add/Edit Ingredient modal. Same popover
- * interaction as the filter-select chips above, but backs a hidden
- * <input> (posted as a real form field) instead of a GET filter, and lets
- * the admin type a value that isn't in the list yet.
- */
-// ... (existing code before line 486)
 function setComboSelectValue(container, value, label) {
     if (!container) return;
     const hidden = container.querySelector('input[type="hidden"]');
@@ -585,7 +619,7 @@ function setComboSelectValue(container, value, label) {
     if (!hidden || !trigger) return;
 
     hidden.value = value;
-    hidden.dispatchEvent(new Event('change', { bubbles: true })); // keeps existing 'change' listeners working
+    hidden.dispatchEvent(new Event('change', { bubbles: true }));
     const displayLabel = label ?? value;
     trigger.textContent = displayLabel || container.dataset.placeholder || 'Select or type new';
     trigger.classList.toggle('text-gray-400', !value);
@@ -594,23 +628,17 @@ function setComboSelectValue(container, value, label) {
         opt.querySelector('.combo-select-check')?.classList.toggle('hidden', opt.dataset.value !== value);
     });
 }
-window.setComboSelectValue = setComboSelectValue; // used by index.blade.php's openModal() to sync Edit mode
+window.setComboSelectValue = setComboSelectValue;
 
-/**
- * Multi-select variant of the combo-select.
- * Manages a list of selected tags and updates a hidden input with comma-separated IDs.
- */
 function setMultiComboSelectValue(container, values, optionsMap = {}) {
     const hidden = container.querySelector('input[type="hidden"]');
     const trigger = container.querySelector('.multi-combo-select-value');
 
-    // values is an array of IDs
     if (hidden) {
         hidden.value = (values || []).join(',');
         hidden.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
-    // Render tags with summary for overflow
     trigger.innerHTML = '';
     const selected = values || [];
     if (selected.length === 0) {
@@ -647,135 +675,6 @@ function setMultiComboSelectValue(container, values, optionsMap = {}) {
     });
 }
 window.setMultiComboSelectValue = setMultiComboSelectValue;
-// ... (rest of the file)
-
-function closeComboSelectPopover(container) {
-    container.querySelector('.combo-select-popover')?.classList.add('hidden');
-}
-
-function filterComboSelectOptions(container) {
-    const allowCustom = container.dataset.allowCustom !== 'false';
-    const search = container.querySelector('.combo-select-search');
-    const query = (search?.value || '').trim().toLowerCase();
-    const useTypedBtn = container.querySelector('.combo-select-use-typed');
-    const typedValueEl = container.querySelector('.combo-select-typed-value');
-    const emptyMsg = container.querySelector('.combo-select-empty');
-    let anyVisible = false;
-    let exactMatch = false;
-
-    container.querySelectorAll('.combo-select-option').forEach((opt) => {
-        const label = (opt.dataset.label || opt.dataset.value).toLowerCase();
-        const matches = !query || label.includes(query);
-        opt.classList.toggle('hidden', !matches);
-        if (matches) anyVisible = true;
-        if (query && label === query) exactMatch = true;
-    });
-
-    if (allowCustom && query && !exactMatch) {
-        if (typedValueEl) typedValueEl.textContent = search.value.trim();
-        useTypedBtn?.classList.remove('hidden');
-    } else {
-        useTypedBtn?.classList.add('hidden');
-    }
-    if (emptyMsg) emptyMsg.classList.toggle('hidden', anyVisible || (allowCustom && !!query));
-}
-
-document.addEventListener('click', (e) => {
-    document.querySelectorAll('[data-combo-select]').forEach((container) => {
-        if (!container.contains(e.target)) closeComboSelectPopover(container);
-    });
-
-    const filterOption = e.target.closest('.filter-select-option');
-    if (filterOption) {
-        const container = filterOption.closest('[data-filter-select]');
-        const hiddenInput = container.querySelector('input[type="hidden"]');
-        const value = filterOption.dataset.optionValue;
-        const label = filterOption.dataset.optionLabel;
-
-        hiddenInput.value = value;
-
-        const trigger = container.querySelector('.filter-select-trigger');
-        const triggerValue = trigger?.querySelector('.min-w-0');
-        if (triggerValue) {
-            // Update the "Label: Value" format
-            const labelText = triggerValue.querySelector('.text-gray-500')?.innerText || '';
-            triggerValue.innerHTML = `<span class="text-gray-500">${labelText}</span> <span class="text-gray-800 font-medium">${label}</span>`;
-        }
-
-        const form = container.closest('form');
-        if (form) form.submit();
-        return;
-    }
-
-    const trigger = e.target.closest('.combo-select-trigger');
-    if (trigger) {
-        const container = trigger.closest('[data-combo-select]');
-        const popover = container.querySelector('.combo-select-popover');
-        const wasOpen = !popover.classList.contains('hidden');
-        popover.classList.toggle('hidden');
-        if (!wasOpen) {
-            const search = container.querySelector('.combo-select-search');
-            if (search) { search.value = ''; search.focus(); }
-            filterComboSelectOptions(container);
-        }
-        return;
-    }
-
-    const option = e.target.closest('.combo-select-option');
-    if (option) {
-        const container = option.closest('[data-combo-select]');
-        setComboSelectValue(container, option.dataset.value, option.dataset.label || option.dataset.value);
-        closeComboSelectPopover(container);
-        return;
-    }
-
-    const useTyped = e.target.closest('.combo-select-use-typed');
-    if (useTyped) {
-        const container = useTyped.closest('[data-combo-select]');
-        const typed = container.querySelector('.combo-select-typed-value').textContent.trim();
-        if (typed) { setComboSelectValue(container, typed); closeComboSelectPopover(container); }
-        return;
-    }
-});
-
-document.addEventListener('input', (e) => {
-    if (!e.target.matches('.combo-select-search')) return;
-    filterComboSelectOptions(e.target.closest('[data-combo-select]'));
-});
-
-// ... (around line 518)
-function toggleInventoryMenu(btn, menuId) {
-    const menu = document.getElementById(menuId);
-    if (!menu) return;
-
-    // Close all other open menus first
-    document.querySelectorAll('.action-menu-dropdown').forEach(m => {
-        if (m.id !== menuId) {
-            m.classList.add('opacity-0', 'invisible');
-            m.classList.remove('opacity-100', 'visible');
-        }
-    });
-
-    // Toggle current menu
-    if (menu.classList.contains('opacity-0')) {
-        menu.classList.remove('opacity-0', 'invisible');
-        menu.classList.add('opacity-100', 'visible');
-    } else {
-        menu.classList.add('opacity-0', 'invisible');
-        menu.classList.remove('opacity-100', 'visible');
-    }
-}
-window.toggleInventoryMenu = toggleInventoryMenu;
-
-document.addEventListener('click', (e) => {
-    // Close any open action menus when clicking outside
-    if (!e.target.closest('.action-menu-btn')) {
-        document.querySelectorAll('.action-menu-dropdown').forEach(m => {
-            m.classList.add('opacity-0', 'invisible');
-            m.classList.remove('opacity-100', 'visible');
-        });
-    }
-});
 
 document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
@@ -785,22 +684,13 @@ document.addEventListener('keydown', (e) => {
         p.closest('[data-filter-select]')?.querySelector('.filter-select-trigger')?.setAttribute('aria-expanded', 'false');
     });
 });
-// ... (rest of the file)
 
-/**
- * Search-with-suggestions dropdown, see admin/partials/_filter_search.blade.php.
- * Opt-in per instance (only renders when a page passes a $suggestions list),
- * so this has zero effect on search boxes that don't use it.
- */
 const SUGGESTION_HIGHLIGHT_CLASS = 'bg-gray-100';
 
 function visibleSuggestions(list) {
     return [...list.querySelectorAll('.search-suggestion:not(.hidden)')];
 }
 
-// Filter suggestions live as the admin types. Deliberately hidden entirely
-// on an empty query, suggestions only appear "when the user has already
-// input" something, not just from focusing an empty search box.
 document.addEventListener('input', (e) => {
     if (!e.target.matches('.search-suggest-input')) return;
 
@@ -815,7 +705,7 @@ document.addEventListener('input', (e) => {
 
     let anyVisible = false;
     list.querySelectorAll('.search-suggestion').forEach((btn) => {
-        btn.classList.remove(SUGGESTION_HIGHLIGHT_CLASS); // clear stale keyboard highlight
+        btn.classList.remove(SUGGESTION_HIGHLIGHT_CLASS);
         const matches = btn.dataset.value.toLowerCase().includes(query);
         btn.classList.toggle('hidden', !matches);
         if (matches) anyVisible = true;
@@ -825,9 +715,6 @@ document.addEventListener('input', (e) => {
     list.classList.remove('hidden');
 });
 
-// Re-show the dropdown when refocusing a field that already has text typed
-// (e.g. tabbing back in), 'focus' doesn't bubble, so this needs the
-// capture phase to work via delegation.
 document.addEventListener('focus', (e) => {
     if (!e.target.matches?.('.search-suggest-input')) return;
     const list = e.target.closest('[data-search-suggest]')?.querySelector('.search-suggest-list');
@@ -847,11 +734,6 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    // Close any open suggestions dropdown when clicking elsewhere. This is
-    // click-based rather than a 'blur' handler on the input deliberately:
-    // blur fires (on mousedown) before a click on a suggestion button ever
-    // reaches this listener, so hiding on blur would make every suggestion
-    // unclickable, the list would vanish a moment before the click landed.
     document.querySelectorAll('[data-search-suggest]').forEach((wrapper) => {
         if (!wrapper.contains(e.target)) {
             wrapper.querySelector('.search-suggest-list')?.classList.add('hidden');
@@ -885,13 +767,9 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// Ensure pressing Enter in any search bar immediately applies the filter,
-// matching the behavior of Menu and Staff Management.
 document.addEventListener('keydown', (e) => {
     if (e.target.matches('input[name="search"]')) {
         if (e.key === 'Enter') {
-            // The suggestions handler above handles Enter when an option is highlighted.
-            // If that handler didn't prevent default, we submit the form here.
             e.preventDefault();
             const form = e.target.closest('form');
             if (form) form.submit();
@@ -899,14 +777,6 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-/**
- * Notification bell, lives in the shared layout, so this runs on every admin page.
- * Fetches current alerts from the notifications endpoint, populates the dropdown
- * with a per-type icon and a relative timestamp, and tracks which alerts the admin
- * has already dismissed via "Mark all as read" (stored in localStorage, since there's
- * no backend notifications table to persist true read/unread state against, this is
- * a "don't keep bugging me about the same alert" mechanism, not a durable read log).
- */
 const NOTIFICATION_ICONS = {
     low_stock: {
         bg: 'bg-red-100', color: 'text-red-600',
@@ -1016,11 +886,6 @@ function initNotificationBell() {
     });
 
     loadNotifications();
-    // Poll frequently enough that new alerts show up without the admin needing to
-    // manually refresh the page, true push (no delay at all) would need WebSocket
-    // broadcasting (Laravel Reverb, per the project architecture), which is a bigger
-    // piece of shared infrastructure outside this page's scope. This is the practical
-    // middle ground until that's wired up.
     setInterval(loadNotifications, 15000);
 }
 
