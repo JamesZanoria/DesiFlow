@@ -13,6 +13,16 @@ class AnalyticsController extends Controller{
     // Display the analytics report, each section pulled from the most recent
     // batch the analytics microservice generated.
     public function index(){
+        $data = $this->getAnalyticsData();
+
+        return view('admin.analytics.index', $data);
+    }
+
+    public function getData(){
+        return response()->json($this->getAnalyticsData());
+    }
+
+    private function getAnalyticsData(){
         $businessHealth = AnalyticsSnapshot::latestOfType('business_health')->first();
         $businessHealthHistory = $this->businessHealthHistory();
 
@@ -31,17 +41,18 @@ class AnalyticsController extends Controller{
                 ->count(),
         ];
 
-        return view('admin.analytics.index', [
+        return [
             'businessHealth' => $businessHealth,
-            'businessHealthHistory' => $businessHealthHistory,
+            'businessHealthHistory' => $this->businessHealthHistory(),
             'menuEngineering' => $menuEngineering,
             'demandForecast' => $demandForecast,
             'spoilageRisk' => $spoilageRisk,
             'kpis' => $kpis,
-        ]);
+        ];
     }
 
     // Last 30 days of business_health snapshots, oldest first, for the trend
+
     // line chart. Unlike the other three snapshot types (which the
     // microservice overwrites in place),
     // 'business_health' is expected to accumulate one row per day, so this

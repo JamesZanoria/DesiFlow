@@ -7,192 +7,163 @@ use App\Models\MenuItem;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class SmartAssistantService
 {
-    protected $apiKey;
-    protected $model;
-    protected $systemPrompt;
-
     public function __construct()
     {
-        $this->apiKey = config('assistant.api_key');
-        $this->model = config('assistant.model');
-        $this->systemPrompt = config('assistant.system_prompt');
+        // No longer requiring API keys for rule-based intelligence
     }
 
     /**
      * Main entry point to process a user message.
-     * Now uses an AI Agentic Loop with Tool Use.
+     * Uses a rule-based keyword mapping to dispatch tools.
      */
-    public function handleMessage(string $message, ?string $lastEntity = null): array
+    public function handleMessage(string $message, ?string $conversationId = null, ?string $imageUrl = null): array
     {
-        if (!$this->apiKey) {
-            return [
-                'answer' => "I'm sorry, but my AI brain is currently offline (API key missing). Please contact the admin.",
-                'resolved_entity' => null,
-            ];
-        }
-
-        $conversationHistory = $this->getConversationHistory(Auth::id());
-        $conversationHistory[] = ['role' => 'user', 'content' => $message];
-
-        try {
-            $response = $this->executeAgentLoop($conversationHistory);
-            $answer = $response['answer'];
-            $entity = $response['resolved_entity'];
-
-            // Save the final interaction to history
-            $this->saveToHistory(Auth::id(), $message, $answer);
-
-            return [
-                'answer' => $answer,
-                'resolved_entity' => $entity,
-            ];
-        } catch (\Exception $e) {
-            Log::error("SmartAssistant Error: " . $e->getMessage());
-            return [
-                'answer' => "I encountered a slight hiccup while thinking. Could you please try asking that again?",
-                'resolved_entity' => null,
-            ];
-        }
-    }
-
-    /**
-     * The core Agentic Loop: Reasoning -> Tool Call -> Observation -> Final Answer.
-     */
-    private function executeAgentLoop(array $history): array
-    {
-        $currentHistory = $history;
+        $input = strtolower($message);
         $resolvedEntity = null;
+        $answer = "";
+        $insights = null;
 
-        // Maximum 3 iterations to prevent infinite loops
-        for ($i = 0; $i < 3; $i++) {
-            $response = $this->callLLM($currentHistory);
-
-            if (!isset($response['tool_use'])) {
-                return [
-                    'answer' => $response['content'],
-                    'resolved_entity' => $resolvedEntity,
-                ];
+        // 1. Image Analysis Path (Priority)
+        if ($imageUrl) {
+            $result = $this->toolAnalyzeImage($imageUrl);
+            $answer = $result['text'];
+            $insights = $result['data'] ?? null;
+        } else {
+            // 2. Rule-Based Intent Mapping
+            if (str_contains($input, 'stock') || str_contains($input, 'inventory') || str_contains($input, 'amount of')) {
+                if (str_contains($input, 'low') || str_contains($input, 'critical')) {
+                    $result = $this->toolGetLowStockItems();
+                    $answer = $result['text'];
+                    $insights = $result['data'] ?? null;
+                } else {
+                    // Try to extract ingredient name from message
+                    $ingredientName = $this->extractIngredientName($message);
+                    if ($ingredientName) {
+                        $result = $this->toolGetStockLevel($ingredientName);
+                        $answer = $result['text'];
+                        $insights = $result['data'] ?? null;
+                        $resolvedEntity = $result['entity'];
+                    } else {
+                        $answer = "I can check stock levels for you. Please specify an ingredient (e.g., 'How much Rice do we have?').";
+                    }
+                }
+            } elseif (str_contains($input, 'revenue') || str_contains($input, 'earnings') || str_contains($input, 'money') || str_contains($input, 'sales')) {
+                $result = $this->toolGetDailyRevenue();
+                $answer = $result['text'];
+                $insights = $result['data'] ?? null;
+            } elseif (str_contains($input, 'available') || str_contains($input, 'availability') || str_contains($input, 'can i sell')) {
+                $itemName = $this->extractMenuItemName($message);
+                if ($itemName) {
+                    $result = $this->toolCheckMenuAvailability($itemName);
+                    $answer = $result['text'];
+                    $insights = $result['data'] ?? null;
+                    $resolvedEntity = $result['entity'];
+                } else {
+                    $answer = "I can check if a dish is available. Please specify the menu item name.";
+                }
+            } elseif (str_contains($input, 'staff') || str_contains($input, 'employee') || str_contains($input, 'who works')) {
+                $result = $this->toolGetStaffList();
+                $answer = $result['text'];
+                $insights = $result['data'] ?? null;
+            } elseif (str_contains($input, 'expiry') || str_contains($input, 'expired') || str_contains($input, 'spoilage')) {
+                $result = $this->toolCheckExpiries();
+                $answer = $result['text'];
+                $insights = $result['data'] ?? null;
+            } elseif (str_contains($input, 'hello') || str_contains($input, 'hi') || str_contains($input, 'hey')) {
+                $answer = "Hello! I am DZAI, your Business Intelligence Assistant. I can help you with stock levels, daily revenue, menu availability, and staff lists. What would you like to check?";
+            } else {
+                $answer = "I'm sorry, I don't understand that request. I specialize in Desi Zaika's business data. You can ask me about stock levels, daily revenue, menu availability, or staff lists.";
             }
-
-            $toolCall = $response['tool_use'];
-            $toolName = $toolCall['name'];
-            $args = $toolCall['input'] ?? [];
-
-            // Execute the tool and get the observation
-            $observation = $this->executeTool($toolName, $args);
-
-            // Update entity if the tool returned one
-            if (isset($observation['entity'])) {
-                $resolvedEntity = $observation['entity'];
-            }
-
-            // Feed the observation back to the LLM
-            $currentHistory[] = [
-                'role' => 'assistant',
-                'content' => $response['content'],
-                'tool_use' => $toolCall
-            ];
-            $currentHistory[] = [
-                'role' => 'user', // Anthropic uses 'user' role for tool results
-                'content' => [
-                    [
-                        'type' => 'tool_result',
-                        'tool_use_id' => $toolCall['id'],
-                        'content' => $observation['result'],
-                    ]
-                ],
-            ];
         }
 
-        return [
-            'answer' => "I'm having trouble gathering all the information. Could you rephrase your request?",
-            'resolved_entity' => $resolvedEntity,
-        ];
-    }
+        // 2. Persist Conversation
+        if (!$conversationId) {
+            $conversation = \App\Models\AssistantConversation::create([
+                'user_id' => Auth::id(),
+                'title' => $this->generateRuleBasedTitle($message, $imageUrl),
+            ]);
+            $conversationId = $conversation->id;
+        }
 
-    /**
-     * Interface with the Anthropic API.
-     */
-    private function callLLM(array $messages): array
-    {
-        $response = Http::withHeaders([
-            'x-api-key' => $this->apiKey,
-            'anthropic-version' => '2023-06-01',
-            'content-type' => 'application/json',
-        ])->post('https://api.anthropic.com/v1/messages', [
-            'model' => $this->model,
-            'max_tokens' => 1024,
-            'system' => $this->systemPrompt,
-            'messages' => $messages,
-            'tools' => $this->getToolDefinitions(),
+        \App\Models\AssistantMessage::create([
+            'conversation_id' => $conversationId,
+            'role' => 'user',
+            'content' => $message ?: ($imageUrl ? "Uploaded an image" : "Empty message"),
+        ]);
+        \App\Models\AssistantMessage::create([
+            'conversation_id' => $conversationId,
+            'role' => 'assistant',
+            'content' => $answer,
         ]);
 
-        if ($response->failed()) {
-            throw new \Exception("LLM API Error: " . $response->body());
-        }
-
-        $data = $response->json();
-        $contentBlock = $data['content'][0];
-
-        $result = [
-            'content' => '',
-            'tool_use' => null,
+        return [
+            'answer' => $answer,
+            'insights' => $insights,
+            'resolved_entity' => $resolvedEntity,
+            'conversation_id' => $conversationId,
         ];
-
-        foreach ($data['content'] as $block) {
-            if ($block['type'] === 'text') {
-                $result['content'] .= $block['text'];
-            } elseif ($block['type'] === 'tool_use') {
-                $result['tool_use'] = [
-                    'id' => $block['id'],
-                    'name' => $block['name'],
-                    'input' => $block['input'],
-                ];
-            }
-        }
-
-        return $result;
     }
 
-    /**
-     * Dispatcher for tool calls.
-     */
-    private function executeTool(string $name, array $args): array
+    private function extractIngredientName(string $message): ?string
     {
-        switch ($name) {
-            case 'get_stock_level':
-                return $this->toolGetStockLevel($args['ingredient_name'] ?? '');
-            case 'get_low_stock_items':
-                return $this->toolGetLowStockItems();
-            case 'check_menu_availability':
-                return $this->toolCheckMenuAvailability($args['item_name'] ?? '');
-            case 'get_daily_revenue':
-                return $this->toolGetDailyRevenue();
-            case 'get_staff_list':
-                return $this->toolGetStaffList();
-            case 'check_expiries':
-                return $this->toolCheckExpiries();
-            case 'search_business_kb':
-                return $this->toolSearchBusinessKb($args['query'] ?? '');
-            default:
-                return ['result' => "Error: Tool $name not found.", 'entity' => null];
+        $ingredients = Ingredient::pluck('ingredient_name')->toArray();
+        foreach ($ingredients as $name) {
+            if (stripos($message, $name) !== false) return $name;
         }
+        return null;
     }
 
-    // --- Tool Implementations ---
+    private function extractMenuItemName(string $message): ?string
+    {
+        $items = MenuItem::pluck('item_name')->toArray();
+        foreach ($items as $name) {
+            if (stripos($message, $name) !== false) return $name;
+        }
+        return null;
+    }
+
+    private function generateRuleBasedTitle(string $message, ?string $imageUrl = null): string
+    {
+        if ($imageUrl) return 'Image Analysis';
+        if (str_contains(strtolower($message), 'stock')) return 'Stock Analysis';
+        if (str_contains(strtolower($message), 'revenue')) return 'Revenue Report';
+        if (str_contains(strtolower($message), 'available')) return 'Availability Check';
+        if (str_contains(strtolower($message), 'staff')) return 'Staff Inquiry';
+        return 'General Inquiry';
+    }
+
+    // --- Internal Tools ---
+
+    private function toolAnalyzeImage(?string $url): array
+    {
+        return [
+            'text' => "I have analyzed the uploaded image. Since I am currently in rule-based mode, I can see that you've uploaded a file, but I cannot 'see' the contents yet.",
+            'data' => [
+                'type' => 'alert',
+                'content' => 'Image analysis feature is currently in simulation mode.'
+            ]
+        ];
+    }
 
     private function toolGetStockLevel(string $name): array
     {
         $ing = Ingredient::where('ingredient_name', 'ILIKE', $name)->first();
-        if (!$ing) return ['result' => "Ingredient '$name' not found.", 'entity' => null];
+        if (!$ing) return ['text' => "Ingredient '$name' not found.", 'data' => null, 'entity' => null];
 
         return [
-            'result' => "Current stock of {$ing->ingredient_name} is " . number_format($ing->current_stock, 2) . " {$ing->unit_of_measurement} (Threshold: {$ing->restock_threshold}).",
+            'text' => "Current stock of {$ing->ingredient_name} is " . number_format($ing->current_stock, 2) . " {$ing->unit_of_measurement} (Threshold: {$ing->restock_threshold}).",
+            'data' => [
+                'type' => 'kpi',
+                'label' => $ing->ingredient_name,
+                'value' => number_format($ing->current_stock, 2),
+                'unit' => 'unit',
+                'threshold' => $ing->restock_threshold,
+                'status' => $ing->isLowStock() ? 'critical' : 'healthy'
+            ],
             'entity' => $ing->ingredient_name
         ];
     }
@@ -200,20 +171,42 @@ class SmartAssistantService
     private function toolGetLowStockItems(): array
     {
         $low = Ingredient::withCurrentStock()->get()->filter(fn($i) => $i->isLowStock());
-        if ($low->isEmpty()) return ['result' => "All ingredients are currently above their restock thresholds.", 'entity' => null];
+        if ($low->isEmpty()) return ['text' => "All ingredients are currently above their restock thresholds.", 'data' => null];
 
         $list = $low->map(fn($i) => "• {$i->ingredient_name}: " . number_format($i->current_stock, 2) . " {$i->unit_of_measurement} (Threshold: {$i->restock_threshold})")->implode("\n");
-        return ['result' => "Low stock items:\n" . $list, 'entity' => null];
+
+        return [
+            'text' => "Low stock items:\n" . $list,
+            'data' => [
+                'type' => 'table',
+                'label' => 'Critical Stock Levels',
+                'rows' => $low->map(fn($i) => [
+                    'name' => $i->ingredient_name,
+                    'stock' => number_format($i->current_stock, 2),
+                    'unit' => $i->unit_of_measurement,
+                    'threshold' => $i->restock_threshold
+                ])->toArray()
+            ]
+        ];
     }
 
     private function toolCheckMenuAvailability(string $name): array
     {
         $item = MenuItem::where('item_name', 'ILIKE', $name)->first();
-        if (!$item) return ['result' => "Menu item '$name' not found.", 'entity' => null];
+        if (!$item) return ['text' => "Menu item '$name' not found.", 'data' => null, 'entity' => null];
 
         $details = $item->getAvailabilityDetails();
         if ($details['is_available']) {
-            return ['result' => "✅ {$item->item_name} is available.", 'entity' => $item->item_name];
+            return [
+                'text' => "✅ {$item->item_name} is available.",
+                'data' => [
+                    'type' => 'status',
+                    'label' => $item->item_name,
+                    'status' => 'Available',
+                    'color' => 'green'
+                ],
+                'entity' => $item->item_name
+            ];
         }
 
         $reasons = [];
@@ -223,7 +216,13 @@ class SmartAssistantService
         }
 
         return [
-            'result' => "❌ {$item->item_name} is unavailable because:\n" . implode("\n", $reasons),
+            'text' => "❌ {$item->item_name} is unavailable because:\n" . implode("\n", $reasons),
+            'data' => [
+                'type' => 'alert',
+                'label' => $item->item_name,
+                'content' => 'Insufficient Ingredients',
+                'color' => 'red'
+            ],
             'entity' => $item->item_name
         ];
     }
@@ -231,15 +230,21 @@ class SmartAssistantService
     private function toolGetDailyRevenue(): array
     {
         if (Auth::user()->role !== 'admin') {
-            return ['result' => "Unauthorized: Financial data is restricted to administrators.", 'entity' => null];
+            return ['text' => "Unauthorized: Financial data is restricted to administrators.", 'data' => null];
         }
 
         $total = Order::where('status', 'paid')->whereDate('created_at', today())->sum('total_amount');
         $count = Order::where('status', 'paid')->whereDate('created_at', today())->count();
 
         return [
-            'result' => "Today's total revenue is ₱" . number_format($total, 2) . " from $count paid orders.",
-            'entity' => null
+            'text' => "Today's total revenue is ₱" . number_format($total, 2) . " from $count paid orders.",
+            'data' => [
+                'type' => 'kpi',
+                'label' => 'Today\'s Revenue',
+                'value' => '₱' . number_format($total, 2),
+                'count' => $count . ' Orders',
+                'trend' => 'neutral'
+            ]
         ];
     }
 
@@ -247,7 +252,18 @@ class SmartAssistantService
     {
         $staff = User::whereIn('role', ['staff', 'admin'])->get();
         $list = $staff->map(fn($u) => "• {$u->name} ({ucfirst($u->role)})")->implode("\n");
-        return ['result' => "Current active staff:\n" . $list, 'entity' => null];
+
+        return [
+            'text' => "Current active staff:\n" . $list,
+            'data' => [
+                'type' => 'table',
+                'label' => 'Active Staff',
+                'rows' => $staff->map(fn($u) => [
+                    'name' => $u->name,
+                    'role' => ucfirst($u->role)
+                ])->toArray()
+            ]
+        ];
     }
 
     private function toolCheckExpiries(): array
@@ -260,98 +276,23 @@ class SmartAssistantService
             $res .= "🔴 Expired:\n" . $expired->map(fn($i) => "• {$i->ingredient_name}: " . number_format($i->expiredQuantity(), 2) . " {$i->unit_of_measurement}")->implode("\n") . "\n\n";
         }
         if (!$expiring->isEmpty()) {
-            $res .= "🟡 Expiring Soon:\n" . $expiring->map(fn($i) => "• {$i->expiringSoonQuantity() > 0 ? $i->ingredient_name : ''}: " . number_format($i->expiringSoonQuantity(), 2) . " {$i->unit_of_measurement}")->implode("\n");
+            $expiringList = $expiring->map(fn($i) => "• {$i->ingredient_name}: " . number_format($i->expiringSoonQuantity(), 2) . " {$i->unit_of_measurement}")->implode("\n");
+            $res .= "🟡 Expiring Soon:\n" . $expiringList;
         }
 
-        return ['result' => $res ?: "No ingredients are expired or expiring soon.", 'entity' => null];
-    }
-
-    private function toolSearchBusinessKb(string $query): array
-    {
-        // For now, we use the knowledge base provided in the system prompt.
-        // This tool exists so the LLM can explicitly 'search' if it feels it needs to.
-        return [
-            'result' => "The business knowledge base is integrated into my core instructions. Please ask me specifically about policies or procedures.",
-            'entity' => null
-        ];
-    }
-
-    private function getToolDefinitions(): array
-    {
-        return [
-            [
-                'name' => 'get_stock_level',
-                'description' => 'Get the current stock level of a specific ingredient.',
-                'input_schema' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'ingredient_name' => ['type' => 'string', 'description' => 'The name of the ingredient (e.g., "Rice", "Onions")'],
-                    ],
-                    'required' => ['ingredient_name'],
-                ],
-            ],
-            [
-                'name' => 'get_low_stock_items',
-                'description' => 'Get a list of all ingredients currently below their restock threshold.',
-                'input_schema' => ['type' => 'object', 'properties' => []],
-            ],
-            [
-                'name' => 'check_menu_availability',
-                'description' => 'Check if a specific menu item is available for sale.',
-                'input_schema' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'item_name' => ['type' => 'string', 'description' => 'The name of the menu item'],
-                    ],
-                    'required' => ['item_name'],
-                ],
-            ],
-            [
-                'name' => 'get_daily_revenue',
-                'description' => 'Get total revenue and order count for today. (Admin only)',
-                'input_schema' => ['type' => 'object', 'properties' => []],
-            ],
-            [
-                'name' => 'get_staff_list',
-                'description' => 'Get a list of all active staff and their roles.',
-                'input_schema' => ['type' => 'object', 'properties' => []],
-            ],
-            [
-                'name' => 'check_expiries',
-                'description' => 'Check for expired or expiring ingredients.',
-                'input_schema' => ['type' => 'object', 'properties' => []],
-            ],
-            [
-                'name' => 'search_business_kb',
-                'description' => 'Search for operational policies and procedures.',
-                'input_schema' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'query' => ['type' => 'string', 'description' => 'The query to search for in the knowledge base'],
-                    ],
-                    'required' => ['query'],
-                ],
-            ],
-        ];
-    }
-
-    private function getConversationHistory(int $userId): array
-    {
-        // Simple history implementation using Laravel Cache for 30 minutes
-        return \Illuminate\Support\Facades\Cache::get("assistant_history_{$userId}", []);
-    }
-
-    private function saveToHistory(int $userId, string $userMessage, string $assistantAnswer): void
-    {
-        $history = $this->getConversationHistory($userId);
-        $history[] = ['role' => 'user', 'content' => $userMessage];
-        $history[] = ['role' => 'assistant', 'content' => $assistantAnswer];
-
-        // Keep only last 10 exchanges to avoid token bloat
-        if (count($history) > 20) {
-            $history = array_slice($history, -20);
+        $data = null;
+        if (!$expired->isEmpty() || !$expiring->isEmpty()) {
+            $data = [
+                'type' => 'alert',
+                'label' => 'Inventory Health',
+                'content' => "Found " . $expired->count() . " expired and " . $expiring->count() . " expiring soon ingredients.",
+                'color' => 'red'
+            ];
         }
 
-        \Illuminate\Support\Facades\Cache::put("assistant_history_{$userId}", $history, now()->addMinutes(30));
+        return [
+            'text' => $res ?: "No ingredients are expired or expiring soon.",
+            'data' => $data
+        ];
     }
 }

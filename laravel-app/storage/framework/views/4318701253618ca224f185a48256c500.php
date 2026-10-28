@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
     <title><?php echo $__env->yieldContent('title', 'Desi Zaika'); ?> | DesiFlow</title>
-    <?php echo app('Illuminate\Foundation\Vite')(['resources/css/app.css', 'resources/js/app.jsx', 'resources/js/admin.js']); ?>
+    <?php echo app('Illuminate\Foundation\Vite')(['resources/css/app.css', 'resources/js/app.jsx', 'resources/js/admin.js', 'resources/js/assistant.js']); ?>
     <style>
         .no-transition { transition: none !important; }
         .sidebar-transition { transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
@@ -68,6 +68,11 @@
                             class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 <?php echo e(request()->routeIs('admin.analytics.*') ? 'bg-amber-500 text-white shadow-md shadow-amber-900/20 font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'); ?>">
                             <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" /><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" /></svg>
                             <span class="sidebar-text transition-opacity duration-200 <?php echo e(request()->cookie('sidebar_collapsed') ? 'opacity-0 hidden' : ''); ?>">Analytics</span>
+                        </a>
+                        <a href="<?php echo e(route('admin.assistant.index')); ?>"
+                            class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 <?php echo e(request()->routeIs('admin.assistant.*') ? 'bg-amber-500 text-white shadow-md shadow-amber-900/20 font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'); ?>">
+                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg>
+                            <span class="sidebar-text transition-opacity duration-200 <?php echo e(request()->cookie('sidebar_collapsed') ? 'opacity-0 hidden' : ''); ?>">Smart Assistant</span>
                         </a>
                         <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-500 cursor-not-allowed group" title="Coming soon">
                             <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>

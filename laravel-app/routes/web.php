@@ -136,6 +136,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::get('/inventory/movement/{movement}/edit', [\App\Http\Controllers\Admin\MovementStudioController::class, 'edit'])->name('inventory.movement.edit');
     Route::post('/inventory/movement/save-draft', [\App\Http\Controllers\Admin\MovementStudioController::class, 'saveDraft'])->name('inventory.movement.saveDraft');
     Route::post('/inventory/movement/{movement}/save-draft', [\App\Http\Controllers\Admin\MovementStudioController::class, 'saveEditDraft'])->name('inventory.movement.saveEditDraft');
+    Route::post('/inventory/movement/store', [\App\Http\Controllers\Admin\MovementStudioController::class, 'store'])->name('inventory.movement.store');
+    Route::put('/inventory/movement/{movement}', [\App\Http\Controllers\Admin\MovementStudioController::class, 'update'])->name('inventory.movement.update');
 
     // Staff Management
     Route::get('/staff', [StaffController::class, 'index'])->name('staff.index');
@@ -154,6 +156,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::post('/transaction-requests/{transactionRequest}/review', [TransactionRequestController::class, 'review'])->name('transaction-requests.review');
 
     // Analytics
+    Route::get('/analytics/data', [AnalyticsController::class, 'getData'])->name('analytics.data');
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
 
     // Smart Assistant
