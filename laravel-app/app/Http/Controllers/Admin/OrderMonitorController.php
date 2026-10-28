@@ -68,7 +68,7 @@ class OrderMonitorController extends Controller{
 
         if ($request->wantsJson()) {
             return response()->json([
-                'html' => view('admin.orders._quickview', [
+                'html' => view('admin.orders.quickview', [
                     'order' => $order,
                 ])->render(),
             ]);

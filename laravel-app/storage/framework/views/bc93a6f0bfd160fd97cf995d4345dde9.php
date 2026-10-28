@@ -24,7 +24,7 @@
                         <div id="studio-progress-bar" class="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 bg-amber-500 transition-all duration-500 -z-10" style="width: 0%"></div>
 
                         <div class="flex items-center justify-between relative">
-                            <?php $steps = ['Identity', 'Permissions', 'Security', 'Review']; ?>
+                            <?php $steps = ['Identity', 'Profile', 'Permissions', 'Security', 'Review']; ?>
                             <?php $__currentLoopData = $steps; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $step): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                 <div class="step-indicator flex flex-col items-center gap-3 z-10" data-step="<?php echo e($index + 1); ?>">
                                     <div class="step-circle w-10 h-10 rounded-full bg-white border-2 border-slate-200 flex items-center justify-center text-xs font-bold text-slate-400 transition-all duration-300 shadow-sm"><?php echo e($index + 1); ?></div>
@@ -35,7 +35,7 @@
                     </div>
 
                     <div class="flex-1 min-h-0 overflow-y-auto relative custom-scrollbar pb-12">
-                        <form id="staff-studio-form" class="h-full space-y-12" action="<?php echo e(route('admin.staff.store')); ?>" method="POST">
+                        <form id="staff-studio-form" class="h-full space-y-12" action="<?php echo e(route('admin.staff.store')); ?>" method="POST" enctype="multipart/form-data">
                             <?php echo csrf_field(); ?>
 
                             
@@ -51,7 +51,7 @@
                                             Full Name <span class="text-red-400">*</span>
                                         </label>
                                         <input type="text" name="name" required class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 outline-none transition-all bg-white hover:border-slate-300" placeholder="e.g. Maria Santos">
-                                        <p class="error-text hidden text-[10px] font-bold text-red-500 mt-1.5 ml-1">This field is required.</p>
+                                        <p class="error-text hidden text-[10px] font-bold text-red-500 mt-1.5 ml-1"></p>
                                     </div>
 
                                     <div class="group">
@@ -59,13 +59,49 @@
                                             Email Address <span class="text-red-400">*</span>
                                         </label>
                                         <input type="email" name="email" required inputmode="email" class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 outline-none transition-all bg-white hover:border-slate-300" placeholder="name@example.com">
-                                        <p class="error-text hidden text-[10px] font-bold text-red-500 mt-1.5 ml-1">This field is required.</p>
+                                        <p class="error-text hidden text-[10px] font-bold text-red-500 mt-1.5 ml-1"></p>
                                     </div>
                                 </div>
                             </div>
 
                             
                             <div id="step-2" class="studio-step hidden h-full space-y-10">
+                                <div class="space-y-2">
+                                    <h3 class="text-2xl font-black text-slate-900 tracking-tight">Profile Picture</h3>
+                                    <p class="text-sm text-slate-500">Upload a professional photo or take a quick snapshot.</p>
+                                </div>
+
+                                <div class="flex flex-col items-center justify-center gap-8">
+                                    <div id="avatar-upload-zone" class="relative w-48 h-48 group cursor-pointer">
+                                        <div class="absolute inset-0 bg-slate-100 rounded-full border-4 border-dashed border-slate-200 group-hover:border-amber-400 transition-all duration-300 flex flex-col items-center justify-center overflow-hidden">
+                                            <div id="avatar-preview-container" class="absolute inset-0 hidden">
+                                                <img id="avatar-preview-img" src="" class="w-full h-full object-cover">
+                                            </div>
+                                            <div id="avatar-placeholder" class="flex flex-col items-center text-center p-4">
+                                                <svg class="w-10 h-10 text-slate-300 mb-2 group-hover:text-amber-500 transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" d="M9 13h6m-3-3v6" /></svg>
+                                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Upload Photo</span>
+                                            </div>
+                                        </div>
+                                        <button type="button" id="remove-avatar-btn" class="absolute -top-2 -right-2 w-8 h-8 bg-white border border-slate-200 rounded-full text-red-500 shadow-sm hidden hover:bg-red-50 transition-colors flex items-center justify-center z-10">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                                        </button>
+                                    </div>
+
+                                    <div class="flex gap-3">
+                                        <button type="button" id="upload-photo-btn" class="px-5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:border-amber-500 hover:text-amber-600 transition-all shadow-sm">
+                                            Choose File
+                                        </button>
+                                        <button type="button" id="capture-photo-btn" class="px-5 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-black transition-all shadow-lg active:scale-95">
+                                            Take Photo
+                                        </button>
+                                    </div>
+                                    <input type="file" name="avatar" id="avatar-input" class="hidden" accept="image/*">
+                                    <p class="text-[10px] text-slate-400 italic">Recommended: Square image, max 2MB (JPG, PNG)</p>
+                                </div>
+                            </div>
+
+                            
+                            <div id="step-3" class="studio-step hidden h-full space-y-10">
                                 <div class="space-y-2">
                                     <h3 class="text-2xl font-black text-slate-900 tracking-tight">Role & Permissions</h3>
                                     <p class="text-sm text-slate-500">Assign the operational authority level for this account.</p>
@@ -86,13 +122,13 @@
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
                                             </div>
                                         </div>
-                                        <p class="error-text hidden text-[10px] font-bold text-red-500 mt-1.5 ml-1">Please select a role.</p>
+                                        <p class="error-text hidden text-[10px] font-bold text-red-500 mt-1.5 ml-1"></p>
                                     </div>
                                 </div>
                             </div>
 
                             
-                            <div id="step-3" class="studio-step hidden h-full space-y-10">
+                            <div id="step-4" class="studio-step hidden h-full space-y-10">
                                 <div class="space-y-2">
                                     <h3 class="text-2xl font-black text-slate-900 tracking-tight">Security Controls</h3>
                                     <p class="text-sm text-slate-500">Establish a secure access key for the account.</p>
@@ -107,11 +143,11 @@
                                             <div class="relative">
                                                 <input type="password" name="password" id="password" required class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 outline-none transition-all bg-white hover:border-slate-300 placeholder:text-slate-300" placeholder="Enter a strong password">
                                                 <button type="button" class="password-toggle absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" data-target="password">
-                                                    <svg class="w-4 h-4 eye-open" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0,010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                                    <svg class="w-4 h-4 eye-open" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0,010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573 3.007-9.963 7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                                     <svg class="w-4 h-4 eye-closed hidden" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
                                                 </button>
                                             </div>
-                                            <p class="error-text hidden text-[10px] font-bold text-red-500 mt-1.5 ml-1">This field is required.</p>
+                                            <p class="error-text hidden text-[10px] font-bold text-red-500 mt-1.5 ml-1"></p>
                                         </div>
                                         <div class="group relative">
                                             <label class="block text-[11px] font-black text-slate-400 mb-2 uppercase tracking-widest group-focus-within:text-amber-600 transition-colors">
@@ -120,14 +156,13 @@
                                             <div class="relative">
                                                 <input type="password" name="password_confirmation" id="password_confirmation" required class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 outline-none transition-all bg-white hover:border-slate-300 placeholder:text-slate-300" placeholder="Re-enter password">
                                                 <button type="button" class="password-toggle absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" data-target="password_confirmation">
-                                                    <svg class="w-4 h-4 eye-open" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0,010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                                    <svg class="w-4 h-4 eye-open" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0,010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573 3.007-9.963 7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                                     <svg class="w-4 h-4 eye-closed hidden" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
                                                 </button>
                                             </div>
-                                            <p class="error-text hidden text-[10px] font-bold text-red-500 mt-1.5 ml-1">This field is required.</p>
+                                            <p class="error-text hidden text-[10px] font-bold text-red-500 mt-1.5 ml-1"></p>
                                         </div>
                                     </div>
-
                                     <div class="pt-6 border-t border-slate-200/60">
                                         <div class="flex items-center justify-between mb-3">
                                             <span class="text-xs font-black text-slate-400 uppercase tracking-widest">Security Strength</span>
@@ -145,7 +180,7 @@
                             </div>
 
                             
-                            <div id="step-4" class="studio-step hidden h-full space-y-10">
+                            <div id="step-5" class="studio-step hidden h-full space-y-10">
                                 <div class="space-y-2">
                                     <h3 class="text-2xl font-black text-slate-900 tracking-tight">Final Review</h3>
                                     <p class="text-sm text-slate-500">Verify all account configuration details before finalizing.</p>
@@ -204,8 +239,9 @@
 
                 <div class="w-full max-w-[340px] bg-white rounded-xl shadow-[0_30px_60px_-12px_rgba(0,0,0,0.12)] border border-white transition-all duration-500 group hover:shadow-amber-500/10 relative">
                     <div class="relative h-48 bg-slate-100 overflow-hidden rounded-t-xl flex items-center justify-center">
-                        <div class="w-24 h-24 rounded-full bg-slate-200 border-4 border-white shadow-sm flex items-center justify-center text-slate-400 overflow-hidden">
-                            <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" /></svg>
+                        <div id="preview-avatar-container" class="w-24 h-24 rounded-full bg-slate-200 border-4 border-white shadow-sm flex items-center justify-center text-slate-400 overflow-hidden relative">
+                            <img id="preview-avatar-img" src="" class="hidden w-full h-full object-cover">
+                            <svg id="preview-avatar-placeholder" class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" /></svg>
                         </div>
                         <div id="preview-role-badge" class="absolute top-4 right-4 px-3 py-1 rounded-full bg-white/70 backdrop-blur-md text-[9px] font-black text-slate-800 uppercase tracking-wider shadow-sm border border-white/50">
                             Role
@@ -256,6 +292,36 @@
             </div>
         </div>
 
+        
+        <div id="camera-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-md">
+            <div class="bg-white rounded-[3rem] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+                    <h3 class="text-lg font-black text-slate-900">Capture Profile Photo</h3>
+                    <button type="button" id="close-camera-btn" class="p-2 rounded-full hover:bg-slate-100 text-slate-400 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+                <div class="relative bg-black aspect-square overflow-hidden flex items-center justify-center">
+                    <video id="camera-stream" class="w-full h-full object-cover" autoplay playsinline></video>
+                    <canvas id="camera-canvas" class="hidden"></canvas>
+                    <div class="absolute inset-0 border-[40px] border-black/40 pointer-events-none"></div>
+                    <div class="absolute bottom-8 left-1/2 -translate-x-1/2">
+                        <button type="button" id="snap-photo-btn" class="w-16 h-16 bg-white rounded-full border-4 border-slate-300 flex items-center justify-center shadow-xl hover:scale-110 active:scale-90 transition-all">
+                            <div class="w-12 h-12 rounded-full border-2 border-slate-900"></div>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-6 text-center">
+                    <p class="text-xs text-slate-500 font-medium">Position your face in the center of the frame</p>
+                </div>
+            </div>
+        </div>
+
+        
+        <div class="fixed bottom-6 left-6 z-50 pointer-events-none">
+            <div id="toast-container" class="flex flex-col gap-3"></div>
+        </div>
+
         <script>
             (function () {
                 const form = document.getElementById('staff-studio-form');
@@ -271,6 +337,7 @@
                 const indicators = document.querySelectorAll('.step-indicator');
                 const confirmModal = document.getElementById('confirm-modal');
                 const saveSpinner = document.getElementById('save-spinner');
+                const submitBtn = document.getElementById('staff-modal-save');
 
                 const prevName = document.getElementById('preview-card-name');
                 const prevEmail = document.getElementById('preview-card-email');
@@ -279,8 +346,49 @@
                 const revEmail = document.getElementById('review-email');
                 const revRole = document.getElementById('review-role');
 
+                // Avatar elements
+                const avatarInput = document.getElementById('avatar-input');
+                const uploadZone = document.getElementById('avatar-upload-zone');
+                const previewImg = document.getElementById('avatar-preview-img');
+                const previewContainer = document.getElementById('avatar-preview-container');
+                const avatarPlaceholder = document.getElementById('avatar-placeholder');
+                const removeAvatarBtn = document.getElementById('remove-avatar-btn');
+                const uploadPhotoBtn = document.getElementById('upload-photo-btn');
+                const capturePhotoBtn = document.getElementById('capture-photo-btn');
+                const previewAvatarImg = document.getElementById('preview-avatar-img');
+                const previewAvatarPlaceholder = document.getElementById('preview-avatar-placeholder');
+
+                // Camera elements
+                const cameraModal = document.getElementById('camera-modal');
+                const cameraStream = document.getElementById('camera-stream');
+                const cameraCanvas = document.getElementById('camera-canvas');
+                const closeCameraBtn = document.getElementById('close-camera-btn');
+                const snapPhotoBtn = document.getElementById('snap-photo-btn');
+
                 let currentStep = parseInt(localStorage.getItem('staff_studio_step')) || 1;
-                const totalSteps = 4;
+                const totalSteps = 5;
+
+                // Toast System
+                window.showToast = function(message, type = 'success') {
+                    const container = document.getElementById('toast-container');
+                    if (!container) return;
+                    const toast = document.createElement('div');
+                    toast.className = `px-6 py-4 rounded-2xl shadow-2xl border text-sm font-bold transition-all duration-500 transform translate-y-20 opacity-0 flex items-center gap-3 ${
+                        type === 'success' ? 'bg-white border-green-100 text-green-800' : 'bg-white border-red-100 text-red-800'
+                    }`;
+                    toast.innerHTML = `
+                        <div class="w-2 h-2 rounded-full ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}"></div>
+                        <span>${message}</span>
+                    `;
+                    container.appendChild(toast);
+                    setTimeout(() => {
+                        toast.classList.remove('translate-y-20', 'opacity-0');
+                    }, 10);
+                    setTimeout(() => {
+                        toast.classList.add('opacity-0', 'translate-y-10');
+                        setTimeout(() => toast.remove(), 500);
+                    }, 4000);
+                };
 
                 const strengthRules = {
                     length: (v) => v.length >= 10,
@@ -374,7 +482,7 @@
                         } else {
                             circle.classList.add('bg-white', 'text-slate-400', 'border-slate-200');
                             circle.classList.remove('bg-amber-500', 'text-white', 'border-amber-500', 'ring-2', 'ring-amber-500/20');
-                            circle.innerHTML = (i + 1) ;
+                            circle.innerHTML = (i + 1);
                         }
                     });
 
@@ -393,7 +501,7 @@
                         }
                     });
 
-                    if (currentStep === 3) {
+                    if (currentStep === 4) {
                         const passwordValue = passwordInput.value;
                         if (passwordValue.length > 0) {
                             const isStrong = Object.values(strengthRules).every(check => check(passwordValue));
@@ -410,7 +518,6 @@
                     const email = form.elements['email']?.value || '';
                     const role = form.elements['role']?.value || '';
 
-                    // Persist form data
                     const formData = { name, email, role };
                     localStorage.setItem('staff_studio_data', JSON.stringify(formData));
 
@@ -476,15 +583,153 @@
                 updateStepper();
                 updateLivePreview();
 
-                // Restore saved data
                 const savedData = JSON.parse(localStorage.getItem('staff_studio_data') || '{}');
                 if (savedData.name) form.elements['name'].value = savedData.name;
                 if (savedData.email) form.elements['email'].value = savedData.email;
                 if (savedData.role) form.elements['role'].value = savedData.role;
 
                 updateLivePreview();
+
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    document.querySelectorAll('.error-text').forEach(el => el.classList.add('hidden'));
+                    submitBtn.disabled = true;
+                    saveSpinner.classList.remove('hidden');
+
+                    try {
+                        const formData = new FormData(form);
+                        const response = await fetch(form.action, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>',
+                                'Accept': 'application/json'
+                            },
+                            body: formData
+                        });
+
+                        if (response.ok) {
+                            setTimeout(() => {
+                                window.showToast('Staff account created successfully.', 'success');
+                                window.location.href = "<?php echo e(route('admin.staff.index')); ?>";
+                            }, 2000);
+                        } else {
+                            const data = await response.json();
+                            if (data.errors) {
+                                Object.entries(data.errors).forEach(([field, messages]) => {
+                                    const input = form.elements[field];
+                                    if (input) {
+                                        const errorEl = input.parentElement.querySelector('.error-text');
+                                        if (errorEl) {
+                                            errorEl.textContent = messages[0];
+                                            errorEl.classList.remove('hidden');
+                                        }
+                                    }
+                                });
+                            }
+                            if (data.message) {
+                                window.showToast(data.message, 'error');
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Submission error:', err);
+                        window.showToast('A system error occurred. Please try again.', 'error');
+                    } finally {
+                        submitBtn.disabled = false;
+                        saveSpinner.classList.add('hidden');
+                    }
+                });
+
+                function handleAvatarPreview(file) {
+                    if (!file) {
+                        previewImg.src = '';
+                        previewContainer.classList.add('hidden');
+                        avatarPlaceholder.classList.remove('hidden');
+                        removeAvatarBtn.classList.add('hidden');
+                        previewAvatarImg.classList.add('hidden');
+                        previewAvatarPlaceholder.classList.remove('hidden');
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const url = e.target.result;
+                        previewImg.src = url;
+                        previewContainer.classList.remove('hidden');
+                        avatarPlaceholder.classList.add('hidden');
+                        removeAvatarBtn.classList.remove('hidden');
+
+                        previewAvatarImg.src = url;
+                        previewAvatarImg.classList.remove('hidden');
+                        previewAvatarPlaceholder.classList.add('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                }
+
+                uploadZone.addEventListener('click', () => avatarInput.click());
+                uploadPhotoBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    avatarInput.click();
+                });
+
+                avatarInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    handleAvatarPreview(file);
+                });
+
+                removeAvatarBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    avatarInput.value = '';
+                    handleAvatarPreview(null);
+                });
+
+                capturePhotoBtn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({
+                            video: { facingMode: 'user', width: 400, height: 400 },
+                            audio: false
+                        });
+                        cameraStream.srcObject = stream;
+                        cameraModal.classList.remove('hidden');
+                    } catch (err) {
+                        console.error('Camera access denied:', err);
+                        alert('Camera access denied. Please enable camera permissions in your browser.');
+                    }
+                });
+
+                closeCameraBtn.addEventListener('click', () => {
+                    const stream = cameraStream.srcObject;
+                    if (stream) {
+                        stream.getTracks().forEach(track => track.stop());
+                    }
+                    cameraModal.classList.add('hidden');
+                });
+
+                snapPhotoBtn.addEventListener('click', () => {
+                    cameraCanvas.width = cameraStream.videoWidth;
+                    cameraCanvas.height = cameraStream.videoHeight;
+                    const ctx = cameraCanvas.getContext('2d');
+                    ctx.drawImage(cameraStream, 0, 0, cameraCanvas.width, cameraCanvas.height);
+
+                    cameraCanvas.toBlob((blob) => {
+                        if (blob) {
+                            const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+
+                            const dataTransfer = new DataTransfer();
+                            dataTransfer.items.add(file);
+                            avatarInput.files = dataTransfer.files;
+
+                            handleAvatarPreview(file);
+
+                            const stream = cameraStream.srcObject;
+                            if (stream) {
+                                stream.getTracks().forEach(track => track.stop());
+                            }
+                            cameraModal.classList.add('hidden');
+                        }
+                    }, 'image/jpeg');
+                });
             })();
         </script>
-    </div>
 <?php $__env->stopSection(); ?>
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH /Users/jamesninobertgalon/Desktop/DesiFlow/laravel-app/resources/views/admin/staff/create.blade.php ENDPATH**/ ?>

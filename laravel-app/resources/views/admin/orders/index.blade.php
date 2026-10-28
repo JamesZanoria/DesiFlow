@@ -34,25 +34,24 @@
             @include('admin.orders._board')
         </main>
 
-        {{-- Quick-View popup --}}
-        <div id="order-quickview-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md my-8 overflow-hidden animate-in zoom-in-95 duration-200">
-                <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                    <h2 class="text-lg font-bold text-slate-900">Order Details</h2>
-                    <button type="button" id="order-quickview-close" class="p-2 rounded-full text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
-                </div>
-                <div id="order-quickview-body" class="p-6">
-                    <p class="text-center text-sm text-slate-400 py-8">Loading…</p>
-                </div>
+        {{-- Quick-View side-drawer --}}
+        <div id="order-quickview-drawer" class="fixed inset-y-0 right-0 w-full max-w-md bg-slate-900 shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
+            <div class="bg-slate-800 px-6 py-4 border-b border-slate-700 flex items-center justify-between shrink-0">
+                <h2 class="text-lg font-bold text-white tracking-tight">Order Details</h2>
+                <button type="button" id="order-quickview-close" class="p-2 rounded-full text-slate-400 hover:bg-slate-700 hover:text-white transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div id="order-quickview-body" class="flex-1 overflow-y-auto p-6 text-slate-300">
+                <p class="text-center text-sm text-slate-500 py-8">Loading…</p>
             </div>
         </div>
+
 
         <script>
             (function () {
                 const boardContainer = document.getElementById('orders-board-container');
-                const modal = document.getElementById('order-quickview-modal');
+                const drawer = document.getElementById('order-quickview-drawer');
                 const modalBody = document.getElementById('order-quickview-body');
                 const baseUrl = '{{ url('admin/orders') }}';
 
@@ -72,11 +71,12 @@
                 }
 
                 async function openQuickView(orderId) {
-                    modal.classList.remove('hidden');
+                    drawer.classList.remove('translate-x-full');
                     document.body.classList.add('overflow-hidden');
-                    modalBody.innerHTML = '<p class="text-center text-sm text-slate-400 py-8">Loading…</p>';
+                    modalBody.innerHTML = '<p class="text-center text-sm text-slate-500 py-8">Loading…</p>';
 
                     try {
+                        // Use the route that matches the controller's expectaton: /admin/orders/{order}
                         const response = await fetch(`${baseUrl}/${orderId}`, { headers: { 'Accept': 'application/json' } });
                         if (!response.ok) throw new Error('Request failed');
                         const data = await response.json();
@@ -88,12 +88,12 @@
                 }
 
                 function closeQuickView() {
-                    modal.classList.add('hidden');
+                    drawer.classList.add('translate-x-full');
                     document.body.classList.remove('overflow-hidden');
                 }
 
                 document.getElementById('order-quickview-close').addEventListener('click', closeQuickView);
-                modal.addEventListener('click', (e) => { if (e.target === modal) closeQuickView(); });
+                drawer.addEventListener('click', (e) => { if (e.target === drawer) closeQuickView(); });
 
                 function attachCardListeners(scope) {
                     scope.querySelectorAll('.view-order-btn').forEach((btn) => {
@@ -112,7 +112,13 @@
                         const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
                         if (!response.ok) return;
                         const data = await response.json();
+
+                        // Simple DOM morphing approach:
+                        // We replace the content but keep the scroll position of the main container
+                        const currentScroll = boardContainer.scrollLeft;
                         boardContainer.innerHTML = data.html;
+                        boardContainer.scrollLeft = currentScroll;
+
                         attachCardListeners(boardContainer);
                         tickElapsedLabels();
                     } catch (err) {

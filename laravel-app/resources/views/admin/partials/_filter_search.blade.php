@@ -49,7 +49,7 @@
     @endif
 
     @if ($suggestions->isNotEmpty())
-        <div class="search-suggest-list hidden absolute left-0 mt-1 w-full bg-white border rounded-lg shadow-lg z-20 max-h-64 overflow-y-auto py-1">
+        <div class="search-suggest-list hidden absolute left-0 mt-1 w-full bg-white border rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto py-1">
             @include('admin.partials._search_suggestions', ['suggestions' => $suggestions])
         </div>
     @endif

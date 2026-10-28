@@ -26,7 +26,7 @@ class ProtectedFileController extends Controller{
     // Keep in sync with the subdirectories MenuController/InventoryController
     // actually store into ('menu-items', 'ingredients'), anything not in
     // this list is refused before touching the filesystem at all.
-    private const ALLOWED_TYPES = ['menu-items', 'ingredients'];
+    private const ALLOWED_TYPES = ['menu-items', 'ingredients', 'avatars'];
 
     private const CONTENT_TYPES = [
         'jpg' => 'image/jpeg',

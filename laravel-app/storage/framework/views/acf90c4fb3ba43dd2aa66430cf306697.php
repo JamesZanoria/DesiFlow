@@ -27,7 +27,7 @@
         </button>
     <?php endif; ?>
 
-    <div class="filter-select-popover hidden absolute left-0 mt-2 w-56 bg-white border rounded-lg shadow-lg z-20 overflow-hidden">
+    <div class="filter-select-popover hidden absolute left-0 mt-2 w-56 bg-white border rounded-lg shadow-lg z-50 overflow-hidden">
         <?php echo $__env->make('admin.partials._filter_select_popover', ['name' => $name, 'label' => $label, 'value' => $value, 'options' => $options], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
     </div>
 </div><?php /**PATH /Users/jamesninobertgalon/Desktop/DesiFlow/laravel-app/resources/views/admin/partials/_filter_select.blade.php ENDPATH**/ ?>

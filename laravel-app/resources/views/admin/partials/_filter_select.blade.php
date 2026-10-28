@@ -60,7 +60,7 @@
         </button>
     @endif
 
-    <div class="filter-select-popover hidden absolute left-0 mt-2 w-56 bg-white border rounded-lg shadow-lg z-20 overflow-hidden">
+    <div class="filter-select-popover hidden absolute left-0 mt-2 w-56 bg-white border rounded-lg shadow-lg z-50 overflow-hidden">
         @include('admin.partials._filter_select_popover', ['name' => $name, 'label' => $label, 'value' => $value, 'options' => $options])
     </div>
 </div>

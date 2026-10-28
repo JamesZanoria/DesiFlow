@@ -20,7 +20,7 @@
     <?php endif; ?>
 
     <?php if($suggestions->isNotEmpty()): ?>
-        <div class="search-suggest-list hidden absolute left-0 mt-1 w-full bg-white border rounded-lg shadow-lg z-20 max-h-64 overflow-y-auto py-1">
+        <div class="search-suggest-list hidden absolute left-0 mt-1 w-full bg-white border rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto py-1">
             <?php echo $__env->make('admin.partials._search_suggestions', ['suggestions' => $suggestions], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
         </div>
     <?php endif; ?>

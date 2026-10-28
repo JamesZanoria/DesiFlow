@@ -50,6 +50,18 @@ class InventoryController extends Controller{
         'asd', 'abc', '123', 'zzz',
     ];
 
+    public function validateName(Request $request){
+        $validator = Validator::make($request->all(), [
+            'ingredient_name' => ['required', 'string', 'max:100', $this->notPlaceholderRule(), $this->duplicateNameRule()],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
     public function index(Request $request){
         $ingredients = $this->paginateClamped(function () use ($request) {
             return $this->getFilteredIngredientsQuery($request);
@@ -197,6 +209,11 @@ class InventoryController extends Controller{
         // Basic cleanup to avoid session bloating
         unset($data['_token'], $data['_method']);
 
+        if ($request->has('clear')) {
+            session()->forget('inventory_draft');
+            return response()->json(['success' => true]);
+        }
+
         session(['inventory_draft' => $data]);
 
         return response()->json(['success' => true, 'message' => 'Draft saved automatically.']);
@@ -210,6 +227,11 @@ class InventoryController extends Controller{
     public function saveEditDraft(Request $request, Ingredient $ingredient){
         $data = $request->all();
         unset($data['_token'], $data['_method']);
+
+        if ($request->has('clear')) {
+            session()->forget("inventory_draft_{$ingredient->ingredient_id}");
+            return response()->json(['success' => true]);
+        }
 
         session(["inventory_draft_{$ingredient->ingredient_id}" => $data]);
 

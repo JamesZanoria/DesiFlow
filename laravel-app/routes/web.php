@@ -111,6 +111,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::put('/menu/{menuItem}', [MenuController::class, 'update'])->name('menu.update');
     Route::delete('/menu/{menuItem}', [MenuController::class, 'destroy'])->name('menu.destroy');
 
+    Route::post('/inventory/validate-name', [InventoryController::class, 'validateName'])->name('inventory.validateName');
     Route::put('/inventory/{ingredient}/waste-expired', [InventoryController::class, 'wasteExpired'])->name('inventory.waste-expired');
     Route::get('/inventory/export', [InventoryController::class, 'export'])->name('inventory.export');
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
@@ -129,6 +130,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::put('/inventory/movement/{movement}', [InventoryController::class, 'updateMovement'])->name('inventory.movement.update');
     Route::delete('/inventory/movement/{movement}', [InventoryController::class, 'destroyMovement'])->name('inventory.movement.destroy');
     Route::get('/inventory/{ingredient}/history', [InventoryController::class, 'history'])->name('inventory.history');
+
+    // Movement Studios
+    Route::get('/inventory/movement/create', [\App\Http\Controllers\Admin\MovementStudioController::class, 'create'])->name('inventory.movement.create');
+    Route::get('/inventory/movement/{movement}/edit', [\App\Http\Controllers\Admin\MovementStudioController::class, 'edit'])->name('inventory.movement.edit');
+    Route::post('/inventory/movement/save-draft', [\App\Http\Controllers\Admin\MovementStudioController::class, 'saveDraft'])->name('inventory.movement.saveDraft');
+    Route::post('/inventory/movement/{movement}/save-draft', [\App\Http\Controllers\Admin\MovementStudioController::class, 'saveEditDraft'])->name('inventory.movement.saveEditDraft');
 
     // Staff Management
     Route::get('/staff', [StaffController::class, 'index'])->name('staff.index');

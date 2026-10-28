@@ -25,11 +25,11 @@
             <p class="text-sm text-gray-500 mt-1">Auditable history of every stock-in and waste.</p>
         </div>
 
-        <button type="button" id="record-movement-btn"
-            class="flex items-center gap-1.5 bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-600 whitespace-nowrap">
+        <a href="{{ route('admin.inventory.movement.create') }}"
+            class="flex items-center gap-1.5 bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-600 whitespace-nowrap transition-all active:scale-95">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
             Record Movement
-        </button>
+        </a>
     </div>
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -190,23 +190,11 @@
                                 <td class="px-6 py-4 text-right truncate" style="width:110px;">
                                     @if ($movement->movement_type !== 'void' && ! $movement->voided_at)
                                         <div class="flex justify-end gap-1">
-                                            <button type="button"
-                                                class="edit-movement-btn p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                                                title="Edit"
-                                                data-id="{{ $movement->movement_id }}"
-                                                data-ingredient-id="{{ $movement->ingredient_id }}"
-                                                data-ingredient-name="{{ $movement->ingredient->ingredient_name ?? '' }}"
-                                                data-ingredient-unit="{{ $movement->ingredient->unit_of_measurement ?? '' }}"
-                                                data-type="{{ $movement->movement_type }}"
-                                                data-type-label="{{ $typeMeta['label'] }}"
-                                                data-qty="{{ $movement->movement_type === 'manual_adjustment' ? $movement->qty_changed : abs($movement->qty_changed) }}"
-                                                data-recorded-at="{{ $movement->recorded_at->timezone('Asia/Manila')->toDateString() }}"
-                                                data-delivery-date="{{ $movement->delivery_date ? $movement->delivery_date->format('Y-m-d') : '' }}"
-                                                data-expiration-date="{{ $movement->expiration_date ? $movement->expiration_date->format('Y-m-d') : '' }}"
-                                                data-reference-number="{{ $movement->reference_number ?? '' }}"
-                                                data-notes="{{ $movement->notes ?? '' }}">
+                                            <a href="{{ route('admin.inventory.movement.edit', $movement->movement_id) }}"
+                                                class="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                                title="Edit">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" /></svg>
-                                            </button>
+                                            </a>
                                             <button type="button"
                                                 class="void-movement-btn p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                                                 title="Void"
@@ -268,6 +256,7 @@
             </div>
         </div>
     </div>
+
 
     <div id="movement-modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-y-auto">
         <div class="bg-white rounded-xl shadow-xl w-full max-w-md my-8 max-h-[90vh] flex flex-col">

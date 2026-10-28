@@ -2,6 +2,56 @@
 // (Menu, Inventory, Staff, etc.) so pages call one shared implementation
 // instead of each page re-writing fetch/error-handling/toast logic itself.
 
+/**
+ * Toggles the action menu for inventory items.
+ * Exposed globally to be callable from HTML onclick attributes.
+ */
+function toggleInventoryMenu(btn, menuId) {
+    const menu = document.getElementById(menuId);
+    if (!menu) return;
+
+    // Close all other open menus first
+    document.querySelectorAll('.action-menu-dropdown').forEach(m => {
+        if (m.id !== menuId) {
+            m.classList.add('opacity-0', 'invisible');
+            m.classList.remove('opacity-100', 'visible');
+        }
+    });
+
+    // Toggle current menu
+    if (menu.classList.contains('opacity-0')) {
+        menu.classList.remove('opacity-0', 'invisible');
+        menu.classList.add('opacity-100', 'visible');
+    } else {
+        menu.classList.add('opacity-0', 'invisible');
+        menu.classList.remove('opacity-100', 'visible');
+    }
+}
+window.toggleInventoryMenu = toggleInventoryMenu;
+
+document.addEventListener('click', (e) => {
+    // Close any open action menus when clicking outside
+    if (!e.target.closest('.action-menu-btn')) {
+        document.querySelectorAll('.action-menu-dropdown').forEach(m => {
+            m.classList.add('opacity-0', 'invisible');
+            m.classList.remove('opacity-100', 'visible');
+        });
+    }
+});
+
+// ADDED: Event delegation for the ellipsis buttons to avoid "not defined" errors
+// during the gap between HTML render and JS module execution.
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.action-menu-btn');
+    if (!btn) return;
+
+    const menuId = btn.dataset.menuId;
+    if (menuId) {
+        e.stopPropagation();
+        toggleInventoryMenu(btn, menuId);
+    }
+});
+
 // Chart.js (already committed) is
 // imported once here and exposed on window, same as the helpers below, so
 // the Analytics page's inline <script> block can call `new Chart(...)`
@@ -11,6 +61,9 @@
 // individual pieces don't need to be registered by hand.
 import Chart from 'chart.js/auto';
 window.Chart = Chart;
+
+
+
 
 /**
  * Device detection helper to return 'mobile' or 'desktop' based on screen width.
@@ -690,10 +743,49 @@ document.addEventListener('input', (e) => {
     filterComboSelectOptions(e.target.closest('[data-combo-select]'));
 });
 
+// ... (around line 518)
+function toggleInventoryMenu(btn, menuId) {
+    const menu = document.getElementById(menuId);
+    if (!menu) return;
+
+    // Close all other open menus first
+    document.querySelectorAll('.action-menu-dropdown').forEach(m => {
+        if (m.id !== menuId) {
+            m.classList.add('opacity-0', 'invisible');
+            m.classList.remove('opacity-100', 'visible');
+        }
+    });
+
+    // Toggle current menu
+    if (menu.classList.contains('opacity-0')) {
+        menu.classList.remove('opacity-0', 'invisible');
+        menu.classList.add('opacity-100', 'visible');
+    } else {
+        menu.classList.add('opacity-0', 'invisible');
+        menu.classList.remove('opacity-100', 'visible');
+    }
+}
+window.toggleInventoryMenu = toggleInventoryMenu;
+
+document.addEventListener('click', (e) => {
+    // Close any open action menus when clicking outside
+    if (!e.target.closest('.action-menu-btn')) {
+        document.querySelectorAll('.action-menu-dropdown').forEach(m => {
+            m.classList.add('opacity-0', 'invisible');
+            m.classList.remove('opacity-100', 'visible');
+        });
+    }
+});
+
 document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
-    document.querySelectorAll('.combo-select-popover:not(.hidden)').forEach((p) => p.classList.add('hidden'));
+    document.querySelectorAll('.combo-select-popover:not(.hidden), .filter-select-popover:not(.hidden), .action-menu-dropdown:not(.invisible)').forEach((p) => {
+        p.classList.add('hidden');
+        p.classList.add('invisible');
+        p.closest('[data-filter-select]')?.querySelector('.filter-select-trigger')?.setAttribute('aria-expanded', 'false');
+    });
 });
+// ... (rest of the file)
 
 /**
  * Search-with-suggestions dropdown, see admin/partials/_filter_search.blade.php.
