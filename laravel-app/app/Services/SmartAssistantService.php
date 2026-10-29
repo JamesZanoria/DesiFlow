@@ -48,7 +48,7 @@ class SmartAssistantService
                         $insights = $result['data'] ?? null;
                         $resolvedEntity = $result['entity'];
                     } else {
-                        $answer = "I can check stock levels for you. Please specify an ingredient (e.g., 'How much Rice do we have?').";
+                        $answer = "I can check the stock for you, but I'm not sure which ingredient you mean. Could you tell me the name?";
                     }
                 }
             } elseif (str_contains($input, 'revenue') || str_contains($input, 'earnings') || str_contains($input, 'money') || str_contains($input, 'sales')) {
@@ -63,7 +63,7 @@ class SmartAssistantService
                     $insights = $result['data'] ?? null;
                     $resolvedEntity = $result['entity'];
                 } else {
-                    $answer = "I can check if a dish is available. Please specify the menu item name.";
+                    $answer = "I can check if a dish is available! Which one are you looking for?";
                 }
             } elseif (str_contains($input, 'staff') || str_contains($input, 'employee') || str_contains($input, 'who works')) {
                 $result = $this->toolGetStaffList();
@@ -74,9 +74,10 @@ class SmartAssistantService
                 $answer = $result['text'];
                 $insights = $result['data'] ?? null;
             } elseif (str_contains($input, 'hello') || str_contains($input, 'hi') || str_contains($input, 'hey')) {
-                $answer = "Hello! I am DZAI, your Business Intelligence Assistant. I can help you with stock levels, daily revenue, menu availability, and staff lists. What would you like to check?";
+                $answer = "Hey there! I'm your business assistant. I can help you with stock, sales, menu availability, and staff. What's on your mind?";
             } else {
-                $answer = "I'm sorry, I don't understand that request. I specialize in Desi Zaika's business data. You can ask me about stock levels, daily revenue, menu availability, or staff lists.";
+                // Guardrail: Only answer business-related questions
+                $answer = "I'm sorry, I can only help with things related to the business, the system, or our shop data. I can't answer that one!";
             }
         }
 
@@ -129,11 +130,12 @@ class SmartAssistantService
     private function generateRuleBasedTitle(string $message, ?string $imageUrl = null): string
     {
         if ($imageUrl) return 'Image Analysis';
-        if (str_contains(strtolower($message), 'stock')) return 'Stock Analysis';
-        if (str_contains(strtolower($message), 'revenue')) return 'Revenue Report';
-        if (str_contains(strtolower($message), 'available')) return 'Availability Check';
-        if (str_contains(strtolower($message), 'staff')) return 'Staff Inquiry';
-        return 'General Inquiry';
+
+        // Return the first few words of the message as the title (summary)
+        $words = explode(' ', trim($message));
+        $summary = implode(' ', array_slice($words, 0, 5));
+
+        return $summary . (count($words) > 5 ? '...' : '');
     }
 
     // --- Internal Tools ---
@@ -152,10 +154,10 @@ class SmartAssistantService
     private function toolGetStockLevel(string $name): array
     {
         $ing = Ingredient::where('ingredient_name', 'ILIKE', $name)->first();
-        if (!$ing) return ['text' => "Ingredient '$name' not found.", 'data' => null, 'entity' => null];
+        if (!$ing) return ['text' => "I couldn't find '$name' in our list. Are you sure that's the right name?", 'data' => null, 'entity' => null];
 
         return [
-            'text' => "Current stock of {$ing->ingredient_name} is " . number_format($ing->current_stock, 2) . " {$ing->unit_of_measurement} (Threshold: {$ing->restock_threshold}).",
+            'text' => "We've got " . number_format($ing->current_stock, 2) . " {$ing->unit_of_measurement} of {$ing->ingredient_name} left. The restock threshold is {$ing->restock_threshold}.",
             'data' => [
                 'type' => 'kpi',
                 'label' => $ing->ingredient_name,
@@ -171,12 +173,12 @@ class SmartAssistantService
     private function toolGetLowStockItems(): array
     {
         $low = Ingredient::withCurrentStock()->get()->filter(fn($i) => $i->isLowStock());
-        if ($low->isEmpty()) return ['text' => "All ingredients are currently above their restock thresholds.", 'data' => null];
+        if ($low->isEmpty()) return ['text' => "Good news! All ingredients are currently above their restock thresholds.", 'data' => null];
 
         $list = $low->map(fn($i) => "• {$i->ingredient_name}: " . number_format($i->current_stock, 2) . " {$i->unit_of_measurement} (Threshold: {$i->restock_threshold})")->implode("\n");
 
         return [
-            'text' => "Low stock items:\n" . $list,
+            'text' => "Heads up! We're running low on a few things:\n" . $list,
             'data' => [
                 'type' => 'table',
                 'label' => 'Critical Stock Levels',
@@ -193,12 +195,12 @@ class SmartAssistantService
     private function toolCheckMenuAvailability(string $name): array
     {
         $item = MenuItem::where('item_name', 'ILIKE', $name)->first();
-        if (!$item) return ['text' => "Menu item '$name' not found.", 'data' => null, 'entity' => null];
+        if (!$item) return ['text' => "I can't find '$name' on the menu. Maybe it's under a different name?", 'data' => null, 'entity' => null];
 
         $details = $item->getAvailabilityDetails();
         if ($details['is_available']) {
             return [
-                'text' => "✅ {$item->item_name} is available.",
+                'text' => "Yes, {$item->item_name} is available and ready to go! ✅",
                 'data' => [
                     'type' => 'status',
                     'label' => $item->item_name,
@@ -216,7 +218,7 @@ class SmartAssistantService
         }
 
         return [
-            'text' => "❌ {$item->item_name} is unavailable because:\n" . implode("\n", $reasons),
+            'text' => "Actually, {$item->item_name} is unavailable right now because we're missing some ingredients:\n" . implode("\n", $reasons),
             'data' => [
                 'type' => 'alert',
                 'label' => $item->item_name,
@@ -230,14 +232,14 @@ class SmartAssistantService
     private function toolGetDailyRevenue(): array
     {
         if (Auth::user()->role !== 'admin') {
-            return ['text' => "Unauthorized: Financial data is restricted to administrators.", 'data' => null];
+            return ['text' => "Sorry, I can't show financial data to anyone who isn't an admin. 🤐", 'data' => null];
         }
 
         $total = Order::where('status', 'paid')->whereDate('created_at', today())->sum('total_amount');
         $count = Order::where('status', 'paid')->whereDate('created_at', today())->count();
 
         return [
-            'text' => "Today's total revenue is ₱" . number_format($total, 2) . " from $count paid orders.",
+            'text' => "So far today, we've made ₱" . number_format($total, 2) . " from $count paid orders. Not bad!",
             'data' => [
                 'type' => 'kpi',
                 'label' => 'Today\'s Revenue',
@@ -254,7 +256,7 @@ class SmartAssistantService
         $list = $staff->map(fn($u) => "• {$u->name} ({ucfirst($u->role)})")->implode("\n");
 
         return [
-            'text' => "Current active staff:\n" . $list,
+            'text' => "Here's who's on the team right now:\n" . $list,
             'data' => [
                 'type' => 'table',
                 'label' => 'Active Staff',
@@ -291,7 +293,7 @@ class SmartAssistantService
         }
 
         return [
-            'text' => $res ?: "No ingredients are expired or expiring soon.",
+            'text' => $res ?: "Everything looks good! No ingredients are expired or expiring soon.",
             'data' => $data
         ];
     }

@@ -84,28 +84,12 @@
             color: var(--ink);
             position: relative;
             display: flex;
-            height: calc(100vh - 160px);
+            height: 100vh;
             min-height: 560px;
-            border-radius: 20px;
+            border-radius: 0;
             overflow: hidden;
             background: var(--bg);
-            box-shadow: var(--shadow);
-        }
-        .dz[data-theme="dark"] {
-            --bg: #101217;
-            --side: #151821;
-            --card: #1A1D27;
-            --ink: #ECEDEF;
-            --muted: #9AA0AC;
-            --faint: #6C7280;
-            --accent: #F2B134;
-            --accent-soft: rgba(242, 177, 52, .12);
-            --hover: rgba(255, 255, 255, .05);
-            --active: rgba(255, 255, 255, .09);
-            --user: #212534;
-            --ring: rgba(255, 255, 255, .08);
-            --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 18px 40px -20px rgba(0, 0, 0, .7);
-            --danger: #F97066;
+            box-shadow: none;
         }
         .dz *, .dz *::before, .dz *::after { box-sizing: border-box; }
         .dz button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
@@ -126,11 +110,9 @@
         .dz-icon-btn { width: 34px; height: 34px; border-radius: 10px; display: inline-grid; place-items: center; color: var(--muted); transition: background .15s, color .15s; }
         .dz-icon-btn:hover { background: var(--hover); color: var(--ink); }
         .dz-newchat { margin: 8px 14px 6px; display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-radius: 12px; background: var(--ink); color: var(--bg); font-weight: 600; font-size: 14px; transition: transform .12s, opacity .15s; }
-        .dz[data-theme="dark"] .dz-newchat { background: var(--accent); color: #14161C; }
         .dz-newchat:hover { opacity: .92; }
         .dz-newchat:active { transform: scale(.985); }
         .dz-newchat .dz-i { color: var(--accent); }
-        .dz[data-theme="dark"] .dz-newchat .dz-i { color: #14161C; }
         .dz-kbd { margin-left: auto; font-size: 11px; font-weight: 600; opacity: .55; }
         .dz-search { position: relative; margin: 8px 14px 6px; }
         .dz-search .dz-i { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--faint); width: 16px; height: 16px; }
@@ -165,8 +147,8 @@
         .dz-backdrop { display: none; }
 
         /* ---------- Main ---------- */
-        .dz-main { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--bg); }
-        .dz-head { display: flex; align-items: center; gap: 8px; padding: 12px 18px; }
+        .dz-main { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--bg); overflow: hidden; }
+        .dz-head { display: flex; align-items: center; gap: 8px; padding: 12px 18px; flex-shrink: 0; }
         .dz-head-menu { display: none; }
         .dz.is-collapsed .dz-head-menu { display: inline-grid; }
         .dz-title { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -175,7 +157,7 @@
         .dz-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: #22A06B; animation: dz-ping 2s ease-out infinite; }
         @keyframes dz-ping { 0% { transform: scale(1); opacity: .6; } 80%, 100% { transform: scale(2.6); opacity: 0; } }
 
-        .dz-scroll { flex: 1; overflow-y: auto; padding: 8px 24px 28px; scroll-behavior: smooth; }
+        .dz-scroll { flex: 1; overflow-y: auto; padding: 8px 0 28px; scroll-behavior: smooth; }
         .dz-thread { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
 
         /* Empty state */
@@ -188,7 +170,6 @@
         .dz-card { display: flex; flex-direction: column; gap: 14px; text-align: left; padding: 16px 18px 18px; border-radius: 16px; background: var(--card); transition: transform .18s ease, box-shadow .18s ease, background .18s; }
         .dz-card:hover { background: var(--bg); box-shadow: var(--shadow), 0 0 0 1px var(--accent); transform: translateY(-2px); }
         .dz-card-ic { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; background: var(--accent-soft); color: #B87408; }
-        .dz[data-theme="dark"] .dz-card-ic { color: var(--accent); }
         .dz-card-t { font-size: 14.5px; font-weight: 600; }
         .dz-card-d { margin-top: 3px; font-size: 13px; line-height: 1.5; color: var(--muted); }
 
@@ -196,7 +177,6 @@
         .dz-msg { display: flex; gap: 14px; align-items: flex-start; }
         .dz-msg.user { justify-content: flex-end; }
         .dz-av { width: 32px; height: 32px; border-radius: 10px; background: var(--ink); color: var(--accent); display: grid; place-items: center; flex-shrink: 0; margin-top: 2px; }
-        .dz[data-theme="dark"] .dz-av { background: var(--accent); color: #14161C; }
         .dz-ubub { max-width: 80%; padding: 11px 16px; border-radius: 18px 18px 6px 18px; background: var(--user); font-size: 14.5px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
         .dz-ubub img { display: block; max-width: 240px; max-height: 200px; border-radius: 12px; margin-bottom: 8px; }
         .dz-col { min-width: 0; flex: 1; }
@@ -237,7 +217,7 @@
         .dz-follow button:hover { background: var(--accent-soft); }
 
         /* Composer */
-        .dz-foot { padding: 0 24px 14px; position: relative; }
+        .dz-foot { padding: 0 24px 14px; position: relative; flex-shrink: 0; }
         .dz-wrap { max-width: 760px; margin: 0 auto; }
         .dz-composer { background: var(--bg); border-radius: 22px; box-shadow: var(--shadow), 0 0 0 1px var(--ring); transition: box-shadow .2s; padding: 10px 10px 10px 14px; }
         .dz-composer:focus-within { box-shadow: var(--shadow), 0 0 0 2px var(--accent); }
@@ -254,7 +234,6 @@
         .dz-count { margin-left: auto; margin-right: 8px; font-size: 12px; color: var(--faint); font-variant-numeric: tabular-nums; }
         .dz-count.warn { color: var(--danger); }
         #assistant-send-btn { width: 38px; height: 38px; border-radius: 50%; background: var(--ink); color: var(--accent); display: grid; place-items: center; transition: transform .12s, opacity .15s; }
-        .dz[data-theme="dark"] #assistant-send-btn { background: var(--accent); color: #14161C; }
         #assistant-send-btn:hover:not(:disabled) { transform: scale(1.06); }
         #assistant-send-btn:active:not(:disabled) { transform: scale(.94); }
         #assistant-send-btn:disabled { opacity: .3; cursor: not-allowed; }
@@ -263,7 +242,6 @@
         .dz-jump { position: absolute; left: 50%; top: -48px; transform: translateX(-50%); width: 36px; height: 36px; border-radius: 50%; background: var(--bg); color: var(--ink); display: none; place-items: center; box-shadow: var(--shadow), 0 0 0 1px var(--ring); }
         .dz-jump.show { display: grid; }
         .dz-toast { position: absolute; left: 50%; bottom: 96px; transform: translate(-50%, 12px); padding: 10px 16px; border-radius: 12px; background: var(--ink); color: var(--bg); font-size: 13px; font-weight: 500; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 60; }
-        .dz[data-theme="dark"] .dz-toast { background: var(--accent); color: #14161C; }
         .dz-toast.show { opacity: 1; transform: translate(-50%, 0); }
 
         /* ---------- Mobile ---------- */
@@ -360,11 +338,7 @@
                 <div class="dz-avatar">{{ $initials }}</div>
                 <div class="dz-user-meta">
                     <div class="dz-user-name">{{ $userName }}</div>
-                    <div class="dz-user-role">Admin</div>
                 </div>
-                <button type="button" class="dz-icon-btn" id="dz-theme" title="Switch theme" aria-label="Switch theme">
-                    <svg class="dz-i" id="dz-theme-ic"><use href="#i-moon"/></svg>
-                </button>
             </div>
         </aside>
         <div class="dz-backdrop" id="dz-backdrop"></div>
@@ -926,16 +900,10 @@
         });
 
         /* ---------- theme ---------- */
-        function applyTheme(t) {
-            root.setAttribute('data-theme', t);
-            $('#dz-theme-ic').innerHTML = '<use href="#i-' + (t === 'dark' ? 'sun' : 'moon') + '"/>';
-        }
-        var savedTheme = store('dz-theme');
-        applyTheme(savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
-        $('#dz-theme').addEventListener('click', function () {
-            var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-            applyTheme(next); store('dz-theme', next);
-        });
+        // Theme logic removed as per request for light-mode only.
+        var savedTheme = 'light';
+        root.setAttribute('data-theme', savedTheme);
+
 
         /* ---------- greeting ---------- */
         var g = $('#dz-greet');
