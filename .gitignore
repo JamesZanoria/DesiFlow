@@ -1,17 +1,58 @@
+# OS Specific
 .DS_Store
 Thumbs.db
 
-fastapi_analytics/.env
-fastapi_analytics/venv/
-fastapi_analytics/.venv/
-fastapi_analytics/**/__pycache__/
-fastapi_analytics/**/*.pyc
-fastapi_analytics/.pytest_cache/
-fastapi_analytics/**/*.egg-info/
+# Environment / Secrets
+.env
+.env.*
+*.pem
+*.key
 
+# Dependencies
+node_modules/
+vendor/
+venv/
+.venv/
+env/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+.ipynb_checkpoints/
+
+# IDEs / Editors
+.vscode/
+.idea/
+.cursor/
+*.swp
+*.swo
+
+# Laravel / PHP
+storage/*.key
+storage/framework/cache/data/
+storage/framework/sessions/
+storage/framework/views/
+storage/logs/*.log
+.phpunit.result.cache
+_ide_helper.php
+_ide_helper_models.php
+.phpactor.json
+
+# Build / Assets
+public/build/
+public/hot
+public/storage
+.next/
+.nuxt/
+
+# Project Specific Temporary Files
+new_schema1
+Capstone1.txt
 *.dump
 *.sql.bak
 
+# Tooling
+.claude/
 CLAUDE.md
-Capstone1.txt
-.claude

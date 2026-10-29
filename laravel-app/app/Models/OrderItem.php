@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class OrderItem extends Model{
     // The table associated with the model.
-    protected $table = 'orders_items';
+    protected $table = 'order_items';
 
     // The primary key associated with the table.
     protected $primaryKey = 'order_item_id';
@@ -20,12 +20,15 @@ class OrderItem extends Model{
         'menu_item_id',
         'quantity',
         'total',
+        'item_name_snapshot',
+        'unit_price',
     ];
 
     // The attributes that should be cast.
     protected function casts(): array{
         return [
             'total' => 'decimal:2',
+            'unit_price' => 'decimal:2',
         ];
     }
 
@@ -37,5 +40,10 @@ class OrderItem extends Model{
     // The menu item ordered.
     public function menuItem(){
         return $this->belongsTo(MenuItem::class, 'menu_item_id', 'menu_item_id');
+    }
+
+    public function addOns()
+    {
+        return $this->hasMany(OrderItemAddOn::class, 'order_item_id', 'order_item_id');
     }
 }

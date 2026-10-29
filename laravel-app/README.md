@@ -57,3 +57,32 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
 # DesiFlow
+
+## Cashier POS workflows
+
+The cashier portal is available to authenticated users with the `cashier` role:
+
+- `/cashier` — daily cashier dashboard and unpaid orders.
+- `/cashier/orders` — active kitchen orders and read-only quick view.
+- `/cashier/menu` and `/cashier/cart` — cashier-only searchable menu, live editable cart, add-ons, and checkout.
+- `/cashier/transactions` — cashier-owned payment history, digital receipts, and void/refund requests.
+- `/admin/transaction-requests` — administrator review of void/refund requests.
+
+The public customer ordering page at `/menu` and its guest cart/order APIs have been removed. Cashier ordering remains available through the authenticated cashier module.
+
+The cashier POS migration is additive. After configuring the existing database in `.env`, run:
+
+```powershell
+cd laravel-app
+composer install
+# Only generate a key if APP_KEY is empty:
+php artisan key:generate
+php artisan migrate
+npm install
+npm run build
+php artisan test
+```
+
+Do not replace an existing `.env`; set `APP_URL`, `DB_CONNECTION`, and the matching database connection values for the local environment. The application timezone is `Asia/Manila`, which defines the cashier dashboard's business-day boundary. The project SQL snapshot `database/complete_database.sql` is PostgreSQL-specific; provision the existing base tables for the configured database before applying migrations on a new database.
+
+Cashier orders are saved as `awaiting_payment`; successful payment moves them into the kitchen's `pending` queue. Cash amounts are validated to two decimal places and GCash references must contain 6–50 letters, digits, or hyphens; GCash references are stored as manually supplied and are not externally verified. Payments are recorded once per order. Void/refund requests preserve the original payment row and only change its transaction status after an administrator approves the request.

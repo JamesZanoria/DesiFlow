@@ -3,161 +3,154 @@
 @section('title', 'Real-Time Order Monitoring')
 
 @section('content')
+    <div class="h-screen flex flex-col bg-slate-50 overflow-hidden">
+        {{-- Premium Header --}}
+        <header class="px-8 py-6 bg-white border-b border-slate-200 flex items-center justify-between shrink-0">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Real-Time Order Monitoring</h1>
+                <p class="text-sm text-slate-500 mt-1">Live synchronization of all active restaurant orders.</p>
+            </div>
 
-    <div class="flex items-start justify-between mb-4 gap-4 flex-wrap">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-800">Real-Time Order Monitoring</h1>
-            <p class="text-sm text-gray-500 mt-1">Live view of every order currently in progress across the restaurant.</p>
-        </div>
-
-        {{-- Status filter (REQ-4.3-3), pills instead of a dropdown so the current
-             filter and the total-active-orders count stay visible at a glance. --}}
-        <div id="status-filter-pills" class="flex items-center gap-2">
-            <a href="{{ route('admin.orders.index') }}"
-                data-status=""
-                class="filter-pill px-3 py-1.5 rounded-full text-xs font-medium border {{ !$statusFilter ? 'bg-gray-800 text-white border-gray-800' : 'text-gray-600 border-gray-300 hover:bg-gray-50' }}">
-                All
-            </a>
-            @foreach (\App\Http\Controllers\Admin\OrderMonitorController::STATUS_META as $status => $meta)
-                <a href="{{ route('admin.orders.index', ['status' => $status]) }}"
-                    data-status="{{ $status }}"
-                    class="filter-pill px-3 py-1.5 rounded-full text-xs font-medium border flex items-center gap-1.5 {{ $statusFilter === $status ? 'bg-gray-800 text-white border-gray-800' : 'text-gray-600 border-gray-300 hover:bg-gray-50' }}">
-                    <span class="w-1.5 h-1.5 rounded-full {{ $meta['dot'] }}"></span>
-                    {{ $meta['label'] }}
+            {{-- Status filter pills --}}
+            <div id="status-filter-pills" class="flex items-center gap-2 p-1 bg-slate-100 rounded-full border border-slate-200">
+                <a href="{{ route('admin.orders.index') }}"
+                    data-status=""
+                    class="filter-pill px-4 py-1.5 rounded-full text-xs font-semibold transition-all {{ !$statusFilter ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700' }}">
+                    All Orders
                 </a>
-            @endforeach
-        </div>
-    </div>
-
-    <div id="orders-board-container">
-        @include('admin.orders._board')
-    </div>
-
-    {{-- Quick-View popup --}}
-    <div id="order-quickview-modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-y-auto">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-md my-8 max-h-[90vh] overflow-y-auto">
-            <div class="bg-indigo-50 rounded-t-xl px-6 py-4 flex items-center justify-between sticky top-0">
-                <h2 class="text-lg font-semibold text-gray-800">Order Details</h2>
-                <button type="button" id="order-quickview-close" class="text-gray-400 hover:text-gray-600">&times;</button>
+                @foreach (\App\Http\Controllers\Admin\OrderMonitorController::STATUS_META as $status => $meta)
+                    <a href="{{ route('admin.orders.index', ['status' => $status]) }}"
+                        data-status="{{ $status }}"
+                        class="filter-pill px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-2 {{ $statusFilter === $status ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700' }}">
+                        <span class="w-2 h-2 rounded-full {{ $meta['dot'] }}"></span>
+                        {{ $meta['label'] }}
+                    </a>
+                @endforeach
             </div>
-            <div id="order-quickview-body" class="p-6">
-                <p class="text-center text-sm text-gray-400 py-8">Loading…</p>
+        </header>
+
+        {{-- Board Area --}}
+        <main id="orders-board-container" class="flex-1 overflow-x-auto overflow-y-hidden p-8">
+            @include('admin.orders._board')
+        </main>
+
+        {{-- Quick-View side-drawer --}}
+        <div id="order-quickview-drawer" class="fixed inset-y-0 right-0 w-full max-w-md bg-slate-900 shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
+            <div class="bg-slate-800 px-6 py-4 border-b border-slate-700 flex items-center justify-between shrink-0">
+                <h2 class="text-lg font-bold text-white tracking-tight">Order Details</h2>
+                <button type="button" id="order-quickview-close" class="p-2 rounded-full text-slate-400 hover:bg-slate-700 hover:text-white transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div id="order-quickview-body" class="flex-1 overflow-y-auto p-6 text-slate-300">
+                <p class="text-center text-sm text-slate-500 py-8">Loading…</p>
             </div>
         </div>
-    </div>
 
-    <script>
-        (function () {
-            const boardContainer = document.getElementById('orders-board-container');
-            const modal = document.getElementById('order-quickview-modal');
-            const modalBody = document.getElementById('order-quickview-body');
-            const baseUrl = '{{ url('admin/orders') }}';
 
-            // ---------------------------------------------------------------
-            // Live elapsed-time labels ("3 min ago"), computed client-side
-            // from each card's data-created-at so the numbers keep ticking up
-            // between polls without needing a server round trip just for that.
-            // ---------------------------------------------------------------
-            function elapsedLabel(isoString) {
-                const diffMinutes = Math.floor((Date.now() - new Date(isoString).getTime()) / 60000);
-                if (diffMinutes < 1) return 'Just now';
-                if (diffMinutes < 60) return `${diffMinutes}m ago`;
-                const hours = Math.floor(diffMinutes / 60);
-                const mins = diffMinutes % 60;
-                return `${hours}h ${mins}m ago`;
-            }
+        <script>
+            (function () {
+                const boardContainer = document.getElementById('orders-board-container');
+                const drawer = document.getElementById('order-quickview-drawer');
+                const modalBody = document.getElementById('order-quickview-body');
+                const baseUrl = '{{ url('admin/orders') }}';
 
-            function tickElapsedLabels() {
-                boardContainer.querySelectorAll('.order-elapsed').forEach((el) => {
-                    el.textContent = elapsedLabel(el.dataset.createdAt);
-                });
-            }
-
-            // ---------------------------------------------------------------
-            // Quick-View modal
-            // ---------------------------------------------------------------
-            async function openQuickView(orderId) {
-                modal.classList.remove('hidden');
-                document.body.classList.add('overflow-hidden');
-                modalBody.innerHTML = '<p class="text-center text-sm text-gray-400 py-8">Loading…</p>';
-
-                try {
-                    const response = await fetch(`${baseUrl}/${orderId}`, { headers: { 'Accept': 'application/json' } });
-                    if (!response.ok) throw new Error('Request failed');
-                    const data = await response.json();
-                    modalBody.innerHTML = data.html;
-                } catch (err) {
-                    console.error('Failed to load order details', err);
-                    modalBody.innerHTML = '<p class="text-center text-sm text-red-500 py-8">Could not load this order. Please try again.</p>';
+                function elapsedLabel(isoString) {
+                    const diffMinutes = Math.floor((Date.now() - new Date(isoString).getTime()) / 60000);
+                    if (diffMinutes < 1) return 'Just now';
+                    if (diffMinutes < 60) return `${diffMinutes}m ago`;
+                    const hours = Math.floor(diffMinutes / 60);
+                    const mins = diffMinutes % 60;
+                    return `${hours}h ${mins}m ago`;
                 }
-            }
 
-            function closeQuickView() {
-                modal.classList.add('hidden');
-                document.body.classList.remove('overflow-hidden');
-            }
-
-            document.getElementById('order-quickview-close').addEventListener('click', closeQuickView);
-            modal.addEventListener('click', (e) => { if (e.target === modal) closeQuickView(); });
-
-            function attachCardListeners(scope) {
-                scope.querySelectorAll('.view-order-btn').forEach((btn) => {
-                    btn.addEventListener('click', () => openQuickView(btn.dataset.id));
-                });
-            }
-
-            // ---------------------------------------------------------------
-            // Board polling, stand-in for real-time WebSocket push (REQ-4.3-2)
-            // until Laravel Reverb is wired into this module. Refreshes the
-            // whole board fragment from the server on an interval, and again
-            // whenever the tab regains focus (catches up instantly instead of
-            // waiting out the rest of the interval after being backgrounded).
-            // ---------------------------------------------------------------
-            let currentStatus = '{{ $statusFilter }}';
-
-            async function refreshBoard() {
-                const url = currentStatus
-                    ? `{{ route('admin.orders.index') }}?status=${encodeURIComponent(currentStatus)}`
-                    : `{{ route('admin.orders.index') }}`;
-
-                try {
-                    const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
-                    if (!response.ok) return;
-                    const data = await response.json();
-                    boardContainer.innerHTML = data.html;
-                    attachCardListeners(boardContainer);
-                    tickElapsedLabels();
-                } catch (err) {
-                    console.error('Failed to refresh order board', err);
+                function tickElapsedLabels() {
+                    boardContainer.querySelectorAll('.order-elapsed').forEach((el) => {
+                        el.textContent = elapsedLabel(el.dataset.createdAt);
+                    });
                 }
-            }
 
-            document.getElementById('status-filter-pills').addEventListener('click', (e) => {
-                const pill = e.target.closest('.filter-pill');
-                if (!pill) return;
-                e.preventDefault();
+                async function openQuickView(orderId) {
+                    drawer.classList.remove('translate-x-full');
+                    document.body.classList.add('overflow-hidden');
+                    modalBody.innerHTML = '<p class="text-center text-sm text-slate-500 py-8">Loading…</p>';
 
-                currentStatus = pill.dataset.status;
-                document.querySelectorAll('.filter-pill').forEach((p) => {
-                    p.classList.remove('bg-gray-800', 'text-white', 'border-gray-800');
-                    p.classList.add('text-gray-600', 'border-gray-300');
+                    try {
+                        // Use the route that matches the controller's expectaton: /admin/orders/{order}
+                        const response = await fetch(`${baseUrl}/${orderId}`, { headers: { 'Accept': 'application/json' } });
+                        if (!response.ok) throw new Error('Request failed');
+                        const data = await response.json();
+                        modalBody.innerHTML = data.html;
+                    } catch (err) {
+                        console.error('Failed to load order details', err);
+                        modalBody.innerHTML = '<p class="text-center text-sm text-red-500 py-8">Could not load this order. Please try again.</p>';
+                    }
+                }
+
+                function closeQuickView() {
+                    drawer.classList.add('translate-x-full');
+                    document.body.classList.remove('overflow-hidden');
+                }
+
+                document.getElementById('order-quickview-close').addEventListener('click', closeQuickView);
+                drawer.addEventListener('click', (e) => { if (e.target === drawer) closeQuickView(); });
+
+                function attachCardListeners(scope) {
+                    scope.querySelectorAll('.view-order-btn').forEach((btn) => {
+                        btn.addEventListener('click', () => openQuickView(btn.dataset.id));
+                    });
+                }
+
+                let currentStatus = '{{ $statusFilter }}';
+
+                async function refreshBoard() {
+                    const url = currentStatus
+                        ? `{{ route('admin.orders.index') }}?status=${encodeURIComponent(currentStatus)}`
+                        : `{{ route('admin.orders.index') }}`;
+
+                    try {
+                        const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                        if (!response.ok) return;
+                        const data = await response.json();
+
+                        // Simple DOM morphing approach:
+                        // We replace the content but keep the scroll position of the main container
+                        const currentScroll = boardContainer.scrollLeft;
+                        boardContainer.innerHTML = data.html;
+                        boardContainer.scrollLeft = currentScroll;
+
+                        attachCardListeners(boardContainer);
+                        tickElapsedLabels();
+                    } catch (err) {
+                        console.error('Failed to refresh order board', err);
+                    }
+                }
+
+                document.getElementById('status-filter-pills').addEventListener('click', (e) => {
+                    const pill = e.target.closest('.filter-pill');
+                    if (!pill) return;
+                    e.preventDefault();
+
+                    currentStatus = pill.dataset.status;
+                    document.querySelectorAll('.filter-pill').forEach((p) => {
+                        p.classList.remove('bg-white', 'text-slate-900', 'shadow-sm', 'ring-1', 'ring-slate-200');
+                        p.classList.add('text-slate-500');
+                    });
+                    pill.classList.add('bg-white', 'text-slate-900', 'shadow-sm', 'ring-1', 'ring-slate-200');
+                    pill.classList.remove('text-slate-500');
+
+                    history.replaceState(null, '', pill.href);
+                    refreshBoard();
                 });
-                pill.classList.add('bg-gray-800', 'text-white', 'border-gray-800');
-                pill.classList.remove('text-gray-600', 'border-gray-300');
 
-                history.replaceState(null, '', pill.href);
-                refreshBoard();
-            });
+                attachCardListeners(boardContainer);
+                tickElapsedLabels();
 
-            attachCardListeners(boardContainer);
-            tickElapsedLabels();
-
-            setInterval(refreshBoard, 5000);
-            setInterval(tickElapsedLabels, 30000);
-            document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'visible') refreshBoard();
-            });
-        })();
-    </script>
-
+                setInterval(refreshBoard, 5000);
+                setInterval(tickElapsedLabels, 30000);
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'visible') refreshBoard();
+                });
+            })();
+        </script>
 @endsection

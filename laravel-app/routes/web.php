@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\InventoryController;
@@ -10,10 +11,29 @@ use App\Http\Controllers\Admin\OrderMonitorController;
 use App\Http\Controllers\Admin\SmartAssistantController;
 use App\Http\Controllers\Admin\NotificationsController;
 use App\Http\Controllers\Admin\ProtectedFileController;
+use App\Http\Controllers\Admin\TransactionRequestController;
+use App\Http\Controllers\CashierController;
+use App\Http\Controllers\CashierPaymentController;
+use App\Http\Controllers\KdsController;
+use App\Http\Controllers\OrderWorkflowController;
+use App\Http\Controllers\PublicMenuImageController;
 use App\Http\Controllers\Customer\MenuController as CustomerMenuController;
 
-Route::get('/', function () {
-    return redirect()->route('login');
+Route::get('/', function (Request $request) {
+    $user = $request->user();
+
+    if (! $user) {
+        return redirect()->route('login');
+    }
+
+    $landingRoute = match ($user->role) {
+        'admin' => 'admin.dashboard.index',
+        'cashier' => 'cashier.index',
+        'kitchen' => 'kds.index',
+        default => abort(403),
+    };
+
+    return redirect()->route($landingRoute);
 });
 
 // Guest-only: an already-logged-in admin hitting /login gets redirected
@@ -21,6 +41,8 @@ Route::get('/', function () {
 // every staff account is created by an admin through Staff Management.
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
+    Route::get('/login/cashier', [AuthController::class, 'showLoginForm'])->name('login.cashier');
+    Route::get('/login/kitchen', [AuthController::class, 'showLoginForm'])->name('login.kitchen');
     Route::post('/login', [AuthController::class, 'login']);
 
     // Password Reset Flow
@@ -41,11 +63,37 @@ Route::middleware('auth')->group(function () {
         ->where('filename', '[A-Za-z0-9_-]+\.(jpg|jpeg|png)');
 });
 
-// 'role:admin', see App\Http\Middleware\EnsureUserHasRole. Cashier and
-// Kitchen Staff accounts exist in the users table (Staff Management already
-// supports creating them) but have no module of their own yet, so this whole
-// prefix is admin-only for now; a future POS/KDS route group would use
-// role:cashier / role:kitchen the same way.
+Route::prefix('cashier')->name('cashier.')->middleware(['auth', 'role:cashier'])->group(function () {
+    Route::get('/', [CashierController::class, 'index'])->name('index');
+    Route::get('/dashboard/orders/{area}', [CashierController::class, 'dashboardOrders'])->name('dashboard.orders');
+    Route::get('/orders', [CashierController::class, 'activeOrders'])->name('orders.index');
+    Route::get('/orders/{order}/quick-view', [CashierController::class, 'quickView'])->name('orders.quick-view');
+    Route::get('/menu', [CashierController::class, 'menu'])->name('menu');
+    Route::get('/cart', [CashierController::class, 'cart'])->name('cart');
+    Route::post('/cart/add', [CashierController::class, 'addToCart'])->name('cart.add');
+    Route::post('/cart/update', [CashierController::class, 'updateCart'])->name('cart.update');
+    Route::post('/orders', [CashierController::class, 'storeOrder'])->name('orders.store');
+    Route::get('/orders/{order}/payment', [CashierPaymentController::class, 'create'])->name('orders.payment');
+    Route::post('/orders/{order}/payment', [CashierPaymentController::class, 'store'])->name('orders.payment.store');
+    Route::get('/orders/{order}/receipt', [CashierPaymentController::class, 'receipt'])->name('receipts.show');
+    Route::get('/transactions', [CashierPaymentController::class, 'history'])->name('transactions.index');
+    Route::get('/transactions/{payment}', [CashierPaymentController::class, 'showTransaction'])->name('transactions.show');
+    Route::post('/transactions/{payment}/requests', [CashierPaymentController::class, 'requestTransactionAction'])->name('transactions.requests.store');
+});
+
+Route::prefix('kds')->name('kds.')->middleware(['auth', 'role:kitchen'])->group(function () {
+    Route::get('/', [KdsController::class, 'index'])->name('index');
+    Route::patch('/orders/{order}/status', [KdsController::class, 'updateStatus'])->name('orders.status');
+});
+
+Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::get('/manager/orders', [OrderWorkflowController::class, 'managerIndex'])->name('manager.orders.index');
+    Route::patch('/manager/orders/{order}/status', [OrderWorkflowController::class, 'managerUpdateStatus'])->name('manager.orders.status');
+});
+
+Route::get('/display/orders', [OrderWorkflowController::class, 'displayOrders'])->name('display.orders');
+
+// Admin-only management and reporting modules.
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function () {
 
     Route::get('/', function() {
@@ -64,20 +112,33 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::put('/menu/{menuItem}', [MenuController::class, 'update'])->name('menu.update');
     Route::delete('/menu/{menuItem}', [MenuController::class, 'destroy'])->name('menu.destroy');
 
+    Route::post('/inventory/validate-name', [InventoryController::class, 'validateName'])->name('inventory.validateName');
     Route::put('/inventory/{ingredient}/waste-expired', [InventoryController::class, 'wasteExpired'])->name('inventory.waste-expired');
     Route::get('/inventory/export', [InventoryController::class, 'export'])->name('inventory.export');
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
     Route::get('/inventory/create', [InventoryController::class, 'create'])->name('inventory.create');
+    Route::post('/inventory/save-draft', [InventoryController::class, 'saveDraft'])->name('inventory.saveDraft');
+    Route::post('/inventory/clear-draft', [InventoryController::class, 'clearDraft'])->name('inventory.clearDraft');
     Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
     Route::get('/inventory/ledger', [InventoryController::class, 'ledgerIndex'])->name('inventory.ledger');
     Route::get('/inventory/{ingredient}/edit', [InventoryController::class, 'edit'])->name('inventory.edit');
     Route::put('/inventory/{ingredient}', [InventoryController::class, 'update'])->name('inventory.update');
+    Route::post('/inventory/{ingredient}/save-draft', [InventoryController::class, 'saveEditDraft'])->name('inventory.saveEditDraft');
+    Route::post('/inventory/{ingredient}/clear-draft', [InventoryController::class, 'clearEditDraft'])->name('inventory.clearEditDraft');
     Route::delete('/inventory/{ingredient}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
     Route::post('/inventory/{ingredient}/movement', [InventoryController::class, 'recordMovement'])->name('inventory.movement');
     Route::get('/inventory/{ingredient}/has-opening-balance', [InventoryController::class, 'hasOpeningBalance'])->name('inventory.hasOpeningBalance');
     Route::put('/inventory/movement/{movement}', [InventoryController::class, 'updateMovement'])->name('inventory.movement.update');
     Route::delete('/inventory/movement/{movement}', [InventoryController::class, 'destroyMovement'])->name('inventory.movement.destroy');
     Route::get('/inventory/{ingredient}/history', [InventoryController::class, 'history'])->name('inventory.history');
+
+    // Movement Studios
+    Route::get('/inventory/movement/create', [\App\Http\Controllers\Admin\MovementStudioController::class, 'create'])->name('inventory.movement.create');
+    Route::get('/inventory/movement/{movement}/edit', [\App\Http\Controllers\Admin\MovementStudioController::class, 'edit'])->name('inventory.movement.edit');
+    Route::post('/inventory/movement/save-draft', [\App\Http\Controllers\Admin\MovementStudioController::class, 'saveDraft'])->name('inventory.movement.saveDraft');
+    Route::post('/inventory/movement/{movement}/save-draft', [\App\Http\Controllers\Admin\MovementStudioController::class, 'saveEditDraft'])->name('inventory.movement.saveEditDraft');
+    Route::post('/inventory/movement/store', [\App\Http\Controllers\Admin\MovementStudioController::class, 'store'])->name('inventory.movement.store');
+    Route::put('/inventory/movement/{movement}', [\App\Http\Controllers\Admin\MovementStudioController::class, 'update'])->name('inventory.movement.update');
 
     // Staff Management
     Route::get('/staff', [StaffController::class, 'index'])->name('staff.index');
@@ -91,7 +152,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::get('/orders', [OrderMonitorController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [OrderMonitorController::class, 'show'])->name('orders.show');
 
+    // Void and refund approval audit trail
+    Route::get('/transaction-requests', [TransactionRequestController::class, 'index'])->name('transaction-requests.index');
+    Route::post('/transaction-requests/{transactionRequest}/review', [TransactionRequestController::class, 'review'])->name('transaction-requests.review');
+
     // Analytics
+    Route::get('/analytics/data', [AnalyticsController::class, 'getData'])->name('analytics.data');
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
 
     // Smart Assistant

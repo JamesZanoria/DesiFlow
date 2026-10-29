@@ -28,7 +28,8 @@ trait HandlesProtectedImageUploads{
     // a static file path. $type must be one of ProtectedFileController's
     // ALLOWED_TYPES.
     protected function storeProtectedImage(UploadedFile $file, string $type): string{
-        $path = $file->store($type, 'local');
+        $disk = config('filesystems.default') === 's3' ? 's3' : 'local';
+        $path = $file->store($type, $disk);
 
         return route('files.show', [
             'type' => $type,
@@ -50,6 +51,7 @@ trait HandlesProtectedImageUploads{
             return;
         }
 
-        Storage::disk('local')->delete("{$type}/{$filename}");
+        $disk = config('filesystems.default') === 's3' ? 's3' : 'local';
+        Storage::disk($disk)->delete("{$type}/{$filename}");
     }
 }

@@ -50,6 +50,18 @@ class InventoryController extends Controller{
         'asd', 'abc', '123', 'zzz',
     ];
 
+    public function validateName(Request $request){
+        $validator = Validator::make($request->all(), [
+            'ingredient_name' => ['required', 'string', 'max:100', $this->notPlaceholderRule(), $this->duplicateNameRule()],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
     public function index(Request $request){
         $ingredients = $this->paginateClamped(function () use ($request) {
             return $this->getFilteredIngredientsQuery($request);
@@ -177,7 +189,53 @@ class InventoryController extends Controller{
     }
 
     public function create(){
-        return view('admin.inventory.create');
+        $units = collect(Ingredient::UNITS)
+            ->merge(Ingredient::query()->pluck('unit_of_measurement'))
+            ->filter()->unique()->sort()->values();
+        $menuItems = MenuItem::query()->orderBy('item_name')->get(['menu_item_id', 'item_name']);
+
+        // Load draft from session if available
+        $draft = session('inventory_draft');
+
+        return view('admin.inventory.create', [
+            'units' => $units,
+            'menuItems' => $menuItems,
+            'draft' => $draft,
+        ]);
+    }
+
+    public function saveDraft(Request $request){
+        $data = $request->all();
+        // Basic cleanup to avoid session bloating
+        unset($data['_token'], $data['_method']);
+
+        if ($request->has('clear')) {
+            session()->forget('inventory_draft');
+            return response()->json(['success' => true]);
+        }
+
+        session(['inventory_draft' => $data]);
+
+        return response()->json(['success' => true, 'message' => 'Draft saved automatically.']);
+    }
+
+    public function clearDraft(){
+        session()->forget('inventory_draft');
+        return response()->json(['success' => true]);
+    }
+
+    public function saveEditDraft(Request $request, Ingredient $ingredient){
+        $data = $request->all();
+        unset($data['_token'], $data['_method']);
+
+        if ($request->has('clear')) {
+            session()->forget("inventory_draft_{$ingredient->ingredient_id}");
+            return response()->json(['success' => true]);
+        }
+
+        session(["inventory_draft_{$ingredient->ingredient_id}" => $data]);
+
+        return response()->json(['success' => true, 'message' => 'Changes saved to draft.']);
     }
 
     private function validationMessages(): array{
@@ -312,7 +370,20 @@ class InventoryController extends Controller{
     }
 
     public function edit(Ingredient $ingredient){
-        return view('admin.inventory.edit', ['ingredient' => $ingredient]);
+        $units = collect(Ingredient::UNITS)
+            ->merge(Ingredient::query()->pluck('unit_of_measurement'))
+            ->filter()->unique()->sort()->values();
+        $menuItems = MenuItem::query()->orderBy('item_name')->get(['menu_item_id', 'item_name']);
+
+        // Load draft from session specifically for this ingredient
+        $draft = session("inventory_draft_{$ingredient->ingredient_id}");
+
+        return view('admin.inventory.edit', [
+            'ingredient' => $ingredient,
+            'units' => $units,
+            'menuItems' => $menuItems,
+            'draft' => $draft,
+        ]);
     }
 
     public function update(Request $request, Ingredient $ingredient){

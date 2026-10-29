@@ -24,7 +24,14 @@ class User extends Authenticable{
         'name',
         'email',
         'password',
+        'avatar',
     ];
+
+    // Get the route key name for route model binding.
+    public function getRouteKeyName()
+    {
+        return 'user_id';
+    }
 
     // The attributes that should be hidden for serialization.
     protected $hidden = [

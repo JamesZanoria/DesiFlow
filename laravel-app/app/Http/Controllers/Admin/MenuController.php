@@ -37,11 +37,13 @@ class MenuController extends Controller{
             $query = MenuItem::query();
 
             if ($request->filled('search')) {
-                $query->where('item_name', 'ILIKE', '%' . $request->input('search') . '%');
+                $search = trim($request->input('search'));
+                $query->where('item_name', 'ILIKE', '%' . $search . '%');
             }
 
             if ($request->filled('category')) {
-                $query->where('category', $request->input('category'));
+                $category = trim($request->input('category'));
+                $query->where('category', $category);
             }
 
             return $query->orderByDesc('menu_item_id');
@@ -381,6 +383,8 @@ class MenuController extends Controller{
         } elseif ($request->boolean('remove_image')) {
             $this->deleteProtectedImage($menuItem->image_url, 'menu-items');
             $validated['image_url'] = null;
+        } else {
+            unset($validated['image_url']);
         }
         unset($validated['image']);
 

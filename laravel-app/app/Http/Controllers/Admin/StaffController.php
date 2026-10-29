@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Admin\Concerns\ClampsPaginationPage;
+use App\Http\Controllers\Admin\Concerns\HandlesProtectedImageUploads;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\InputValidationService;
@@ -14,7 +15,7 @@ use Illuminate\Validation\Rules\Password;
 
 
 class StaffController extends Controller{
-    use ClampsPaginationPage;
+    use ClampsPaginationPage, HandlesProtectedImageUploads;
 
     protected $notificationService;
 
@@ -44,7 +45,8 @@ class StaffController extends Controller{
             }
 
             if ($request->filled('role')) {
-                $query->where('role', $request->input('role'));
+                $role = trim($request->input('role'));
+                $query->where('role', 'ILIKE', $role);
             }
 
             return $query->orderByDesc('user_id');
@@ -237,6 +239,7 @@ class StaffController extends Controller{
             'name' => [...$this->textNoDigitsRule(), $this->notPlaceholderRule()],
             'email' => [...$this->emailRules(), $this->duplicateEmailRule()],
             'password' => $this->passwordRules(required: true),
+            'avatar' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ], $this->validationMessages());
 
         if ($validator->fails()) {
@@ -249,6 +252,9 @@ class StaffController extends Controller{
         unset($validated['password_confirmation']);
 
         try {
+            if ($request->hasFile('avatar')) {
+                $validated['avatar'] = $this->storeProtectedImage($request->file('avatar'), 'avatars');
+            }
             $user = User::create($validated);
             $this->notificationService->notifyStaffEvent('created', $user);
         } catch (QueryException $e) {
@@ -317,6 +323,7 @@ class StaffController extends Controller{
             'name' => [...$this->textNoDigitsRule(), $this->notPlaceholderRule()],
             'email' => [...$this->emailRules(), $this->duplicateEmailRule($user->user_id)],
             'password' => $this->passwordRules(required: false),
+            'avatar' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ], $this->validationMessages());
 
         if ($validator->fails()) {
@@ -333,6 +340,12 @@ class StaffController extends Controller{
         }
 
         try {
+            if ($request->hasFile('avatar')) {
+                if ($user->avatar) {
+                    $this->deleteProtectedImage($user->avatar, 'avatars');
+                }
+                $validated['avatar'] = $this->storeProtectedImage($request->file('avatar'), 'avatars');
+            }
             $user->update($validated);
         } catch (QueryException $e) {
             if ($this->isDuplicateEmailViolation($e)) {

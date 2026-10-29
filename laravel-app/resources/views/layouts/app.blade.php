@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Desi Zaika') | DesiFlow</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/js/app.jsx', 'resources/js/admin.js', 'resources/js/assistant.js'])
     <style>
         .no-transition { transition: none !important; }
         .sidebar-transition { transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar-text-transition { transition: opacity 0.2s ease-in-out; }
     </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-900">
@@ -68,6 +69,11 @@
                             <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" /><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" /></svg>
                             <span class="sidebar-text transition-opacity duration-200 {{ request()->cookie('sidebar_collapsed') ? 'opacity-0 hidden' : '' }}">Analytics</span>
                         </a>
+                        <a href="{{ route('admin.assistant.index') }}"
+                            class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ request()->routeIs('admin.assistant.*') ? 'bg-amber-500 text-white shadow-md shadow-amber-900/20 font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' }}">
+                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg>
+                            <span class="sidebar-text transition-opacity duration-200 {{ request()->cookie('sidebar_collapsed') ? 'opacity-0 hidden' : '' }}">Smart Assistant</span>
+                        </a>
                         <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-500 cursor-not-allowed group" title="Coming soon">
                             <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
                             <span class="sidebar-text transition-opacity duration-200 {{ request()->cookie('sidebar_collapsed') ? 'opacity-0 hidden' : '' }}">Sales Reports</span>
@@ -92,8 +98,11 @@
             </div>
 
             <!-- Collapse Trigger -->
-            <button id="sidebar-collapse-btn" class="absolute -right-3 bottom-20 w-6 h-6 bg-slate-800 text-white rounded-full border-2 border-slate-700 flex items-center justify-center z-30 hover:bg-amber-500 transition-all duration-200">
-                <svg id="collapse-icon" class="w-3 h-3 transition-transform duration-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+            <button id="sidebar-collapse-btn" class="w-full flex items-center justify-center py-3 bg-slate-950 text-slate-400 hover:text-amber-500 hover:bg-slate-800 transition-all duration-300 border-t border-slate-800 group">
+                <div class="flex items-center gap-3">
+                    <svg id="collapse-icon" class="w-4 h-4 transition-transform duration-300 group-hover:scale-110" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                    <span class="sidebar-text text-[10px] font-bold uppercase tracking-widest transition-opacity duration-200">Collapse Menu</span>
+                </div>
             </button>
         </aside>
 
@@ -230,7 +239,7 @@
                     if (isCollapsed) {
                         // COLLAPSE: Hide text instantly, then shrink width
                         document.querySelectorAll('.sidebar-text').forEach(el => {
-                            el.classList.add('opacity-0', 'hidden');
+                            el.classList.add('opacity-0', 'pointer-events-none');
                         });
                         sidebar.classList.replace('w-64', 'w-20');
                         collapseIcon.classList.add('rotate-180');
@@ -240,13 +249,14 @@
                         collapseIcon.classList.remove('rotate-180');
 
                         document.querySelectorAll('.sidebar-text').forEach(el => {
-                            el.classList.remove('hidden');
+                            el.classList.remove('pointer-events-none');
                             setTimeout(() => {
                                 el.classList.remove('opacity-0');
                             }, 100);
                         });
                     }
                 });
+
 
                 // --- Notifications Logic ---
                 function initNotifications() {
