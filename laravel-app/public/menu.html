@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+    <title>DesiFlow - Menu Catalog (new look)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['"Instrument Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'] } } } }
+    </script>
+    <style>.no-scrollbar{scrollbar-width:none}.no-scrollbar::-webkit-scrollbar{display:none}.drag-card{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;cursor:grab}
+        #drop-overlay{opacity:0;pointer-events:none;-webkit-backdrop-filter:blur(0px);backdrop-filter:blur(0px);transition:opacity .3s ease,backdrop-filter .3s ease,-webkit-backdrop-filter .3s ease}
+        #drop-overlay.open{opacity:1;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+        #drop-zone{border-color:rgba(255,255,255,.4);transform:scale(.88);transition:transform .35s cubic-bezier(.2,.8,.2,1),border-color .2s,background-color .2s}
+        #drop-overlay.open #drop-zone{transform:scale(1);border-color:#fbbf24;background-color:rgba(245,158,11,.18)}
+        button{transition-duration:.22s!important}
+        .card-in{animation:cardIn .32s ease-out backwards}
+        @keyframes cardIn{from{opacity:0;transform:translateY(10px)}}
+        #overlay{opacity:0;visibility:hidden;transition:opacity .28s ease,visibility 0s linear .28s}
+        #overlay.open{opacity:1;visibility:visible;transition:opacity .28s ease}
+        #overlay-panel{transform:translateY(36px);transition:transform .34s cubic-bezier(.22,.9,.3,1)}
+        #overlay.open #overlay-panel{transform:none}
+        #toast{opacity:0;transform:translate(-50%,10px);pointer-events:none;transition:opacity .25s ease,transform .25s ease}
+        #toast.show{opacity:1;transform:translate(-50%,0)}
+        @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+    </style>
+</head>
+<body class="bg-stone-100 font-sans text-slate-900 flex items-center justify-center min-h-screen">
+
+    <div class="bg-amber-50 w-full max-w-sm h-[100dvh] sm:h-[min(800px,94dvh)] sm:rounded-3xl sm:shadow-2xl relative flex flex-col overflow-hidden">
+
+        <!-- Header (admin sidebar look: slate-900 + amber) -->
+        <header class="relative bg-gradient-to-br from-amber-300 to-amber-500 px-5 pb-6 rounded-b-[2rem] shadow-lg shadow-amber-900/10" style="padding-top:max(1.25rem,env(safe-area-inset-top))">
+            <div class="flex items-center justify-between">
+                <button onclick="location.href='/dashboard.html'" class="w-10 h-10 rounded-full bg-white text-slate-900 shadow-md hover:bg-amber-50 flex items-center justify-center" aria-label="Back"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg></button>
+                <div class="flex items-center gap-2">
+                    <button onclick="location.href='/history.html'" class="w-10 h-10 rounded-full bg-white text-slate-900 shadow-md hover:bg-amber-50 flex items-center justify-center" aria-label="Order history">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m5-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </button>
+                    <button id="cart-btn" onclick="location.href='cart.html'" class="relative z-[45] w-10 h-10 rounded-full bg-white text-slate-900 shadow-md hover:bg-amber-50 flex items-center justify-center" aria-label="Cart">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.3 2.3c-.6.6-.2 1.7.7 1.7H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                        <span id="cart-badge" class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold border-2 border-white">0</span>
+                    </button>
+                </div>
+            </div>
+            <div class="mt-4">
+                <p class="text-[11px] font-bold text-amber-900/70 uppercase tracking-widest">Desi Zaika</p>
+                <h1 class="text-2xl font-extrabold text-slate-900 leading-tight">What are you craving?</h1>
+            </div>
+        </header>
+
+        <!-- Category tabs -->
+        <nav class="px-4 pt-4 overflow-x-auto whitespace-nowrap flex gap-2 no-scrollbar">
+            <button onclick="filterCategory('all')" id="tab-all" class="category-tab px-4 py-1.5 rounded-full text-sm font-semibold transition bg-slate-900 text-white shadow-sm">All</button>
+            <button onclick="filterCategory('main course')" id="tab-main" class="category-tab px-4 py-1.5 rounded-full text-sm font-semibold transition bg-white text-slate-600 border border-amber-200 hover:bg-amber-100">Main Course</button>
+            <button onclick="filterCategory('snacks')" id="tab-snacks" class="category-tab px-4 py-1.5 rounded-full text-sm font-semibold transition bg-white text-slate-600 border border-amber-200 hover:bg-amber-100">Snacks</button>
+            <button onclick="filterCategory('drinks')" id="tab-drinks" class="category-tab px-4 py-1.5 rounded-full text-sm font-semibold transition bg-white text-slate-600 border border-amber-200 hover:bg-amber-100">Drinks</button>
+            <button onclick="filterCategory('desserts')" id="tab-desserts" class="category-tab px-4 py-1.5 rounded-full text-sm font-semibold transition bg-white text-slate-600 border border-amber-200 hover:bg-amber-100">Desserts</button>
+        </nav>
+
+        <main class="flex-1 overflow-y-auto p-4 space-y-3 pb-8">
+            <div><h2 id="category-title" class="text-sm font-semibold text-slate-500">Full menu</h2>
+                 <p class="text-xs text-slate-400 mt-0.5">Tip: press and hold a dish, then drag it to the cart icon.</p></div>
+            <div id="menu-container" class="grid grid-cols-2 gap-3"></div>
+        </main>
+
+
+        <!-- DRAG-TO-CART OVERLAY (fades in only while a dish hovers over the cart icon) -->
+        <div id="drop-overlay" class="absolute inset-0 z-40 bg-slate-900/55 flex items-center justify-center p-6">
+            <div id="drop-zone" class="w-full rounded-3xl border-2 border-dashed px-6 py-12 text-center">
+                <div class="mx-auto w-16 h-16 rounded-2xl bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-900/30">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.3 2.3c-.6.6-.2 1.7.7 1.7H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                </div>
+                <p class="mt-4 text-lg font-bold text-white">Drop your dish to the cart</p>
+                <p id="drop-name" class="text-sm text-slate-300 mt-1"></p>
+            </div>
+        </div>
+
+        <!-- ITEM DETAIL OVERLAY -->
+    <div id="overlay" class="absolute inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end justify-center" onclick="if(event.target===this)closeOverlay()">
+        <div id="overlay-panel" class="bg-white w-full max-w-md rounded-t-3xl shadow-2xl max-h-[90%] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="ov-name">
+            <div class="p-5">
+                <div class="relative">
+                    <div class="h-44 rounded-2xl bg-slate-100 border border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-sm font-medium overflow-hidden">
+                        <img id="ov-img" class="hidden w-full h-full object-cover" alt="">
+                        <span id="ov-img-ph">No photo yet</span>
+                    </div>
+                    <button onclick="closeOverlay()" class="absolute top-2 right-2 w-8 h-8 rounded-full bg-slate-900/80 text-white hover:bg-slate-900 flex items-center justify-center" aria-label="Close">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="mt-4 flex items-start justify-between gap-3">
+                    <div>
+                        <h3 id="ov-name" class="text-xl font-bold text-slate-900"></h3>
+                        <p id="ov-cat" class="text-xs text-slate-400 capitalize"></p>
+                    </div>
+                    <p id="ov-price" class="text-lg font-bold text-amber-600 shrink-0"></p>
+                </div>
+                <p id="ov-desc" class="mt-2 text-sm text-slate-500 leading-relaxed"></p>
+
+                <div id="ov-addons-wrap" class="mt-5">
+                    <p class="text-sm font-semibold text-slate-800 mb-2">Add-ons <span class="font-normal text-slate-400">(optional)</span></p>
+                    <div id="ov-addons" class="space-y-2"></div>
+                </div>
+            </div>
+
+            <div class="sticky bottom-0 bg-white border-t border-slate-100 p-4 flex items-center gap-3" style="padding-bottom:max(1rem,env(safe-area-inset-bottom))">
+                <div class="flex items-center bg-slate-100 rounded-xl">
+                    <button onclick="changeQty(-1)" class="w-10 h-10 text-lg font-bold text-slate-600 hover:text-amber-600" aria-label="Decrease">&minus;</button>
+                    <span id="ov-qty" class="w-8 text-center font-bold">1</span>
+                    <button onclick="changeQty(1)" class="w-10 h-10 text-lg font-bold text-slate-600 hover:text-amber-600" aria-label="Increase">+</button>
+                </div>
+                <button onclick="addToCart()" class="flex-1 h-11 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold shadow-md shadow-amber-900/20 active:scale-95 transition">
+                    Add to cart (<span id="ov-total"></span>)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="absolute bottom-6 left-1/2 z-[60] bg-slate-900 text-white text-sm font-medium px-4 py-2.5 rounded-xl shadow-xl"></div>
+    </div>
+
+
+    <script>
+        // Fallback sample data, used only when /api/customer/menu is not available yet.
+        let menuItems = [
+            { id: 1, name: "Chicken Biryani", category: "main course", price: 350, status: "available", image: null,
+              description: "Basmati rice slow-cooked with spiced chicken, served with raita.",
+              addons: [{ id: 1, name: "Extra Raita", price: 15 }, { id: 2, name: "Extra Rice", price: 40 }] },
+            { id: 2, name: "Potato Samosa", category: "snacks", price: 150, status: "available", image: null,
+              description: "Spiced potato and pea filling wrapped in crispy pastry. Served with chutney.",
+              addons: [{ id: 3, name: "Mint Chutney", price: 10 }, { id: 4, name: "Extra Raita", price: 15 }] }
+        ];
+
+        const peso = n => '₱ ' + Number(n).toFixed(2);
+        const getCart = () => JSON.parse(sessionStorage.getItem('cart_items') || '[]');
+        let state = { item: null, qty: 1, addons: new Set() };
+
+        // Dynamic data: pulls from Laravel when the endpoint exists, otherwise uses the sample data above.
+        async function loadMenu() {
+            try {
+                const res = await fetch('/api/customer/menu', { headers: { Accept: 'application/json' } });
+                if (res.ok) menuItems = await res.json();
+            } catch (e) { /* keep fallback */ }
+            const c = (new URLSearchParams(location.search).get('category') || 'all').toLowerCase();
+            filterCategory(c);
+        }
+
+        function renderMenu(filter = 'all') {
+            const box = document.getElementById('menu-container');
+            document.getElementById('category-title').innerText = filter === 'all' ? 'Full menu' : filter.replace(/\b\w/g, c => c.toUpperCase());
+            const list = filter === 'all' ? menuItems : menuItems.filter(i => i.category === filter);
+            if (!list.length) { box.innerHTML = '<p class="col-span-2 text-center text-slate-400 text-sm py-10">No items in this category yet.</p>'; return; }
+            box.innerHTML = list.map((item, idx) => {
+                const out = item.status === 'sold out';
+                return `
+                <div class="bg-white border border-amber-100 rounded-3xl p-2.5 shadow-sm flex flex-col card-in ${out ? 'opacity-60' : 'drag-card'}" style="animation-delay:${idx * 45}ms" ${out ? '' : `data-drag-id="${item.id}"`}>
+                    <div class="relative aspect-square rounded-2xl bg-amber-100 flex items-center justify-center text-xs text-amber-700/60 font-medium overflow-hidden">
+                        ${item.image ? `<img src="${item.image}" class="w-full h-full object-cover" alt="">` : 'No photo'}
+                        ${out ? '<span class="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Sold out</span>' : ''}
+                    </div>
+                    <div class="px-1.5 pt-2.5 flex-1">
+                        <h3 class="font-bold text-sm text-slate-900 leading-snug">${item.name}</h3>
+                        <p class="text-[11px] text-slate-400 capitalize">${item.category}</p>
+                        <p class="text-sm font-extrabold text-slate-900 mt-1">${peso(item.price)}</p>
+                    </div>
+                    ${out ? '<button disabled class="mt-2.5 w-full py-2 rounded-xl bg-slate-200 text-slate-400 text-xs font-bold cursor-not-allowed">Choose</button>'
+                          : `<button onclick="chooseItem(${item.id})" class="mt-2.5 w-full py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-900 text-xs font-bold shadow-sm transition">Choose</button>`}
+                </div>`;
+            }).join('');
+        }
+
+        function filterCategory(cat) {
+            document.querySelectorAll('.category-tab').forEach(t => {
+                t.classList.remove('bg-slate-900', 'text-white', 'shadow-sm');
+                t.classList.add('bg-white', 'text-slate-600');
+            });
+            const tab = document.getElementById(cat === 'all' ? 'tab-all' : 'tab-' + cat.split(' ')[0]);
+            if (tab) { tab.classList.remove('bg-white', 'text-slate-600'); tab.classList.add('bg-slate-900', 'text-white', 'shadow-sm'); }
+            renderMenu(cat);
+        }
+
+        // ---- Item Detail Overlay ----
+        function chooseItem(id) {
+            const item = menuItems.find(i => i.id === id);
+            if (!item || item.status === 'sold out') return;
+            sessionStorage.setItem('selected_item_id', id);
+            state = { item, qty: 1, addons: new Set() };
+            document.getElementById('ov-name').innerText = item.name;
+            document.getElementById('ov-cat').innerText = item.category;
+            document.getElementById('ov-price').innerText = peso(item.price);
+            document.getElementById('ov-desc').innerText = item.description || 'No description available.';
+            const img = document.getElementById('ov-img'), ph = document.getElementById('ov-img-ph');
+            if (item.image) { img.src = item.image; img.classList.remove('hidden'); ph.classList.add('hidden'); }
+            else { img.classList.add('hidden'); ph.classList.remove('hidden'); }
+
+            const addons = item.addons || [];
+            document.getElementById('ov-addons-wrap').classList.toggle('hidden', !addons.length);
+            document.getElementById('ov-addons').innerHTML = addons.map(a => `
+                <label class="flex items-center justify-between border border-slate-200 rounded-xl px-3 py-2.5 cursor-pointer hover:border-amber-400 has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50">
+                    <span class="flex items-center gap-3 text-sm text-slate-700">
+                        <input type="checkbox" class="w-4 h-4 accent-amber-500" onchange="toggleAddon(${a.id}, this.checked)"> ${a.name}
+                    </span>
+                    <span class="text-sm font-semibold text-slate-500">+ ${peso(a.price)}</span>
+                </label>`).join('');
+            refreshOverlay();
+            document.getElementById('overlay-panel').scrollTop = 0;
+            document.getElementById('overlay').classList.add('open');
+        }
+
+        function closeOverlay() {
+            document.getElementById('overlay').classList.remove('open');
+        }
+
+        function toggleAddon(id, on) { on ? state.addons.add(id) : state.addons.delete(id); refreshOverlay(); }
+        function changeQty(d) { state.qty = Math.max(1, state.qty + d); refreshOverlay(); }
+        function chosenAddons() { return (state.item.addons || []).filter(a => state.addons.has(a.id)); }
+        function unitPrice() { return state.item.price + chosenAddons().reduce((s, a) => s + a.price, 0); }
+        function refreshOverlay() {
+            document.getElementById('ov-qty').innerText = state.qty;
+            document.getElementById('ov-total').innerText = peso(unitPrice() * state.qty);
+        }
+
+        function pushToCart(item, addons, qty) {
+            const cart = getCart();
+            const key = item.id + '|' + addons.map(a => a.id).sort().join(',');
+            const unit = item.price + addons.reduce((sum, a) => sum + a.price, 0);
+            const found = cart.find(c => c.key === key);
+            if (found) found.quantity += qty;
+            else cart.push({ key, id: item.id, name: item.name, category: item.category,
+                             price: unit, quantity: qty, addons: addons.map(a => ({ name: a.name, price: a.price })) });
+            sessionStorage.setItem('cart_items', JSON.stringify(cart));
+            updateBadge();
+        }
+
+        function addToCart() {
+            pushToCart(state.item, chosenAddons(), state.qty);
+            closeOverlay(); showToast(`${state.item.name} added to cart`);
+        }
+
+        function updateBadge() { document.getElementById('cart-badge').innerText = getCart().reduce((s, i) => s + i.quantity, 0); }
+        function showToast(msg) {
+            const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('show');
+            clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2200);
+        }
+
+
+        // ---- Drag a dish to the cart (press & hold, then drag) ----
+        // The blur "Drop your dish to the cart" screen opens only while the dish hovers over the cart icon.
+        const drag = { timer: null, active: false, item: null, card: null, ghost: null, x0: 0, y0: 0, type: 'touch' };
+        const dropOv = document.getElementById('drop-overlay');
+        const cartBtn = document.getElementById('cart-btn');
+        const GW = 210, GH = 54;
+        const HINT = ['ring-4', 'ring-white', 'animate-pulse'];
+
+        // true when the finger is on (or within 28px of) the cart icon
+        function overCart(x, y) {
+            const r = cartBtn.getBoundingClientRect(), pad = 28;
+            return x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad;
+        }
+
+        function startDrag(x, y) {
+            if (!drag.card) return;
+            drag.active = true;
+            if (navigator.vibrate) navigator.vibrate(15);
+            const r = drag.card.getBoundingClientRect(), item = drag.item;
+            drag.card.style.opacity = '0.35';
+            const g = document.createElement('div');
+            g.style.cssText = `position:fixed;z-index:70;pointer-events:none;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;transition:left .3s ease,top .3s ease,width .3s ease,height .3s ease`;
+            g.innerHTML = `<div class="w-full h-full flex items-center gap-2.5 p-2 bg-white border border-amber-200 rounded-2xl shadow-2xl overflow-hidden" style="transition:transform .2s ease">
+                <div class="w-9 h-9 shrink-0 rounded-xl bg-amber-100 flex items-center justify-center overflow-hidden">
+                    ${item.image ? `<img src="${item.image}" class="w-full h-full object-cover" alt="">` : '<svg class="w-5 h-5 text-amber-600/70" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.16-5.16a2.25 2.25 0 013.18 0l5.16 5.16m-1.5-1.5l1.41-1.41a2.25 2.25 0 013.18 0l2.25 2.25m-18 4.5h13.5A2.25 2.25 0 0021 18.75V5.25A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25v13.5A2.25 2.25 0 005.25 21z"/></svg>'}
+                </div>
+                <p class="text-sm font-bold text-slate-900 truncate">${item.name}</p>
+            </div>`;
+            document.body.appendChild(g);
+            drag.ghost = g;
+            g.offsetWidth;                                   // start the card -> chip shrink animation
+            g.style.width = GW + 'px'; g.style.height = GH + 'px';
+            setTimeout(() => { if (drag.ghost === g) g.style.transition = 'none'; }, 320);
+            document.getElementById('drop-name').innerText = item.name;
+            cartBtn.classList.add(...HINT);
+            moveDrag(x, y);
+        }
+
+        function moveDrag(x, y) {
+            const g = drag.ghost, hot = overCart(x, y);
+            g.style.left = (x - GW / 2) + 'px';
+            g.style.top = (y - GH / 2) + 'px';
+            g.firstElementChild.style.transform = hot ? 'scale(.78)' : 'scale(1)';
+            dropOv.classList.toggle('open', hot);
+        }
+
+        function stopDrag() {
+            drag.ghost.remove(); drag.ghost = null;
+            drag.card.style.opacity = '';
+            dropOv.classList.remove('open');
+            cartBtn.classList.remove(...HINT);
+            drag.active = false; drag.card = null; drag.item = null;
+        }
+
+        function endDrag(x, y) {
+            const dropped = overCart(x, y), item = drag.item;
+            stopDrag();
+            if (!dropped) return;
+            if (item.addons && item.addons.length) {
+                chooseItem(item.id);                      // has add-ons: open the detail overlay (add-ons + quantity)
+            } else {
+                pushToCart(item, [], 1);                  // no add-ons: straight into the cart
+                showToast(`${item.name} added to cart`);
+                cartBtn.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.25)' }, { transform: 'scale(1)' }], { duration: 350 });
+            }
+        }
+
+        document.getElementById('menu-container').addEventListener('pointerdown', e => {
+            const card = e.target.closest('[data-drag-id]');
+            if (!card || e.target.closest('button') || (e.pointerType === 'mouse' && e.button !== 0)) return;
+            drag.card = card; drag.x0 = e.clientX; drag.y0 = e.clientY; drag.type = e.pointerType;
+            drag.item = menuItems.find(i => String(i.id) === card.dataset.dragId);
+            drag.timer = setTimeout(() => { drag.timer = null; startDrag(drag.x0, drag.y0); }, 220);
+        });
+
+        document.addEventListener('pointermove', e => {
+            if (drag.active) { moveDrag(e.clientX, e.clientY); return; }
+            if (!drag.timer) return;
+            const moved = Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0);
+            if (drag.type === 'mouse' && moved > 6) { clearTimeout(drag.timer); drag.timer = null; startDrag(e.clientX, e.clientY); }
+            else if (moved > 8) { clearTimeout(drag.timer); drag.timer = null; drag.card = null; } // user is scrolling
+        });
+
+        document.addEventListener('pointerup', e => {
+            if (drag.timer) { clearTimeout(drag.timer); drag.timer = null; drag.card = null; }
+            if (drag.active) endDrag(e.clientX, e.clientY);
+        });
+        document.addEventListener('pointercancel', () => {
+            if (drag.timer) { clearTimeout(drag.timer); drag.timer = null; }
+            if (drag.active) stopDrag();
+        });
+        // stop the page from scrolling while a dish is being dragged
+        document.addEventListener('touchmove', e => { if (drag.active) e.preventDefault(); }, { passive: false });
+        document.addEventListener('contextmenu', e => { if (e.target.closest('.drag-card')) e.preventDefault(); });
+
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeOverlay(); });
+        document.addEventListener('DOMContentLoaded', () => { loadMenu(); updateBadge(); });
+    </script>
+</body>
+</html>

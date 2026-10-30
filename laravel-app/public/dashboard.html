@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desi Zaika - Dashboard</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'desi-yellow': '#F4B41A',
+                        'desi-blue': '#2D4A77'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <!-- Mobile Device Simulator Container -->
+    <div class="bg-white w-full max-w-sm h-screen sm:h-[800px] sm:rounded-3xl sm:shadow-2xl relative flex flex-col overflow-hidden">
+
+        <!-- Top Header Bar -->
+        <div class="bg-desi-yellow p-4 flex items-center justify-between shadow-sm">
+            <!-- Table Identifier Badge -->
+            <div id="table-indicator" class="bg-white px-3 py-1 rounded-full text-xs font-bold text-desi-blue shadow-inner">
+                [P] Table ?
+            </div>
+
+            <!-- Top Action Icons (History & Cart) -->
+            <div class="flex items-center space-x-3">
+                <!-- Order History / Running Bill Icon -->
+                <button onclick="window.location.href='history.html'" class="bg-white p-2 rounded-full shadow hover:bg-gray-50 transition" title="Table Session History">
+                    <svg class="w-5 h-5 text-desi-blue" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </button>
+
+                <!-- Cart Icon with Live Item Count Badge -->
+                <button onclick="window.location.href='cart.html'" class="bg-white p-2 rounded-full shadow hover:bg-gray-50 transition relative" title="Cart">
+                    <svg class="w-5 h-5 text-desi-blue" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    <span id="cart-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">0</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Scrollable Body Content -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-4">
+
+            <!-- Search Bar -->
+            <div class="relative">
+                <input type="text" placeholder="What are you craving?" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-desi-blue shadow-sm">
+            </div>
+
+            <!-- See Full Menu Button -->
+            <button onclick="window.location.href='menu.html'" class="w-full bg-desi-yellow text-white font-bold py-3 rounded-lg shadow hover:bg-yellow-500 transition tracking-wide text-sm">
+                See Full Menu
+            </button>
+
+            <!-- Categories Section -->
+            <div>
+                <h3 class="text-xs font-bold text-gray-400 tracking-wider uppercase mb-2">Categories</h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="filterCategory('Main Course')" class="bg-gray-100 border border-gray-200 p-4 rounded-lg text-center font-semibold text-desi-blue hover:bg-gray-200 transition text-sm shadow-sm">
+                        Main Course
+                    </button>
+                    <button onclick="filterCategory('Snacks')" class="bg-gray-100 border border-gray-200 p-4 rounded-lg text-center font-semibold text-desi-blue hover:bg-gray-200 transition text-sm shadow-sm">
+                        Snacks
+                    </button>
+                    <button onclick="filterCategory('Drinks')" class="bg-gray-100 border border-gray-200 p-4 rounded-lg text-center font-semibold text-desi-blue hover:bg-gray-200 transition text-sm shadow-sm">
+                        Drinks
+                    </button>
+                    <button onclick="filterCategory('Desserts')" class="bg-gray-100 border border-gray-200 p-4 rounded-lg text-center font-semibold text-desi-blue hover:bg-gray-200 transition text-sm shadow-sm">
+                        Desserts
+                    </button>
+                </div>
+            </div>
+
+            <!-- Recommended For You Section (Driven by Menu Matrix & Spoilage Analytics) -->
+            <div class="space-y-3">
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider">Recommended For You</h3>
+                <div id="recommended-container" class="space-y-3">
+                    <!-- Dynamically populated by recommendation engine / analytics API endpoint -->
+                     <p class="text-xs text-gray-400 italic">Loading recommendations...</p>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Frontend Logic Script -->
+    <script>
+        // Load active table session and cart count on initialization
+        document.addEventListener("DOMContentLoaded", () => {
+            const activeTable = sessionStorage.getItem('active_table') || '1';
+            document.getElementById('table-indicator').innerText = `[P] Table ${activeTable}`;
+            
+            updateCartBadge();
+            loadRecommendedDishes();
+        });
+
+        // Load recommendations dynamically from backend recommendation engine / analytics API endpoint
+        async function loadRecommendedDishes() {
+            const container = document.getElementById('recommended-container');
+            container.innerHTML = '<p class="text-xs text-gray-400 italic p-2">Loading recommendations...</p>';
+
+            try {
+                // Future Laravel endpoint: '/api/recommendations'
+                const response = await fetch('/api/recommendations').catch(() => null);
+                
+                let recommendations = [];
+                
+                if (response && response.ok) {
+                    recommendations = await response.json();
+                } else {
+                    // Fallback simulation for local prototyping until backend endpoint is live
+                    recommendations = [
+                        { id: 101, name: 'Chicken Biryani', category: 'Main Course', price: 350.00, img: '[IMG]' },
+                        { id: 102, name: 'Potato Samosa', category: 'Snacks', price: 150.00, img: '[IMG]' }
+                    ];
+                }
+
+                container.innerHTML = '';
+
+                if (recommendations.length === 0) {
+                    container.innerHTML = `<p class="text-xs text-gray-400 p-2">No recommendations available at this time.</p>`;
+                    return;
+                }
+
+                recommendations.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-white border border-gray-200 rounded-lg p-3 flex items-center justify-between shadow-sm hover:border-desi-blue transition';
+                    card.innerHTML = `
+                        <div class="flex items-center space-x-3">
+                            <div class="w-16 h-16 bg-gray-100 border border-dashed border-gray-400 rounded flex items-center justify-center text-xs text-gray-500 font-bold">${item.img}</div>
+                            <div>
+                                <h4 class="font-bold text-gray-800 text-sm">${item.name}</h4>
+                                <p class="text-xs text-gray-500">${item.category}</p>
+                                <p class="font-semibold text-desi-blue text-sm mt-1">₱ ${item.price.toFixed(2)}</p>
+                            </div>
+                        </div>
+                        <button onclick="openItemModal(${item.id})" class="bg-desi-yellow text-white text-xs font-bold px-4 py-2 rounded shadow hover:bg-yellow-500 transition uppercase">
+                            Choose
+                        </button>
+                    `;
+                    container.appendChild(card);
+                });
+            } catch (error) {
+                container.innerHTML = `<p class="text-xs text-red-500 p-2">Failed to load recommendations.</p>`;
+            }
+        }
+
+        function filterCategory(categoryName) {
+            // Redirect to category view page matching SRS specification
+            window.location.href = `menu.html?category=${encodeURIComponent(categoryName)}`;
+        }
+
+        function openItemModal(itemId) {
+            // Placeholder logic to trigger item detail overlay modal
+            sessionStorage.setItem('selected_item_id', itemId);
+            alert(`Opening item detail overlay for Item ID: ${itemId}`); // Temporary stub
+        }
+
+        function updateCartBadge() {
+            const cart = JSON.parse(sessionStorage.getItem('cart_items')) || [];
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+            document.getElementById('cart-badge').innerText = totalItems;
+        }
+    </script>
+</body>
+</html>
