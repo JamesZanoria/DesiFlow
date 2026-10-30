@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\StaffController;
 use App\Http\Controllers\Admin\AnalyticsController;
+use App\Http\Controllers\Admin\SalesReportController;
 use App\Http\Controllers\Admin\OrderMonitorController;
 use App\Http\Controllers\Admin\SmartAssistantController;
 use App\Http\Controllers\Admin\NotificationsController;
@@ -100,6 +101,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     });
 
     Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard.index');
+    Route::get('/dashboard/data', [App\Http\Controllers\Admin\DashboardController::class, 'data'])->name('dashboard.data');
 
     // Menu Management
     Route::get('/menu/create', [MenuController::class, 'create'])->name('menu.create');
@@ -158,6 +160,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     // Analytics
     Route::get('/analytics/data', [AnalyticsController::class, 'getData'])->name('analytics.data');
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
+
+    // Sales Report
+    Route::get('/sales-report/data', [SalesReportController::class, 'data'])->name('sales-report.data');
+    Route::get('/sales-report', [SalesReportController::class, 'index'])->name('sales-report.index');
 
     // Smart Assistant
     Route::get('/assistant', [SmartAssistantController::class, 'index'])->name('assistant.index');
