@@ -1,5 +1,7 @@
 {
     "require": {
+        "php": "^8.3",
+        "laravel/framework": "^13.0",
         "inertiajs/inertia-laravel": "^3.5"
     },
     "autoload": {
