@@ -1,65 +1,77 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\\Http\\Controllers\\Admin;
 
-use App\Http\Controllers\Controller;
-use App\Models\AnalyticsSnapshot;
-use App\Models\Ingredient;
-use App\Models\MenuItem;
-use App\Models\Order;
-use App\Http\Controllers\Admin\SalesReportController;
+use App\\Http\\Controllers\\Controller;
+use App\\Models\\AnalyticsSnapshot;
+use App\\Models\\Ingredient;
+use App\\Models\\MenuItem;
+use App\\Models\\Order;
 
-
-class AnalyticsController extends Controller{
-    // Display the analytics report, each section pulled from the most recent
-    // batch the analytics microservice generated.
-    public function index(){
-        $data = $this->getAnalyticsData();
-
-        return view('admin.analytics.index', $data);
+class AnalyticsController extends Controller
+{
+    public function index()
+    {
+        return view('admin.analytics.index', $this->getAnalyticsData());
     }
 
-    public function getData(){
+    public function getData()
+    {
         return response()->json($this->getAnalyticsData());
     }
 
-    private function getAnalyticsData(){
+    private function getAnalyticsData(): array
+    {
         $businessHealth = AnalyticsSnapshot::latestOfType('business_health')->first();
-        $businessHealthHistory = $this->businessHealthHistory();
-
-        $menuEngineering = $this->latestBatchWithNames('menu_engineering', MenuItem::class, 'menu_item_id');
-        $demandForecast = $this->latestBatchWithNames('demand_forecast', Ingredient::class, 'ingredient_id');
-        $spoilageRisk = $this->latestBatchWithNames('spoilage_risk', Ingredient::class, 'ingredient_id');
-
-        // Real-time KPIs for immediate business overview
-        $kpis = [
-            'total_revenue' => Order::sum('total_amount'),
-            'total_orders' => Order::count(),
-            'active_menu_items' => MenuItem::count(),
-            'high_risk_ingredients' => AnalyticsSnapshot::where('snapshot_type', 'spoilage_risk')
-                ->whereJsonContains('result_data->risk_level', 'critical')
-                ->orWhereJsonContains('result_data->risk_level', 'high')
-                ->count(),
-        ];
 
         return [
             'businessHealth' => $businessHealth,
             'businessHealthHistory' => $this->businessHealthHistory(),
-            'menuEngineering' => $menuEngineering,
-            'demandForecast' => $demandForecast,
-            'spoilageRisk' => $spoilageRisk,
-            'kpis' => $kpis,
+            'menuEngineering' => $this->latestBatchWithNames('menu_engineering', MenuItem::class, 'menu_item_id'),
+            'demandForecast' => $this->latestBatchWithNames('demand_forecast', Ingredient::class, 'ingredient_id'),
+            'spoilageRisk' => $this->latestBatchWithNames('spoilage_risk', Ingredient::class, 'ingredient_id'),
+            'kpis' => $this->operationalKpis(),
         ];
     }
 
-    // Last 30 days of business_health snapshots, oldest first, for the trend
+    /**
+     * Keep the analytics overview consistent with the sales report:
+     * only completed payments count as revenue or completed orders.
+     */
+    private function operationalKpis(): array
+    {
+        $completedOrders = Order::query()
+            ->whereHas('payment', fn ($query) => $query->where('transaction_status', 'completed'));
 
-    // line chart. Unlike the other three snapshot types (which the
-    // microservice overwrites in place),
-    // 'business_health' is expected to accumulate one row per day, so this
-    // reads a real date range instead of just the latest row.
-    private function businessHealthHistory(){
-        return AnalyticsSnapshot::where('snapshot_type', 'business_health')
+        $latestSpoilageBatch = AnalyticsSnapshot::query()
+            ->where('snapshot_type', 'spoilage_risk')
+            ->max('generated_at');
+
+        $highRiskIngredients = 0;
+
+        if ($latestSpoilageBatch !== null) {
+            $highRiskIngredients = AnalyticsSnapshot::query()
+                ->where('snapshot_type', 'spoilage_risk')
+                ->where('generated_at', $latestSpoilageBatch)
+                ->where(function ($query) {
+                    $query->whereJsonContains('result_data->risk_level', 'critical')
+                        ->orWhereJsonContains('result_data->risk_level', 'high');
+                })
+                ->count();
+        }
+
+        return [
+            'total_revenue' => (float) (clone $completedOrders)->sum('total_amount'),
+            'total_orders' => (clone $completedOrders)->count(),
+            'active_menu_items' => MenuItem::query()->where('is_available', true)->count(),
+            'high_risk_ingredients' => $highRiskIngredients,
+        ];
+    }
+
+    private function businessHealthHistory()
+    {
+        return AnalyticsSnapshot::query()
+            ->where('snapshot_type', 'business_health')
             ->where('generated_at', '>=', now()->subDays(30))
             ->orderBy('generated_at')
             ->get()
@@ -71,40 +83,36 @@ class AnalyticsController extends Controller{
             ->values();
     }
 
-    // Fetch the most recent batch of snapshots for a given type, and attach it
-    // to the actual named record each one refers to.
-    // Deliberately starts from every CURRENT record in $modelClass (not from
-    // whatever snapshots happen to exist) and left-joins the snapshot data
-    // onto it in memory. A menu item added five minutes ago, or one the
-    // microservice hasn't scored yet for lack of order history, still needs
-    // to appear in the report, just flagged as "not yet available" rather than
-    // silently missing (alternate flow: "the system labels that
-    // item's forecast 'Insufficient Data' rather than displaying a misleading
-    // figure"). The old snapshot-first approach would have dropped it
-    // entirely instead.
-    private function latestBatchWithNames(string $type, string $modelClass, string $keyColumn){
-        $latestTimestamp = AnalyticsSnapshot::where('snapshot_type', $type)->max('generated_at');
+    /**
+     * Attach the latest analytics batch to every current record. Records that
+     * have not yet received a score remain present with null data so the UI
+     * can display an explicit insufficient-data state.
+     */
+    private function latestBatchWithNames(string $type, string $modelClass, string $keyColumn)
+    {
+        $latestTimestamp = AnalyticsSnapshot::query()
+            ->where('snapshot_type', $type)
+            ->max('generated_at');
 
         $snapshotsByRecordId = collect();
 
-        if ($latestTimestamp) {
-            $snapshotsByRecordId = AnalyticsSnapshot::where('snapshot_type', $type)
+        if ($latestTimestamp !== null) {
+            $snapshotsByRecordId = AnalyticsSnapshot::query()
+                ->where('snapshot_type', $type)
                 ->where('generated_at', $latestTimestamp)
                 ->get()
                 ->keyBy('reference_id');
         }
 
-        // Determine the correct name column based on the model class
-        // We use a mapping to avoid hardcoding strings repeatedly
         $nameColumns = [
-            \App\Models\Ingredient::class => 'ingredient_name',
-            \App\Models\MenuItem::class => 'item_name',
+            Ingredient::class => 'ingredient_name',
+            MenuItem::class => 'item_name',
         ];
 
         $nameColumn = $nameColumns[$modelClass] ?? 'name';
 
         return $modelClass::query()
-            ->select($keyColumn, $nameColumn) // Optimize: Only select the ID and Name for the mapping
+            ->select($keyColumn, $nameColumn)
             ->get()
             ->map(function ($record) use ($snapshotsByRecordId, $keyColumn) {
                 $snapshot = $snapshotsByRecordId->get($record->{$keyColumn});
