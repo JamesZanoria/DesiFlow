@@ -1,12 +1,12 @@
 <?php
 
-namespace App\\Http\\Controllers\\Admin;
+namespace App\Http\Controllers\Admin;
 
-use App\\Http\\Controllers\\Controller;
-use App\\Models\\AnalyticsSnapshot;
-use App\\Models\\Ingredient;
-use App\\Models\\MenuItem;
-use App\\Models\\Order;
+use App\Http\Controllers\Controller;
+use App\Models\AnalyticsSnapshot;
+use App\Models\Ingredient;
+use App\Models\MenuItem;
+use App\Models\Order;
 
 class AnalyticsController extends Controller
 {
