@@ -7,6 +7,7 @@ use App\Models\AnalyticsSnapshot;
 use App\Models\Ingredient;
 use App\Models\MenuItem;
 use App\Models\Order;
+use App\Http\Controllers\Admin\SalesReportController;
 
 
 class AnalyticsController extends Controller{
